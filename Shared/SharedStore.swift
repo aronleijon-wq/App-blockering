@@ -17,6 +17,7 @@ enum SharedStore {
     private static let selectionKey = "selection"
     private static let progressKey = "progress"
     private static let proKey = "isPro"
+    private static let wasAuthorizedKey = "wasAuthorized"
 
     static var rules: PausRules {
         get { load(rulesKey) ?? PausRules() }
@@ -42,6 +43,12 @@ enum SharedStore {
     static var isPro: Bool {
         get { AppGroup.defaults.bool(forKey: proKey) }
         set { AppGroup.defaults.set(newValue, forKey: proKey) }
+    }
+
+    /// Whether Paus had Screen Time access last time it checked, to notice when it is turned off.
+    static var wasAuthorized: Bool {
+        get { AppGroup.defaults.bool(forKey: wasAuthorizedKey) }
+        set { AppGroup.defaults.set(newValue, forKey: wasAuthorizedKey) }
     }
 
     /// The rules actually enforced, with Pro-only features dropped for free users.

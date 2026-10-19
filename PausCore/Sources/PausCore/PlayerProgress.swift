@@ -7,6 +7,10 @@ enum ProgressEvent: Equatable {
     case declinedPause
     case claimedDailyReward
     case dayUnderLimit
+    /// Took a pause from a block anyway. Costs league points after the first one each day.
+    case tookPause
+    /// Turned off Paus's Screen Time access. Costs points and the streak.
+    case disabledProtection
 }
 
 enum Reward: Codable, Equatable, Hashable {
@@ -33,8 +37,9 @@ struct DailyCounts: Codable, Equatable {
     var completedQuests: Set<String>
     /// Focus minutes already counted toward league points today.
     var focusPoints: Int
+    var pauses: Int
 
-    init(day: String? = nil, focusSessions: Int = 0, focusMinutes: Int = 0, closes: Int = 0, declines: Int = 0, completedQuests: Set<String> = [], focusPoints: Int = 0) {
+    init(day: String? = nil, focusSessions: Int = 0, focusMinutes: Int = 0, closes: Int = 0, declines: Int = 0, completedQuests: Set<String> = [], focusPoints: Int = 0, pauses: Int = 0) {
         self.day = day
         self.focusSessions = focusSessions
         self.focusMinutes = focusMinutes
@@ -42,6 +47,7 @@ struct DailyCounts: Codable, Equatable {
         self.declines = declines
         self.completedQuests = completedQuests
         self.focusPoints = focusPoints
+        self.pauses = pauses
     }
 
     init(from decoder: Decoder) throws {
@@ -53,6 +59,7 @@ struct DailyCounts: Codable, Equatable {
         declines = try container.decodeIfPresent(Int.self, forKey: .declines) ?? 0
         completedQuests = try container.decodeIfPresent(Set<String>.self, forKey: .completedQuests) ?? []
         focusPoints = try container.decodeIfPresent(Int.self, forKey: .focusPoints) ?? 0
+        pauses = try container.decodeIfPresent(Int.self, forKey: .pauses) ?? 0
     }
 }
 
@@ -95,6 +102,8 @@ struct PlayerProgress: Codable, Equatable {
     var leagueGroupID: String?
     /// A week that ended but whose division change hasn't been settled yet.
     var finishedWeek: FinishedWeek?
+    /// How often each pause reason was picked, keyed by `PauseReason` raw value.
+    var pauseReasons: [String: Int]
 
     init(
         xp: Int = 0,
@@ -115,7 +124,8 @@ struct PlayerProgress: Codable, Equatable {
         weeklyPoints: Int = 0,
         division: Division = .brons,
         leagueGroupID: String? = nil,
-        finishedWeek: FinishedWeek? = nil
+        finishedWeek: FinishedWeek? = nil,
+        pauseReasons: [String: Int] = [:]
     ) {
         self.xp = xp
         self.streak = streak
@@ -136,6 +146,7 @@ struct PlayerProgress: Codable, Equatable {
         self.division = division
         self.leagueGroupID = leagueGroupID
         self.finishedWeek = finishedWeek
+        self.pauseReasons = pauseReasons
     }
 
     init(from decoder: Decoder) throws {
@@ -159,6 +170,7 @@ struct PlayerProgress: Codable, Equatable {
         division = try container.decodeIfPresent(Division.self, forKey: .division) ?? .brons
         leagueGroupID = try container.decodeIfPresent(String.self, forKey: .leagueGroupID)
         finishedWeek = try container.decodeIfPresent(FinishedWeek.self, forKey: .finishedWeek)
+        pauseReasons = try container.decodeIfPresent([String: Int].self, forKey: .pauseReasons) ?? [:]
     }
 
     var level: Int { Level.level(forXP: xp) }
@@ -231,8 +243,16 @@ struct PlayerProgress: Codable, Equatable {
         case .dayUnderLimit:
             gained = XP.dayUnderLimit
             points = League.Points.dayUnderLimit
+        case .tookPause:
+            today.pauses += 1
+            points = -League.pausePenalty(forPause: today.pauses)
+        case .disabledProtection:
+            points = -League.Points.disabledProtectionPenalty
+            streak = 0
+            lastActiveDay = nil
         }
-        weeklyPoints += points
+        // XP is never taken away, so levels stay earned; only this week's league points drop.
+        weeklyPoints = max(0, weeklyPoints + points)
 
         var rewards: [Reward] = []
         if gained > 0 { rewards.append(.xp(gained)) }
@@ -268,6 +288,15 @@ struct PlayerProgress: Codable, Equatable {
         // Only days the user actually had Paus count.
         guard limitWasSet, limitReachedDay != yesterday, let firstDay, firstDay <= yesterday else { return [] }
         return record(.dayUnderLimit, at: date, calendar: calendar)
+    }
+
+    /// League points the next pause today would cost.
+    func nextPausePenalty(at date: Date, calendar: Calendar) -> Int {
+        League.pausePenalty(forPause: counts(at: date, calendar: calendar).pauses + 1)
+    }
+
+    mutating func recordPauseReason(_ reason: PauseReason) {
+        pauseReasons[reason.rawValue, default: 0] += 1
     }
 
     /// League points for the week containing `date`; zero when the stored points belong to an earlier week.

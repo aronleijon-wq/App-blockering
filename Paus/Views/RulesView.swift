@@ -89,7 +89,7 @@ struct RulesView: View {
                 } header: {
                     Text("Pauser")
                 } footer: {
-                    Text("En paus öppnar de blockerade apparna en kort stund. Innan dess andas du en stund. Tackar du nej får du \(PlayerProgress.XP.decline) XP.")
+                    Text("En paus öppnar de blockerade apparna en kort stund. Först svarar du varför och andas en stund. Dagens första paus är gratis, sedan kostar de \(League.pausePenalty(forPause: 2)), \(League.pausePenalty(forPause: 3)) och \(League.pausePenalty(forPause: 4)) veckopoäng. Tackar du nej får du \(PlayerProgress.XP.decline) XP.")
                 }
             }
             .scrollContentBackground(.hidden)

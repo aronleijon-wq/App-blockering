@@ -24,7 +24,9 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         let now = Date.now
         let engine = BlockEngine(rules: SharedStore.effectiveRules, runtime: SharedStore.runtime)
         let canPause = engine.canPause(at: now)
-        let closesToday = SharedStore.progress.counts(at: now, calendar: .current).closes
+        let progress = SharedStore.progress
+        let closesToday = progress.counts(at: now, calendar: .current).closes
+        let penalty = progress.nextPausePenalty(at: now, calendar: .current)
         let earnsXP = closesToday < PlayerProgress.XP.closeDailyCap
         let pink = UIColor(red: 1.0, green: 0.31, blue: 0.64, alpha: 1)
         let background = UIColor(red: 0.055, green: 0.043, blue: 0.122, alpha: 1)
@@ -43,7 +45,9 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             subtitle: ShieldConfiguration.Label(text: subtitle, color: UIColor.white.withAlphaComponent(0.75)),
             primaryButtonLabel: ShieldConfiguration.Label(text: earnsXP ? "Stäng (+\(PlayerProgress.XP.close) XP)" : "Stäng", color: .white),
             primaryButtonBackgroundColor: pink,
-            secondaryButtonLabel: canPause ? ShieldConfiguration.Label(text: "Ta en paus", color: pink) : nil
+            secondaryButtonLabel: canPause
+                ? ShieldConfiguration.Label(text: penalty == 0 ? "Ta en paus (gratis)" : "Ta en paus (−\(penalty) poäng)", color: pink)
+                : nil
         )
     }
 }

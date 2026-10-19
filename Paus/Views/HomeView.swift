@@ -169,7 +169,11 @@ struct HomeView: View {
                         Button {
                             model.isPauseSheetPresented = true
                         } label: {
-                            Label("Ta en paus på \(model.rules.pause.minutes) min", systemImage: "cup.and.saucer.fill")
+                            let penalty = model.progress.nextPausePenalty(at: date, calendar: .current)
+                            Label(
+                                penalty == 0 ? "Ta en paus på \(model.rules.pause.minutes) min (gratis)" : "Ta en paus (−\(penalty) poäng)",
+                                systemImage: "cup.and.saucer.fill"
+                            )
                         }
                         .buttonStyle(ChipButtonStyle())
                         .disabled(!engine.canPause(at: date))

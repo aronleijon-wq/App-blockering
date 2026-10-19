@@ -51,6 +51,11 @@ struct RootView: View {
         ) {
             CelebrationView(rewards: model.celebration)
         }
+        .alert("Pip märkte att du stängde av Paus", isPresented: $model.isProtectionWarningPresented) {
+            Button("Okej", role: .cancel) {}
+        } message: {
+            Text("Din streak nollställdes och du förlorade \(League.Points.disabledProtectionPenalty) veckopoäng. Slå på Paus igen för att fortsätta blockera.")
+        }
         .alert(
             "Något gick fel",
             isPresented: Binding(

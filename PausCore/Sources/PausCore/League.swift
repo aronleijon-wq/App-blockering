@@ -64,6 +64,17 @@ enum League {
         static let decline = 10
         static let dailyReward = 10
         static let dayUnderLimit = 30
+        static let disabledProtectionPenalty = 100
+    }
+
+    /// League points the `number`th pause of a day costs: the first is free, then 10, 20 and 40.
+    static func pausePenalty(forPause number: Int) -> Int {
+        switch number {
+        case ...1: return 0
+        case 2: return 10
+        case 3: return 20
+        default: return 40
+        }
     }
 
     /// ISO week such as "2026-W43", in the calendar's time zone.

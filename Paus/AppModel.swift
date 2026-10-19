@@ -24,6 +24,8 @@ final class AppModel {
     /// Rewards to celebrate on screen; cleared when the celebration is dismissed.
     var celebration: [Reward] = []
     var errorMessage: String?
+    /// Set when Paus finds its Screen Time access was turned off since the last launch.
+    var isProtectionWarningPresented = false
 
     let store = Store()
     let league = LeagueService()
@@ -77,6 +79,7 @@ final class AppModel {
     /// Picks up changes the extensions made and makes sure monitoring and the shield match the rules.
     func reload() {
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+        checkProtection()
         runtime = SharedStore.runtime
         progress = SharedStore.progress
         guard isAuthorized else { return }
@@ -169,6 +172,35 @@ final class AppModel {
         celebration = []
         SharedStore.updateProgress { progress in
             progress.pendingRewards = []
+            return []
+        }
+        progress = SharedStore.progress
+    }
+
+    /// Turning off Screen Time access is the easiest way around every block, so it costs points and the streak.
+    private func checkProtection() {
+        #if !targetEnvironment(simulator)
+        if authorizationStatus == .approved {
+            SharedStore.wasAuthorized = true
+        } else if SharedStore.wasAuthorized {
+            // The status can read as not determined for a moment at launch, so look again before judging.
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                let status = AuthorizationCenter.shared.authorizationStatus
+                authorizationStatus = status
+                guard status != .approved, SharedStore.wasAuthorized else { return }
+                SharedStore.wasAuthorized = false
+                ProgressRecorder.record(.disabledProtection)
+                progress = SharedStore.progress
+                isProtectionWarningPresented = true
+            }
+        }
+        #endif
+    }
+
+    func recordPauseReason(_ reason: PauseReason) {
+        SharedStore.updateProgress { progress in
+            progress.recordPauseReason(reason)
             return []
         }
         progress = SharedStore.progress
@@ -302,6 +334,8 @@ final class AppModel {
             return
         }
         updateRuntime { $0.startPause(at: now, until: end, calendar: .current) }
+        ProgressRecorder.record(.tookPause)
+        progress = SharedStore.progress
         ShieldController.refresh()
     }
 

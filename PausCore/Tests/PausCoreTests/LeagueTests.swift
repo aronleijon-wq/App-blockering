@@ -88,3 +88,59 @@ final class LeagueTests: XCTestCase {
         XCTAssertEqual(Nickname.problem(with: "PausAdmin"), .notAllowed)
     }
 }
+
+final class PausePenaltyTests: XCTestCase {
+    private let calendar = TestCalendar.stockholm
+    private let monday = TestCalendar.date(2026, 10, 19, 10, 0)
+
+    func testPenaltyGrowsWithEachPause() {
+        XCTAssertEqual((1...5).map(League.pausePenalty(forPause:)), [0, 10, 20, 40, 40])
+    }
+
+    func testPausesCostWeeklyPointsButNeverGoBelowZero() {
+        var progress = PlayerProgress()
+        progress.record(.dayUnderLimit, at: monday, calendar: calendar)
+        XCTAssertEqual(progress.nextPausePenalty(at: monday, calendar: calendar), 0)
+        progress.record(.tookPause, at: monday, calendar: calendar)
+        XCTAssertEqual(progress.weeklyPoints, 30, "first pause is free")
+        XCTAssertEqual(progress.nextPausePenalty(at: monday, calendar: calendar), 10)
+        progress.record(.tookPause, at: monday, calendar: calendar)
+        progress.record(.tookPause, at: monday, calendar: calendar)
+        XCTAssertEqual(progress.weeklyPoints, 0, "30 - 10 - 20")
+        progress.record(.tookPause, at: monday, calendar: calendar)
+        XCTAssertEqual(progress.weeklyPoints, 0)
+
+        let tuesday = calendar.date(byAdding: .day, value: 1, to: monday)!
+        XCTAssertEqual(progress.nextPausePenalty(at: tuesday, calendar: calendar), 0, "a new day starts free")
+    }
+
+    func testPausesDoNotTakeXP() {
+        var progress = PlayerProgress(xp: 250)
+        progress.record(.tookPause, at: monday, calendar: calendar)
+        progress.record(.tookPause, at: monday, calendar: calendar)
+        XCTAssertEqual(progress.xp, 250)
+    }
+
+    func testDisablingProtectionCostsPointsAndStreak() {
+        var progress = PlayerProgress()
+        progress.record(.claimedDailyReward, at: monday, calendar: calendar)
+        progress.weeklyPoints = 150
+        progress.record(.disabledProtection, at: monday, calendar: calendar)
+        XCTAssertEqual(progress.weeklyPoints, 50)
+        XCTAssertEqual(progress.currentStreak(at: monday, calendar: calendar), 0)
+        XCTAssertEqual(progress.bestStreak, 1)
+    }
+
+    func testPauseReasonsAreTallied() {
+        var progress = PlayerProgress()
+        progress.recordPauseReason(.bored)
+        progress.recordPauseReason(.bored)
+        progress.recordPauseReason(.message)
+        XCTAssertEqual(progress.pauseReasons, ["bored": 2, "message": 1])
+    }
+
+    func testReflectionQuestionsRotate() {
+        XCTAssertNotEqual(ReflectionQuestions.question(at: 0, offset: 0), ReflectionQuestions.question(at: 6, offset: 0))
+        XCTAssertEqual(ReflectionQuestions.question(at: 0, offset: ReflectionQuestions.all.count), ReflectionQuestions.question(at: 0, offset: 0))
+    }
+}
