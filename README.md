@@ -10,7 +10,7 @@ En iPhone-app som blockerar sociala medier och andra appar som stjäl tid. "Paus
 - **Dagliga uppdrag**: tre nya uppdrag varje dag.
 - **Troféer**: elva troféer att låsa upp.
 - **Fokuspass, scheman, daglig gräns och medvetna pauser** som blockerar via iOS Skärmtid, även när appen är stängd.
-- **Paus Pro (19 kr/mån, 7 dagar gratis)**: obegränsade scheman, daglig gräns, strikt fokus och en AI-coach. Pip skriver då personliga meddelanden med Apple Intelligence direkt i telefonen, där det finns. Gratisversionen har fokuspass, ett schema, pauser och hela spelsystemet.
+- **Paus Pro (29 kr/mån eller 219 kr/år, 7 dagar gratis)**: obegränsade scheman, daglig gräns, strikt fokus och en AI-coach. Pip skriver då personliga meddelanden med Apple Intelligence direkt i telefonen, där det finns. Gratisversionen har fokuspass, ett schema, pauser och hela spelsystemet.
 - **Egen spärrskärm** på svenska: "Pip säger nej till TikTok", där *Stäng* ger XP.
 - **Liga**: veckopoäng och grupper om upp till 30 spelare per division (Brons → Silver → Guld → Diamant → Legend). De bästa i gruppen går upp och de sämsta åker ner. Det finns också topplistor för Sverige och världen. Man syns med smeknamn och kan anmäla eller blockera andra, och lämna ligan.
 
@@ -36,7 +36,7 @@ Appen använder Apples Skärmtid-ramverk (FamilyControls, ManagedSettings och De
 
 Inskickade anmälningar sparas som posttypen `Report` och kan granskas i CloudKit Console.
 
-**Inför App Store:** skapa en automatiskt förnyad prenumeration med produkt-id `paus.pro.monthly` i App Store Connect. Sätt priset till 19 kr/mån och lägg till ett introduktionserbjudande med 7 dagar gratis.
+**Inför App Store:** skapa två automatiskt förnyade prenumerationer i samma prenumerationsgrupp i App Store Connect: `paus.pro.yearly` för 219 kr/år och `paus.pro.monthly` för 29 kr/mån. Lägg till ett introduktionserbjudande med 7 dagar gratis på båda.
 
 **Viktigt:**
 - Skärmtid-funktionerna fungerar inte i simulatorn. Testa på en riktig iPhone.

@@ -1,13 +1,13 @@
 import StoreKit
 import SwiftUI
 
-/// Paus Pro: 19 kr per month after a free week. Apple's subscription view handles price, trial and terms.
+/// Paus Pro, monthly or yearly after a free week. Apple's subscription view handles prices, trial and terms.
 struct PaywallView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        SubscriptionStoreView(productIDs: [Store.proProductID]) {
+        SubscriptionStoreView(productIDs: Store.proProductIDs) {
             VStack(spacing: 16) {
                 MascotView(mood: .hyped, level: max(model.progress.level, 6), size: 130)
                 Text("Paus Pro")

@@ -123,7 +123,7 @@ struct RulesView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Prova Paus Pro gratis")
                                 .font(.headline)
-                            Text("7 dagar gratis, sedan 19 kr/mån")
+                            Text(proPriceText)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -134,6 +134,13 @@ struct RulesView: View {
             }
         }
         .listRowBackground(Theme.cardRaised)
+    }
+
+    private var proPriceText: String {
+        guard let monthly = model.store.monthlyPrice, let yearly = model.store.yearlyPrice else {
+            return "7 dagar gratis, sedan per månad eller år"
+        }
+        return "7 dagar gratis, sedan \(monthly)/mån eller \(yearly)/år"
     }
 
     private func binding<Value>(_ keyPath: WritableKeyPath<PausRules, Value>) -> Binding<Value> {
