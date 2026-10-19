@@ -26,6 +26,9 @@ final class AppModel {
     var errorMessage: String?
 
     let store = Store()
+    /// Screen Time can't be authorized in the Simulator, so there the app skips onboarding to let the design be tried out.
+    /// Blocking itself only works on a real iPhone.
+    private(set) var isSimulatorPreview = false
     @ObservationIgnored private var coachKey = ""
 
     init() {
@@ -36,7 +39,7 @@ final class AppModel {
     /// The rules actually enforced; Pro-only features are dropped for free users.
     var effectiveRules: PausRules { rules.effective(isPro: isPro) }
     var engine: BlockEngine { BlockEngine(rules: effectiveRules, runtime: runtime) }
-    var isAuthorized: Bool { authorizationStatus == .approved }
+    var isAuthorized: Bool { authorizationStatus == .approved || isSimulatorPreview }
     var hasSelection: Bool { !selection.isEmpty }
 
     var isStrictFocusActive: Bool {
@@ -56,7 +59,11 @@ final class AppModel {
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
         } catch {
+            #if targetEnvironment(simulator)
+            isSimulatorPreview = true
+            #else
             errorMessage = "Paus fick inte tillgång till Skärmtid. Försök igen."
+            #endif
         }
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
         guard isAuthorized else { return }
