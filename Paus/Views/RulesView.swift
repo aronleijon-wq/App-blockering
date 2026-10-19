@@ -137,10 +137,14 @@ struct RulesView: View {
     }
 
     private var proPriceText: String {
-        guard let monthly = model.store.monthlyPrice, let yearly = model.store.yearlyPrice else {
+        let store = model.store
+        guard let monthly = store.monthlyPrice, let yearly = store.yearlyPrice else {
             return "7 dagar gratis, sedan per månad eller år"
         }
-        return "7 dagar gratis, sedan \(monthly)/mån eller \(yearly)/år"
+        if let perMonth = store.yearlyPerMonth {
+            return "7 dagar gratis, sedan \(yearly)/år (bara \(perMonth)/mån) eller \(monthly)/mån"
+        }
+        return "7 dagar gratis, sedan \(yearly)/år eller \(monthly)/mån"
     }
 
     private func binding<Value>(_ keyPath: WritableKeyPath<PausRules, Value>) -> Binding<Value> {

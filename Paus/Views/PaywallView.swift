@@ -15,6 +15,13 @@ struct PaywallView: View {
                     .foregroundStyle(Theme.brand)
                 Text("Ta tillbaka din tid på riktigt.")
                     .font(.title3.weight(.semibold))
+                if let perMonth = model.store.yearlyPerMonth {
+                    Text(yearlyDeal(perMonth: perMonth))
+                        .font(.subheadline.weight(.bold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Theme.glow, in: Capsule())
+                }
                 VStack(alignment: .leading, spacing: 12) {
                     Benefit(symbol: "calendar", text: "Obegränsat antal scheman")
                     Benefit(symbol: "hourglass", text: "Daglig gräns för scrollandet")
@@ -38,6 +45,13 @@ struct PaywallView: View {
             }
         }
         .tint(Theme.pink)
+    }
+
+    private func yearlyDeal(perMonth: String) -> String {
+        guard let savings = model.store.yearlySavingsPercent, savings > 0 else {
+            return "Årspris: bara \(perMonth)/mån"
+        }
+        return "Årspris: bara \(perMonth)/mån · spara \(savings) %"
     }
 }
 

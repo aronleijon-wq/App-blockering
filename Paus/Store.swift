@@ -16,6 +16,10 @@ final class Store {
     /// Localized prices from the App Store, such as "29,00 kr", once loaded.
     private(set) var monthlyPrice: String?
     private(set) var yearlyPrice: String?
+    /// The yearly price per month, rounded down so it never overstates the deal, such as "18 kr".
+    private(set) var yearlyPerMonth: String?
+    /// How much cheaper the yearly plan is than twelve months, in whole percent.
+    private(set) var yearlySavingsPercent: Int?
     /// Called when the entitlement changes, so rules can be re-applied.
     @ObservationIgnored var onChange: (@MainActor (Bool) -> Void)?
     @ObservationIgnored private var updates: Task<Void, Never>?
@@ -41,12 +45,30 @@ final class Store {
             }
         }
         if monthlyPrice == nil, let products = try? await Product.products(for: Self.proProductIDs) {
-            monthlyPrice = products.first { $0.id == Self.monthlyProductID }?.displayPrice
-            yearlyPrice = products.first { $0.id == Self.yearlyProductID }?.displayPrice
+            loadPrices(from: products)
         }
         guard active != isPro else { return }
         isPro = active
         SharedStore.isPro = active
         onChange?(active)
     }
+
+    private func loadPrices(from products: [Product]) {
+        let monthly = products.first { $0.id == Self.monthlyProductID }
+        let yearly = products.first { $0.id == Self.yearlyProductID }
+        monthlyPrice = monthly?.displayPrice
+        yearlyPrice = yearly?.displayPrice
+        guard let yearly else { return }
+
+        let perMonth = NSDecimalNumber(decimal: yearly.price / 12).rounding(accordingToBehavior: Self.roundDown).decimalValue
+        yearlyPerMonth = perMonth.formatted(yearly.priceFormatStyle.precision(.fractionLength(0)))
+        if let monthly, monthly.price > 0 {
+            let ratio = NSDecimalNumber(decimal: yearly.price / (monthly.price * 12)).doubleValue
+            yearlySavingsPercent = Int(((1 - ratio) * 100).rounded(.down))
+        }
+    }
+
+    private static let roundDown = NSDecimalNumberHandler(
+        roundingMode: .down, scale: 0, raiseOnExactness: false, raiseOnOverflow: false, raiseOnUnderflow: false, raiseOnDivideByZero: false
+    )
 }
