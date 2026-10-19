@@ -9,25 +9,48 @@ import UserNotifications
 @Observable
 final class AppModel {
     enum Tab: Hashable {
-        case today, apps, rules
+        case home, trophies, apps, rules
     }
 
-    var selectedTab: Tab = .today
+    var selectedTab: Tab = .home
     var authorizationStatus: AuthorizationStatus = AuthorizationCenter.shared.authorizationStatus
     private(set) var selection: FamilyActivitySelection = SharedStore.selection
     private(set) var rules: PausRules = SharedStore.rules
     private(set) var runtime: PausRuntime = SharedStore.runtime
+    private(set) var progress: PlayerProgress = SharedStore.progress
+    private(set) var coachMessage = ""
     var isPauseSheetPresented = false
+    var isPaywallPresented = false
+    /// Rewards to celebrate on screen; cleared when the celebration is dismissed.
+    var celebration: [Reward] = []
     var errorMessage: String?
 
-    var engine: BlockEngine { BlockEngine(rules: rules, runtime: runtime) }
+    let store = Store()
+    @ObservationIgnored private var coachKey = ""
+
+    init() {
+        store.onChange = { [weak self] _ in self?.applyEntitlement() }
+    }
+
+    var isPro: Bool { store.isPro }
+    /// The rules actually enforced; Pro-only features are dropped for free users.
+    var effectiveRules: PausRules { rules.effective(isPro: isPro) }
+    var engine: BlockEngine { BlockEngine(rules: effectiveRules, runtime: runtime) }
     var isAuthorized: Bool { authorizationStatus == .approved }
     var hasSelection: Bool { !selection.isEmpty }
 
     var isStrictFocusActive: Bool {
-        guard rules.strictFocus, let end = runtime.focusEndsAt else { return false }
+        guard effectiveRules.strictFocus, let end = runtime.focusEndsAt else { return false }
         return end > .now
     }
+
+    var mood: MascotMood {
+        let now = Date.now
+        return MascotMood.current(reason: engine.reason(at: now), isPaused: engine.isPaused(at: now), progress: progress, at: now, calendar: .current)
+    }
+
+    /// Free users get one schedule; Pro unlocks more.
+    var canAddSchedule: Bool { isPro || rules.schedules.isEmpty }
 
     func requestAuthorization() async {
         do {
@@ -37,8 +60,8 @@ final class AppModel {
         }
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
         guard isAuthorized else { return }
-        // Needed for the shield's pause button, which reaches the app through a notification.
-        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+        // Needed for the daily reminder and for the shield's pause button, which reaches the app through a notification.
+        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
         reload()
     }
 
@@ -46,12 +69,30 @@ final class AppModel {
     func reload() {
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
         runtime = SharedStore.runtime
+        progress = SharedStore.progress
         guard isAuthorized else { return }
 
-        if !ActivityScheduler.isInSync(rules: rules, selection: selection) {
+        // The monitor normally settles a finished focus session; this covers a missed callback.
+        if let end = runtime.focusEndsAt, end <= .now {
+            ProgressRecorder.completeFocus()
+            runtime = SharedStore.runtime
+        }
+        SharedStore.updateProgress { [effectiveRules, runtime] progress in
+            progress.settleDayUnderLimit(
+                limitWasSet: effectiveRules.dailyLimitMinutes != nil,
+                limitReachedDay: runtime.limitReachedDay,
+                at: .now,
+                calendar: .current
+            )
+        }
+        progress = SharedStore.progress
+
+        if !ActivityScheduler.isInSync(rules: effectiveRules, selection: selection) {
             resyncMonitoring()
         }
         ShieldController.refresh()
+        scheduleReminder()
+        showPendingCelebrations()
 
         if let requested = runtime.pauseRequestedAt {
             updateRuntime { $0.pauseRequestedAt = nil }
@@ -59,7 +100,63 @@ final class AppModel {
                 isPauseSheetPresented = true
             }
         }
+        Task { await store.refresh() }
+        Task { await refreshCoach() }
     }
+
+    // MARK: Rewards
+
+    func claimDailyReward() {
+        let rewards = ProgressRecorder.record(.claimedDailyReward)
+        guard !rewards.isEmpty else { return }
+        progress = SharedStore.progress
+        celebration = rewards
+        scheduleReminder()
+        Task { await refreshCoach() }
+    }
+
+    func dismissCelebration() {
+        celebration = []
+        SharedStore.updateProgress { progress in
+            progress.pendingRewards = []
+            return []
+        }
+        progress = SharedStore.progress
+    }
+
+    func declinePause() {
+        ProgressRecorder.record(.declinedPause)
+        progress = SharedStore.progress
+        showPendingCelebrations()
+    }
+
+    private func showPendingCelebrations() {
+        guard celebration.isEmpty, !progress.pendingRewards.isEmpty else { return }
+        celebration = progress.pendingRewards
+    }
+
+    private func refreshCoach() async {
+        let now = Date.now
+        let currentMood = self.mood
+        let key = "\(DayKey.string(for: now, calendar: .current))-\(currentMood.rawValue)-\(progress.level)-\(isPro)"
+        guard key != coachKey else { return }
+        coachKey = key
+        coachMessage = Coach.fallbackMessage(mood: currentMood, progress: progress, at: now)
+        if isPro {
+            coachMessage = await Coach.message(mood: currentMood, progress: progress, isPro: true, at: now)
+        }
+    }
+
+    private func scheduleReminder() {
+        let now = Date.now
+        Reminders.scheduleNext(
+            rewardClaimedToday: !progress.canClaimDailyReward(at: now, calendar: .current),
+            streak: progress.currentStreak(at: now, calendar: .current),
+            now: now
+        )
+    }
+
+    // MARK: Rules
 
     func saveSelection(_ newSelection: FamilyActivitySelection) {
         guard newSelection != selection, !isStrictFocusActive else { return }
@@ -70,20 +167,22 @@ final class AppModel {
     }
 
     func updateRules(_ change: (inout PausRules) -> Void) {
-        let old = rules
+        let oldRules = rules
+        let oldEffective = effectiveRules
         var new = rules
         change(&new)
-        guard new != old else { return }
+        guard new != oldRules else { return }
         if isStrictFocusActive, !new.strictFocus { new.strictFocus = true }
         rules = new
         SharedStore.rules = new
 
-        if new.dailyLimitMinutes != old.dailyLimitMinutes {
+        let newEffective = effectiveRules
+        if newEffective.dailyLimitMinutes != oldEffective.dailyLimitMinutes {
             // Monitoring restarts below and reports the new limit if it has already been used up.
             updateRuntime { $0.limitReachedDay = nil }
         }
         // Re-registering can reset limit counting on older iOS versions, so only do it when needed.
-        if new.schedules != old.schedules || new.dailyLimitMinutes != old.dailyLimitMinutes {
+        if newEffective.schedules != oldEffective.schedules || newEffective.dailyLimitMinutes != oldEffective.dailyLimitMinutes {
             resyncMonitoring()
         }
         ShieldController.refresh()
@@ -103,24 +202,42 @@ final class AppModel {
         updateRules { $0.schedules.removeAll { $0.id == id } }
     }
 
+    private func applyEntitlement() {
+        resyncMonitoring()
+        ShieldController.refresh()
+        Task { await refreshCoach() }
+    }
+
+    // MARK: Focus and pauses
+
     func startFocus(minutes: Int) {
         guard hasSelection else { return }
-        let end = Date.now.addingTimeInterval(TimeInterval(minutes * 60))
+        let now = Date.now
+        let end = now.addingTimeInterval(TimeInterval(minutes * 60))
         do {
             try ActivityScheduler.startFocus(until: end)
         } catch {
             errorMessage = "Fokuspasset kunde inte startas (\(error.localizedDescription))."
             return
         }
-        updateRuntime { $0.focusEndsAt = end }
+        updateRuntime {
+            $0.focusStartedAt = now
+            $0.focusEndsAt = end
+        }
         ShieldController.refresh()
+        Task { await refreshCoach() }
     }
 
+    /// Ends a non-strict focus session early, without XP.
     func stopFocus() {
         guard !isStrictFocusActive else { return }
         ActivityScheduler.stopFocus()
-        updateRuntime { $0.focusEndsAt = nil }
+        updateRuntime {
+            $0.focusStartedAt = nil
+            $0.focusEndsAt = nil
+        }
         ShieldController.refresh()
+        Task { await refreshCoach() }
     }
 
     func takePause() {

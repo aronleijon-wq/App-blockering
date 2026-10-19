@@ -43,6 +43,8 @@ struct SelectionView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .screenBackground()
             .navigationTitle("Appar")
             .familyActivityPicker(isPresented: $isPickerPresented, selection: $draft)
             .onChange(of: isPickerPresented) { _, isPresented in
@@ -55,6 +57,6 @@ struct SelectionView: View {
         if model.isStrictFocusActive {
             return "Urvalet går inte att ändra under strikt fokus."
         }
-        return "Tips: välj kategorin Socialt för att få med alla sociala medier på en gång. Paus ser bara anonyma symboler för det du väljer."
+        return "Tips: välj kategorin Socialt för att få med alla sociala medier på en gång. Pip ser bara anonyma symboler för det du väljer."
     }
 }

@@ -58,6 +58,7 @@ struct PausRules: Codable, Equatable {
 
 /// State written by both the app and its extensions while blocks run.
 struct PausRuntime: Codable, Equatable {
+    var focusStartedAt: Date?
     var focusEndsAt: Date?
     var pausedUntil: Date?
     /// Day key of the day the daily limit was reached.
@@ -70,6 +71,7 @@ struct PausRuntime: Codable, Equatable {
     var closedCount: Int
 
     init(
+        focusStartedAt: Date? = nil,
         focusEndsAt: Date? = nil,
         pausedUntil: Date? = nil,
         limitReachedDay: String? = nil,
@@ -78,6 +80,7 @@ struct PausRuntime: Codable, Equatable {
         pausesUsed: Int = 0,
         closedCount: Int = 0
     ) {
+        self.focusStartedAt = focusStartedAt
         self.focusEndsAt = focusEndsAt
         self.pausedUntil = pausedUntil
         self.limitReachedDay = limitReachedDay
@@ -89,6 +92,7 @@ struct PausRuntime: Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        focusStartedAt = try container.decodeIfPresent(Date.self, forKey: .focusStartedAt)
         focusEndsAt = try container.decodeIfPresent(Date.self, forKey: .focusEndsAt)
         pausedUntil = try container.decodeIfPresent(Date.self, forKey: .pausedUntil)
         limitReachedDay = try container.decodeIfPresent(String.self, forKey: .limitReachedDay)
@@ -129,5 +133,9 @@ enum DayKey {
     static func string(for date: Date, calendar: Calendar) -> String {
         let components = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", components.year ?? 0, components.month ?? 0, components.day ?? 0)
+    }
+
+    static func dayBefore(_ date: Date, calendar: Calendar) -> String {
+        string(for: calendar.date(byAdding: .day, value: -1, to: date) ?? date, calendar: calendar)
     }
 }

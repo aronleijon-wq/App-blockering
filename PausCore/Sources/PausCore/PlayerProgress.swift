@@ -1,0 +1,370 @@
+import Foundation
+
+/// Something the user did that can earn XP.
+enum ProgressEvent: Equatable {
+    case focusCompleted(minutes: Int)
+    case closedBlockedApp
+    case declinedPause
+    case claimedDailyReward
+    case dayUnderLimit
+}
+
+enum Reward: Codable, Equatable, Hashable {
+    case xp(Int)
+    case levelUp(Int)
+    case achievement(String)
+    case quest(String)
+
+    /// Rewards worth a celebration screen; plain XP only moves the progress bar.
+    var isCelebration: Bool {
+        if case .xp = self { return false }
+        return true
+    }
+}
+
+/// Counters for one day. They drive the daily quests and the daily XP caps.
+struct DailyCounts: Codable, Equatable {
+    var day: String?
+    var focusSessions: Int
+    var focusMinutes: Int
+    var closes: Int
+    var declines: Int
+    var completedQuests: Set<String>
+
+    init(day: String? = nil, focusSessions: Int = 0, focusMinutes: Int = 0, closes: Int = 0, declines: Int = 0, completedQuests: Set<String> = []) {
+        self.day = day
+        self.focusSessions = focusSessions
+        self.focusMinutes = focusMinutes
+        self.closes = closes
+        self.declines = declines
+        self.completedQuests = completedQuests
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        day = try container.decodeIfPresent(String.self, forKey: .day)
+        focusSessions = try container.decodeIfPresent(Int.self, forKey: .focusSessions) ?? 0
+        focusMinutes = try container.decodeIfPresent(Int.self, forKey: .focusMinutes) ?? 0
+        closes = try container.decodeIfPresent(Int.self, forKey: .closes) ?? 0
+        declines = try container.decodeIfPresent(Int.self, forKey: .declines) ?? 0
+        completedQuests = try container.decodeIfPresent(Set<String>.self, forKey: .completedQuests) ?? []
+    }
+}
+
+/// XP, level, streak, quests and achievements.
+struct PlayerProgress: Codable, Equatable {
+    enum XP {
+        static let focusBonus = 10
+        static let close = 5
+        static let closeDailyCap = 10
+        static let decline = 10
+        static let declineDailyCap = 5
+        static let dailyRewardBase = 10
+        static let dailyRewardPerStreakDay = 5
+        static let dailyRewardMaxStreakBonus = 6
+        static let dayUnderLimit = 30
+    }
+
+    static let maxPendingRewards = 20
+
+    var xp: Int
+    var streak: Int
+    var bestStreak: Int
+    var lastActiveDay: String?
+    var lastRewardDay: String?
+    var firstDay: String?
+    /// The last day that was checked for staying under the daily limit.
+    var lastSettledDay: String?
+    var focusSessions: Int
+    var focusMinutes: Int
+    var closes: Int
+    var declines: Int
+    var unlocked: Set<String>
+    var today: DailyCounts
+    /// Celebrations earned while the app wasn't showing, oldest first.
+    var pendingRewards: [Reward]
+
+    init(
+        xp: Int = 0,
+        streak: Int = 0,
+        bestStreak: Int = 0,
+        lastActiveDay: String? = nil,
+        lastRewardDay: String? = nil,
+        firstDay: String? = nil,
+        lastSettledDay: String? = nil,
+        focusSessions: Int = 0,
+        focusMinutes: Int = 0,
+        closes: Int = 0,
+        declines: Int = 0,
+        unlocked: Set<String> = [],
+        today: DailyCounts = DailyCounts(),
+        pendingRewards: [Reward] = []
+    ) {
+        self.xp = xp
+        self.streak = streak
+        self.bestStreak = bestStreak
+        self.lastActiveDay = lastActiveDay
+        self.lastRewardDay = lastRewardDay
+        self.firstDay = firstDay
+        self.lastSettledDay = lastSettledDay
+        self.focusSessions = focusSessions
+        self.focusMinutes = focusMinutes
+        self.closes = closes
+        self.declines = declines
+        self.unlocked = unlocked
+        self.today = today
+        self.pendingRewards = pendingRewards
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        xp = try container.decodeIfPresent(Int.self, forKey: .xp) ?? 0
+        streak = try container.decodeIfPresent(Int.self, forKey: .streak) ?? 0
+        bestStreak = try container.decodeIfPresent(Int.self, forKey: .bestStreak) ?? 0
+        lastActiveDay = try container.decodeIfPresent(String.self, forKey: .lastActiveDay)
+        lastRewardDay = try container.decodeIfPresent(String.self, forKey: .lastRewardDay)
+        firstDay = try container.decodeIfPresent(String.self, forKey: .firstDay)
+        lastSettledDay = try container.decodeIfPresent(String.self, forKey: .lastSettledDay)
+        focusSessions = try container.decodeIfPresent(Int.self, forKey: .focusSessions) ?? 0
+        focusMinutes = try container.decodeIfPresent(Int.self, forKey: .focusMinutes) ?? 0
+        closes = try container.decodeIfPresent(Int.self, forKey: .closes) ?? 0
+        declines = try container.decodeIfPresent(Int.self, forKey: .declines) ?? 0
+        unlocked = try container.decodeIfPresent(Set<String>.self, forKey: .unlocked) ?? []
+        today = try container.decodeIfPresent(DailyCounts.self, forKey: .today) ?? DailyCounts()
+        pendingRewards = try container.decodeIfPresent([Reward].self, forKey: .pendingRewards) ?? []
+    }
+
+    var level: Int { Level.level(forXP: xp) }
+
+    /// The streak as of `date`; it lapses after a whole day without activity.
+    func currentStreak(at date: Date, calendar: Calendar) -> Int {
+        let today = DayKey.string(for: date, calendar: calendar)
+        guard let lastActiveDay, lastActiveDay == today || lastActiveDay == DayKey.dayBefore(date, calendar: calendar) else { return 0 }
+        return streak
+    }
+
+    func canClaimDailyReward(at date: Date, calendar: Calendar) -> Bool {
+        lastRewardDay != DayKey.string(for: date, calendar: calendar)
+    }
+
+    /// XP the daily reward gives if claimed at `date`, counting the streak it would extend.
+    func dailyRewardXP(at date: Date, calendar: Calendar) -> Int {
+        var preview = self
+        preview.markActive(at: date, calendar: calendar)
+        return XP.dailyRewardBase + XP.dailyRewardPerStreakDay * min(preview.streak, XP.dailyRewardMaxStreakBonus)
+    }
+
+    /// Today's counters, or empty ones when the stored counters are from another day.
+    func counts(at date: Date, calendar: Calendar) -> DailyCounts {
+        let day = DayKey.string(for: date, calendar: calendar)
+        return today.day == day ? today : DailyCounts(day: day)
+    }
+
+    /// Applies `event`, returning everything it earned. Celebrations are also queued in `pendingRewards`.
+    @discardableResult
+    mutating func record(_ event: ProgressEvent, at date: Date, calendar: Calendar) -> [Reward] {
+        let day = DayKey.string(for: date, calendar: calendar)
+        if firstDay == nil { firstDay = day }
+        if today.day != day { today = DailyCounts(day: day) }
+        let levelBefore = level
+        var gained = 0
+
+        switch event {
+        case .focusCompleted(let minutes):
+            guard minutes > 0 else { return [] }
+            focusSessions += 1
+            focusMinutes += minutes
+            today.focusSessions += 1
+            today.focusMinutes += minutes
+            gained = minutes + XP.focusBonus
+            markActive(at: date, calendar: calendar)
+        case .closedBlockedApp:
+            closes += 1
+            today.closes += 1
+            gained = today.closes <= XP.closeDailyCap ? XP.close : 0
+            markActive(at: date, calendar: calendar)
+        case .declinedPause:
+            declines += 1
+            today.declines += 1
+            gained = today.declines <= XP.declineDailyCap ? XP.decline : 0
+            markActive(at: date, calendar: calendar)
+        case .claimedDailyReward:
+            guard lastRewardDay != day else { return [] }
+            lastRewardDay = day
+            // Extend the streak first so the reward reflects it.
+            markActive(at: date, calendar: calendar)
+            gained = XP.dailyRewardBase + XP.dailyRewardPerStreakDay * min(streak, XP.dailyRewardMaxStreakBonus)
+        case .dayUnderLimit:
+            gained = XP.dayUnderLimit
+        }
+
+        var rewards: [Reward] = []
+        if gained > 0 { rewards.append(.xp(gained)) }
+
+        for quest in Quest.daily(for: day) where !today.completedQuests.contains(quest.id) && quest.progress(in: today) >= quest.target {
+            today.completedQuests.insert(quest.id)
+            gained += quest.xp
+            rewards.append(.quest(quest.id))
+        }
+
+        xp += gained
+        if level > levelBefore {
+            rewards.append(contentsOf: (levelBefore + 1...level).map(Reward.levelUp))
+        }
+        for achievement in Achievement.all where !unlocked.contains(achievement.id) && achievement.isEarned(self) {
+            unlocked.insert(achievement.id)
+            rewards.append(.achievement(achievement.id))
+        }
+
+        pendingRewards.append(contentsOf: rewards.filter(\.isCelebration))
+        if pendingRewards.count > Self.maxPendingRewards {
+            pendingRewards.removeFirst(pendingRewards.count - Self.maxPendingRewards)
+        }
+        return rewards
+    }
+
+    /// Awards staying under the daily limit, once, for the day before `date`.
+    @discardableResult
+    mutating func settleDayUnderLimit(limitWasSet: Bool, limitReachedDay: String?, at date: Date, calendar: Calendar) -> [Reward] {
+        let yesterday = DayKey.dayBefore(date, calendar: calendar)
+        guard lastSettledDay != yesterday else { return [] }
+        lastSettledDay = yesterday
+        // Only days the user actually had Paus count.
+        guard limitWasSet, limitReachedDay != yesterday, let firstDay, firstDay <= yesterday else { return [] }
+        return record(.dayUnderLimit, at: date, calendar: calendar)
+    }
+
+    private mutating func markActive(at date: Date, calendar: Calendar) {
+        let day = DayKey.string(for: date, calendar: calendar)
+        guard lastActiveDay != day else { return }
+        streak = lastActiveDay == DayKey.dayBefore(date, calendar: calendar) ? streak + 1 : 1
+        lastActiveDay = day
+        bestStreak = max(bestStreak, streak)
+    }
+}
+
+enum Level {
+    static let titles = [
+        "Scrollzombie", "Uppvaknad", "Nyfiken", "Fokusfrö", "Skärmtämjare",
+        "Flowjägare", "Zen-ninja", "Dopamindetektiv", "Tidsmästare", "Legend",
+    ]
+
+    /// Total XP needed to reach `level`: 0, 100, 300, 600, 1000, …
+    static func xpRequired(for level: Int) -> Int {
+        50 * (level - 1) * level
+    }
+
+    static func level(forXP xp: Int) -> Int {
+        var level = 1
+        while xpRequired(for: level + 1) <= xp { level += 1 }
+        return level
+    }
+
+    static func title(for level: Int) -> String {
+        titles[min(max(level, 1), titles.count) - 1]
+    }
+
+    /// PlayerProgress from the start of the current level to the next, 0...1.
+    static func fraction(forXP xp: Int) -> Double {
+        let level = level(forXP: xp)
+        let start = xpRequired(for: level)
+        let end = xpRequired(for: level + 1)
+        return Double(xp - start) / Double(end - start)
+    }
+}
+
+struct Quest: Identifiable {
+    enum Metric {
+        case focusSessions, focusMinutes, closes, declines
+    }
+
+    let id: String
+    let title: String
+    let symbol: String
+    let metric: Metric
+    let target: Int
+    let xp: Int
+
+    func progress(in counts: DailyCounts) -> Int {
+        switch metric {
+        case .focusSessions: return counts.focusSessions
+        case .focusMinutes: return counts.focusMinutes
+        case .closes: return counts.closes
+        case .declines: return counts.declines
+        }
+    }
+
+    static let pool: [Quest] = [
+        Quest(id: "focus-1", title: "Klara ett fokuspass", symbol: "scope", metric: .focusSessions, target: 1, xp: 40),
+        Quest(id: "focus-50", title: "Fokusera 50 minuter", symbol: "timer", metric: .focusMinutes, target: 50, xp: 60),
+        Quest(id: "close-3", title: "Stäng en blockerad app 3 gånger", symbol: "hand.raised.fill", metric: .closes, target: 3, xp: 30),
+        Quest(id: "decline-1", title: "Tacka nej till en paus", symbol: "wind", metric: .declines, target: 1, xp: 25),
+        Quest(id: "focus-2", title: "Klara två fokuspass", symbol: "bolt.fill", metric: .focusSessions, target: 2, xp: 70),
+    ]
+
+    /// Three quests for `day`, the same on every device and process.
+    static func daily(for day: String) -> [Quest] {
+        let seed = day.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
+        // A step of 2 through 5 quests visits three distinct ones.
+        return (0..<3).map { pool[(seed + $0 * 2) % pool.count] }
+    }
+
+    static func with(id: String) -> Quest? {
+        pool.first { $0.id == id }
+    }
+}
+
+struct Achievement: Identifiable {
+    let id: String
+    let title: String
+    let detail: String
+    let symbol: String
+    let isEarned: (PlayerProgress) -> Bool
+
+    static let all: [Achievement] = [
+        Achievement(id: "first-focus", title: "Första fokuset", detail: "Klara ett fokuspass", symbol: "scope") { $0.focusSessions >= 1 },
+        Achievement(id: "focus-10", title: "Fokusmaskin", detail: "Klara 10 fokuspass", symbol: "bolt.fill") { $0.focusSessions >= 10 },
+        Achievement(id: "hours-10", title: "Tio timmar", detail: "Fokusera 10 timmar totalt", symbol: "hourglass") { $0.focusMinutes >= 600 },
+        Achievement(id: "streak-3", title: "Tre i rad", detail: "Håll igång en streak i 3 dagar", symbol: "flame") { $0.bestStreak >= 3 },
+        Achievement(id: "streak-7", title: "En hel vecka", detail: "Håll igång en streak i 7 dagar", symbol: "flame.fill") { $0.bestStreak >= 7 },
+        Achievement(id: "streak-30", title: "Månadens legend", detail: "Håll igång en streak i 30 dagar", symbol: "calendar") { $0.bestStreak >= 30 },
+        Achievement(id: "close-10", title: "Nej tack, TikTok", detail: "Stäng en blockerad app 10 gånger", symbol: "hand.raised.fill") { $0.closes >= 10 },
+        Achievement(id: "close-100", title: "Järnvilja", detail: "Stäng en blockerad app 100 gånger", symbol: "shield.fill") { $0.closes >= 100 },
+        Achievement(id: "decline-5", title: "Andades och avstod", detail: "Tacka nej till en paus 5 gånger", symbol: "wind") { $0.declines >= 5 },
+        Achievement(id: "level-5", title: "Skärmtämjare", detail: "Nå nivå 5", symbol: "star.fill") { $0.level >= 5 },
+        Achievement(id: "level-10", title: "Legend", detail: "Nå nivå 10", symbol: "crown.fill") { $0.level >= 10 },
+    ]
+
+    static func with(id: String) -> Achievement? {
+        all.first { $0.id == id }
+    }
+}
+
+/// How the mascot feels, derived from what is going on right now.
+enum MascotMood: String, CaseIterable {
+    case happy, zen, sleepy, sad, proud, hyped
+
+    static func current(reason: BlockReason?, isPaused: Bool, progress: PlayerProgress, at date: Date, calendar: Calendar) -> MascotMood {
+        if case .focus = reason { return .zen }
+        if isPaused { return .sad }
+        if case .dailyLimit = reason { return .sad }
+        let hour = calendar.component(.hour, from: date)
+        if hour >= 23 || hour < 6 { return .sleepy }
+        let counts = progress.counts(at: date, calendar: calendar)
+        if counts.completedQuests.count >= 3 { return .proud }
+        if progress.currentStreak(at: date, calendar: calendar) >= 3 { return .hyped }
+        return .happy
+    }
+}
+
+extension PausRules {
+    /// The rules in force without Pro: one schedule, no daily limit and no strict focus.
+    func effective(isPro: Bool) -> PausRules {
+        guard !isPro else { return self }
+        var rules = self
+        rules.schedules = Array(schedules.prefix(1))
+        rules.dailyLimitMinutes = nil
+        rules.strictFocus = false
+        return rules
+    }
+}

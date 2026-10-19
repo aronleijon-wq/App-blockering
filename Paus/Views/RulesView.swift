@@ -9,23 +9,29 @@ struct RulesView: View {
     var body: some View {
         NavigationStack {
             Form {
+                proSection
+
                 Section {
-                    Picker("Daglig gräns", selection: binding(\.dailyLimitMinutes)) {
-                        Text("Ingen").tag(Int?.none)
-                        ForEach(limitOptions, id: \.self) { minutes in
-                            Text(Format.minutes(minutes)).tag(Int?.some(minutes))
+                    if model.isPro {
+                        Picker("Daglig gräns", selection: binding(\.dailyLimitMinutes)) {
+                            Text("Ingen").tag(Int?.none)
+                            ForEach(limitOptions, id: \.self) { minutes in
+                                Text(Format.minutes(minutes)).tag(Int?.some(minutes))
+                            }
                         }
+                    } else {
+                        LockedRow(title: "Daglig gräns") { model.isPaywallPresented = true }
                     }
                 } footer: {
-                    Text("När du har använt de valda apparna så här länge under en dag blockeras de till midnatt.")
+                    Text("När du har använt de valda apparna så här länge under en dag blockeras de till midnatt. Håller du dig under gränsen får du \(PlayerProgress.XP.dayUnderLimit) XP.")
                 }
 
                 Section {
-                    ForEach(model.rules.schedules) { schedule in
+                    ForEach(Array(model.rules.schedules.enumerated()), id: \.element.id) { index, schedule in
                         Button {
                             editing = schedule
                         } label: {
-                            ScheduleRow(schedule: schedule)
+                            ScheduleRow(schedule: schedule, isLocked: !model.isPro && index > 0)
                         }
                         .foregroundStyle(.primary)
                     }
@@ -34,19 +40,35 @@ struct RulesView: View {
                     }
 
                     Button {
-                        editing = BlockSchedule(name: "Skola", weekdays: [2, 3, 4, 5, 6], startMinute: 8 * 60, endMinute: 15 * 60)
+                        if model.canAddSchedule {
+                            editing = BlockSchedule(name: "Skola", weekdays: [2, 3, 4, 5, 6], startMinute: 8 * 60, endMinute: 15 * 60)
+                        } else {
+                            model.isPaywallPresented = true
+                        }
                     } label: {
-                        Label("Lägg till schema", systemImage: "plus")
+                        HStack {
+                            Label("Lägg till schema", systemImage: "plus")
+                            if !model.canAddSchedule {
+                                Spacer()
+                                ProBadge()
+                            }
+                        }
                     }
                 } header: {
                     Text("Scheman")
                 } footer: {
-                    Text("Under ett schema blockeras de valda apparna automatiskt, till exempel under skoldagen eller på kvällen.")
+                    Text(model.isPro
+                         ? "Under ett schema blockeras de valda apparna automatiskt, till exempel under skoldagen eller på kvällen."
+                         : "Gratis ingår ett schema. Med Pro kan du ha hur många du vill.")
                 }
 
                 Section {
-                    Toggle("Strikt fokus", isOn: binding(\.strictFocus))
-                        .disabled(model.isStrictFocusActive)
+                    if model.isPro {
+                        Toggle("Strikt fokus", isOn: binding(\.strictFocus))
+                            .disabled(model.isStrictFocusActive)
+                    } else {
+                        LockedRow(title: "Strikt fokus") { model.isPaywallPresented = true }
+                    }
                 } header: {
                     Text("Fokuspass")
                 } footer: {
@@ -67,9 +89,11 @@ struct RulesView: View {
                 } header: {
                     Text("Pauser")
                 } footer: {
-                    Text("En paus öppnar de blockerade apparna en kort stund. Innan dess andas du en stund, så att det blir ett medvetet val.")
+                    Text("En paus öppnar de blockerade apparna en kort stund. Innan dess andas du en stund. Tackar du nej får du \(PlayerProgress.XP.decline) XP.")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .screenBackground()
             .navigationTitle("Regler")
             .sheet(item: $editing) { schedule in
                 ScheduleEditorView(
@@ -80,6 +104,38 @@ struct RulesView: View {
         }
     }
 
+    @ViewBuilder
+    private var proSection: some View {
+        Section {
+            if model.isPro {
+                Label("Du har Paus Pro", systemImage: "checkmark.seal.fill")
+                    .foregroundStyle(Theme.mint)
+            } else {
+                Button {
+                    model.isPaywallPresented = true
+                } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: "sparkles")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Theme.glow, in: Circle())
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Prova Paus Pro gratis")
+                                .font(.headline)
+                            Text("7 dagar gratis, sedan 19 kr/mån")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .foregroundStyle(.primary)
+            }
+        }
+        .listRowBackground(Theme.cardRaised)
+    }
+
     private func binding<Value>(_ keyPath: WritableKeyPath<PausRules, Value>) -> Binding<Value> {
         Binding(
             get: { model.rules[keyPath: keyPath] },
@@ -88,16 +144,39 @@ struct RulesView: View {
     }
 }
 
-private struct ScheduleRow: View {
-    let schedule: BlockSchedule
+private struct LockedRow: View {
+    let title: String
+    let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(schedule.name)
-                .font(.headline)
-            Text("\(Format.weekdays(schedule.weekdays)) · \(Format.clock(minute: schedule.startMinute))–\(Format.clock(minute: schedule.endMinute))")
-                .foregroundStyle(.secondary)
+        Button(action: action) {
+            HStack {
+                Text(title)
+                Spacer()
+                ProBadge()
+            }
         }
-        .opacity(schedule.isEnabled ? 1 : 0.5)
+        .foregroundStyle(.primary)
+    }
+}
+
+private struct ScheduleRow: View {
+    let schedule: BlockSchedule
+    let isLocked: Bool
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(schedule.name)
+                    .font(.headline)
+                Text("\(Format.weekdays(schedule.weekdays)) · \(Format.clock(minute: schedule.startMinute))–\(Format.clock(minute: schedule.endMinute))")
+                    .foregroundStyle(.secondary)
+            }
+            if isLocked {
+                Spacer()
+                ProBadge()
+            }
+        }
+        .opacity(schedule.isEnabled && !isLocked ? 1 : 0.5)
     }
 }

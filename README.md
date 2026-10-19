@@ -4,13 +4,16 @@ En iPhone-app som blockerar sociala medier och andra appar som stjäl tid. "Paus
 
 ## Funktioner
 
-- **Fokuspass**: blockera de valda apparna direkt i 25, 50 eller 90 minuter. Med *strikt fokus* går passet inte att avbryta.
-- **Scheman**: automatisk blockering vissa dagar och tider, till exempel vardagar 08–15 eller varje kväll 22–07.
-- **Daglig gräns**: när du har använt apparna en viss tid under dagen blockeras de till midnatt.
-- **Medvetna pauser**: behöver du ändå in kan du ta en kort paus. Först måste du andas en stund, och antalet pauser per dag är begränsat.
-- **Egen spärrskärm** på svenska med knapparna *Stäng* och *Ta en paus*.
+- **Pip**: en animerad maskot vars humör följer vad du gör. Den är zen under fokus, sömnig sent på kvällen, peppad när streaken lever och lite ledsen när gränsen är slut. Pip får nya prylar på nivå 3, 6 och 8.
+- **XP och nivåer**: från *Scrollzombie* till *Legend*. Du får XP för fokuspass (1 per minut + bonus), för att stänga en blockerad app, för att tacka nej till en paus och för att hålla dig under den dagliga gränsen.
+- **Dagens belöning och streak**: en belöning per dag som växer med streaken. En påminnelse kl. 18.30 ser till att streaken inte bryts.
+- **Dagliga uppdrag**: tre nya uppdrag varje dag.
+- **Troféer**: elva troféer att låsa upp.
+- **Fokuspass, scheman, daglig gräns och medvetna pauser** som blockerar via iOS Skärmtid, även när appen är stängd.
+- **Paus Pro (19 kr/mån, 7 dagar gratis)**: obegränsade scheman, daglig gräns, strikt fokus och en AI-coach. Pip skriver då personliga meddelanden med Apple Intelligence direkt i telefonen, där det finns. Gratisversionen har fokuspass, ett schema, pauser och hela spelsystemet.
+- **Egen spärrskärm** på svenska: "Pip säger nej till TikTok", där *Stäng* ger XP.
 
-Appen använder Apples Skärmtid-ramverk (FamilyControls, ManagedSettings och DeviceActivity). Blockeringen sköts alltså av iOS och fungerar även när Paus inte är öppen.
+Appen använder Apples Skärmtid-ramverk (FamilyControls, ManagedSettings och DeviceActivity), StoreKit 2 och, på iOS 26, Foundation Models.
 
 ## Kom igång i Xcode
 
@@ -20,6 +23,9 @@ Appen använder Apples Skärmtid-ramverk (FamilyControls, ManagedSettings och De
 3. Välj projektet **Paus** i listan till vänster. Gå till *Build Settings* och sök på `PAUS_BUNDLE_PREFIX`. Byt `se.aronleijon.paus` till ett eget id om Xcode säger att det är upptaget. App Group och alla bundle-id:n byggs från det värdet.
 4. För var och en av de fyra targets (**Paus**, **PausMonitor**, **PausShieldConfiguration** och **PausShieldAction**) går du till *Signing & Capabilities* och väljer ditt Team.
 5. Anslut din iPhone, välj den som mål och tryck på ▶︎.
+6. Testa prenumerationen utan riktiga pengar: gå till *Product → Scheme → Edit Scheme… → Run → Options* och välj `Paus.storekit` under *StoreKit Configuration*.
+
+**Inför App Store:** skapa en automatiskt förnyad prenumeration med produkt-id `paus.pro.monthly` i App Store Connect. Sätt priset till 19 kr/mån och lägg till ett introduktionserbjudande med 7 dagar gratis.
 
 **Viktigt:**
 - Skärmtid-funktionerna fungerar inte i simulatorn. Testa på en riktig iPhone.
@@ -31,7 +37,8 @@ Appen använder Apples Skärmtid-ramverk (FamilyControls, ManagedSettings och De
 | --- | --- |
 | `Paus/` | Själva appen: SwiftUI-vyer och `AppModel` |
 | `Shared/` | Kod som både appen och tilläggen använder: lagring i App Group, sköld och schemaläggning |
-| `PausCore/` | Ren logik för scheman, regler och pauser, med enhetstester (`swift test`) |
+| `Paus/Design/` | Färger, knappstilar, maskoten Pip och konfetti |
+| `PausCore/` | Ren logik för scheman, regler, pauser, XP, nivåer, uppdrag och troféer, med enhetstester (`swift test`) |
 | `PausMonitor/` | DeviceActivity-tillägg som startar och stoppar blockeringen när ett schema, ett fokuspass eller en paus börjar eller slutar |
 | `PausShieldConfiguration/` | Utseendet på spärrskärmen |
 | `PausShieldAction/` | Vad knapparna på spärrskärmen gör |
@@ -41,7 +48,7 @@ All logik som avgör *om* något ska blockeras finns i `BlockEngine`, som appen 
 
 ## Tester och CI
 
-GitHub Actions kör enhetstesterna för `PausCore` och bygger appen med alla tillägg, utan signering, på varje push (`.github/workflows/ios.yml`). Lokalt:
+GitHub Actions kör enhetstesterna för `PausCore` och bygger appen med alla tillägg, utan signering, på varje push (`.github/workflows/ios.yml`). Bygget körs både med standardversionen av Xcode och med den senaste, så att även koden för Apple Intelligence kompileras. Lokalt:
 
 ```sh
 cd PausCore && swift test

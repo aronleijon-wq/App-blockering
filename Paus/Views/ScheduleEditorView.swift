@@ -36,6 +36,8 @@ struct ScheduleEditorView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .screenBackground()
             .navigationTitle(isNew ? "Nytt schema" : "Ändra schema")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -107,7 +109,7 @@ private struct WeekdayPicker: View {
                         .font(.subheadline.weight(.semibold))
                         .frame(width: 38, height: 38)
                         .foregroundStyle(isSelected ? Color.white : Color.primary)
-                        .background(isSelected ? Color.accentColor : Color(uiColor: .tertiarySystemFill), in: Circle())
+                        .background(isSelected ? AnyShapeStyle(Theme.glow) : AnyShapeStyle(Theme.cardRaised), in: Circle())
                 }
                 .buttonStyle(.borderless)
                 .frame(maxWidth: .infinity)

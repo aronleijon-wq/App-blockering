@@ -22,25 +22,28 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
     private func makeConfiguration(name: String?) -> ShieldConfiguration {
         let now = Date.now
-        let engine = BlockEngine(rules: SharedStore.rules, runtime: SharedStore.runtime)
+        let engine = BlockEngine(rules: SharedStore.effectiveRules, runtime: SharedStore.runtime)
         let canPause = engine.canPause(at: now)
-        let tint = UIColor(red: 0.13, green: 0.55, blue: 0.53, alpha: 1)
+        let closesToday = SharedStore.progress.counts(at: now, calendar: .current).closes
+        let earnsXP = closesToday < PlayerProgress.XP.closeDailyCap
+        let pink = UIColor(red: 1.0, green: 0.31, blue: 0.64, alpha: 1)
+        let background = UIColor(red: 0.055, green: 0.043, blue: 0.122, alpha: 1)
 
-        let title = name.map { "\($0) är pausad" } ?? "Det här är pausat"
+        let title = name.map { "Pip säger nej till \($0)" } ?? "Pip säger nej"
         var subtitle = engine.reason(at: now).map { Format.reason($0) + "." } ?? "Den här appen är blockerad just nu."
-        if canPause {
-            subtitle += " Behöver du ändå in? Ta en paus – först andas du en stund."
+        if earnsXP {
+            subtitle += " Stäng nu och få +\(PlayerProgress.XP.close) XP."
         }
 
         return ShieldConfiguration(
-            backgroundBlurStyle: .systemThickMaterial,
-            backgroundColor: nil,
-            icon: UIImage(systemName: "pause.circle.fill")?.withTintColor(tint, renderingMode: .alwaysOriginal),
-            title: ShieldConfiguration.Label(text: title, color: .label),
-            subtitle: ShieldConfiguration.Label(text: subtitle, color: .secondaryLabel),
-            primaryButtonLabel: ShieldConfiguration.Label(text: "Stäng", color: .white),
-            primaryButtonBackgroundColor: tint,
-            secondaryButtonLabel: canPause ? ShieldConfiguration.Label(text: "Ta en paus", color: tint) : nil
+            backgroundBlurStyle: .systemUltraThinMaterialDark,
+            backgroundColor: background,
+            icon: UIImage(systemName: "face.smiling.inverse")?.withTintColor(pink, renderingMode: .alwaysOriginal),
+            title: ShieldConfiguration.Label(text: title, color: .white),
+            subtitle: ShieldConfiguration.Label(text: subtitle, color: UIColor.white.withAlphaComponent(0.75)),
+            primaryButtonLabel: ShieldConfiguration.Label(text: earnsXP ? "Stäng (+\(PlayerProgress.XP.close) XP)" : "Stäng", color: .white),
+            primaryButtonBackgroundColor: pink,
+            secondaryButtonLabel: canPause ? ShieldConfiguration.Label(text: "Ta en paus", color: pink) : nil
         )
     }
 }

@@ -15,6 +15,8 @@ enum SharedStore {
     private static let rulesKey = "rules"
     private static let runtimeKey = "runtime"
     private static let selectionKey = "selection"
+    private static let progressKey = "progress"
+    private static let proKey = "isPro"
 
     static var rules: PausRules {
         get { load(rulesKey) ?? PausRules() }
@@ -31,10 +33,33 @@ enum SharedStore {
         set { save(newValue, forKey: selectionKey) }
     }
 
+    static var progress: PlayerProgress {
+        get { load(progressKey) ?? PlayerProgress() }
+        set { save(newValue, forKey: progressKey) }
+    }
+
+    /// Mirrors the app's StoreKit entitlement so the extensions apply the same rules.
+    static var isPro: Bool {
+        get { AppGroup.defaults.bool(forKey: proKey) }
+        set { AppGroup.defaults.set(newValue, forKey: proKey) }
+    }
+
+    /// The rules actually enforced, with Pro-only features dropped for free users.
+    static var effectiveRules: PausRules { rules.effective(isPro: isPro) }
+
     static func updateRuntime(_ change: (inout PausRuntime) -> Void) {
         var value = runtime
         change(&value)
         runtime = value
+    }
+
+    /// Reads the latest progress before changing it, since the extensions write it too.
+    @discardableResult
+    static func updateProgress(_ change: (inout PlayerProgress) -> [Reward]) -> [Reward] {
+        var value = progress
+        let rewards = change(&value)
+        progress = value
+        return rewards
     }
 
     private static func load<Value: Decodable>(_ key: String) -> Value? {

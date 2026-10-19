@@ -10,11 +10,14 @@ struct RootView: View {
         Group {
             if model.isAuthorized {
                 TabView(selection: $model.selectedTab) {
-                    TodayView()
-                        .tabItem { Label("Idag", systemImage: "sun.max") }
-                        .tag(AppModel.Tab.today)
+                    HomeView()
+                        .tabItem { Label("Hem", systemImage: "house.fill") }
+                        .tag(AppModel.Tab.home)
+                    TrophiesView()
+                        .tabItem { Label("Troféer", systemImage: "trophy.fill") }
+                        .tag(AppModel.Tab.trophies)
                     SelectionView()
-                        .tabItem { Label("Appar", systemImage: "square.grid.2x2") }
+                        .tabItem { Label("Appar", systemImage: "square.grid.2x2.fill") }
                         .tag(AppModel.Tab.apps)
                     RulesView()
                         .tabItem { Label("Regler", systemImage: "slider.horizontal.3") }
@@ -24,12 +27,26 @@ struct RootView: View {
                 OnboardingView()
             }
         }
+        .tint(Theme.pink)
+        .fontDesign(.rounded)
+        .preferredColorScheme(.dark)
         .task { model.reload() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { model.reload() }
         }
         .sheet(isPresented: $model.isPauseSheetPresented) {
             PauseView()
+        }
+        .sheet(isPresented: $model.isPaywallPresented) {
+            PaywallView()
+        }
+        .fullScreenCover(
+            isPresented: Binding(
+                get: { !model.celebration.isEmpty },
+                set: { if !$0 { model.dismissCelebration() } }
+            )
+        ) {
+            CelebrationView(rewards: model.celebration)
         }
         .alert(
             "Något gick fel",

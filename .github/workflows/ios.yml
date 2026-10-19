@@ -7,15 +7,28 @@ on:
 
 jobs:
   build:
+    name: Build (${{ matrix.xcode }} Xcode)
     runs-on: macos-15
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # "newest" also compiles the Apple Intelligence code path, which needs the iOS 26 SDK.
+        xcode: [default, newest]
     steps:
       - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        if: matrix.xcode == 'newest'
+        run: |
+          ls -d /Applications/Xcode*.app
+          newest=$(ls -d /Applications/Xcode_*.app | grep -v -i beta | sort -V | tail -1)
+          sudo xcode-select -s "$newest"
 
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Test blocking logic
+      - name: Test blocking and progress logic
         working-directory: PausCore
         run: swift test
 

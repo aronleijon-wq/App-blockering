@@ -1,0 +1,61 @@
+{
+  "identifier" : "5C2E8A41",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "sv_SE",
+    "_storefront" : "SWE",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "9F3B6D20",
+      "localizations" : [
+
+      ],
+      "name" : "Paus Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "19.0",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "7A1C4E92",
+          "introductoryOffer" : {
+            "internalID" : "3D8F2B57",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Obegränsade scheman, daglig gräns, strikt fokus och AI-coach.",
+              "displayName" : "Paus Pro",
+              "locale" : "sv_SE"
+            }
+          ],
+          "productID" : "paus.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Paus Pro månad",
+          "subscriptionGroupID" : "9F3B6D20",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

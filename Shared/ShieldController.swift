@@ -13,7 +13,7 @@ enum ShieldController {
     /// Raises or lowers the shield to match the stored rules and runtime state.
     /// Call it after anything that changes them; it is safe to call repeatedly.
     static func refresh(at date: Date = .now, scheduleOverrides: [UUID: Bool] = [:]) {
-        let engine = BlockEngine(rules: SharedStore.rules, runtime: SharedStore.runtime)
+        let engine = BlockEngine(rules: SharedStore.effectiveRules, runtime: SharedStore.runtime)
         if engine.shouldShield(at: date, scheduleOverrides: scheduleOverrides) {
             apply(SharedStore.selection)
         } else {

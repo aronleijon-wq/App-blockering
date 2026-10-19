@@ -17,7 +17,7 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         super.intervalDidEnd(for: activity)
         switch activity {
         case .focus:
-            SharedStore.updateRuntime { $0.focusEndsAt = nil }
+            ProgressRecorder.completeFocus()
             ShieldController.refresh()
         case .pause:
             SharedStore.updateRuntime { $0.pausedUntil = nil }

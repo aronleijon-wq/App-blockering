@@ -21,6 +21,7 @@ final class ShieldActionExtension: ShieldActionDelegate {
         switch action {
         case .primaryButtonPressed:
             SharedStore.updateRuntime { $0.recordClose(at: .now, calendar: .current) }
+            ProgressRecorder.record(.closedBlockedApp)
             completionHandler(.close)
         case .secondaryButtonPressed:
             SharedStore.updateRuntime { $0.pauseRequestedAt = .now }
@@ -32,8 +33,8 @@ final class ShieldActionExtension: ShieldActionDelegate {
 
     private func postPauseNotification(completion: @escaping () -> Void) {
         let content = UNMutableNotificationContent()
-        content.title = "Behöver du en paus?"
-        content.body = "Tryck här för att öppna Paus och ta en kort paus."
+        content.title = "Pip väntar på dig"
+        content.body = "Tryck här för att andas en stund och ta en kort paus."
         let request = UNNotificationRequest(identifier: "paus.pause-request", content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request) { _ in completion() }
     }

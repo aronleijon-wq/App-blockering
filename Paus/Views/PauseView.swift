@@ -25,6 +25,7 @@ struct PauseView: View {
                     )
                 }
             }
+            .screenBackground()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Stäng") { dismiss() }
@@ -43,12 +44,14 @@ struct PauseView: View {
             Spacer()
             ZStack {
                 Circle()
-                    .fill(Color.accentColor.opacity(0.15))
+                    .fill(Theme.violet.opacity(0.18))
                 Circle()
-                    .fill(Color.accentColor.opacity(0.45))
+                    .fill(Theme.glow)
+                    .opacity(0.55)
                     .scaleEffect(scale)
+                MascotView(mood: .zen, level: model.progress.level, size: 120)
             }
-            .frame(width: 220, height: 220)
+            .frame(width: 240, height: 240)
             .accessibilityHidden(true)
 
             if remaining > 0 {
@@ -62,26 +65,25 @@ struct PauseView: View {
                 Text("Vill du fortfarande ta en paus?")
                     .font(.title2.weight(.semibold))
                     .multilineTextAlignment(.center)
-                Text("Under pausen kan du öppna de blockerade apparna i \(model.rules.pause.minutes) minuter. \(model.engine.pausesLeft(at: .now)) av \(model.rules.pause.maxPerDay) pauser kvar idag.")
+                Text("Under pausen kan du öppna de blockerade apparna i \(model.rules.pause.minutes) minuter. \(model.engine.pausesLeft(at: .now)) av \(model.rules.pause.maxPerDay) pauser kvar idag. Tackar du nej får du +\(PlayerProgress.XP.decline) XP.")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
             Spacer()
 
             VStack(spacing: 12) {
-                Button {
+                Button("Nej tack, jag klarar mig (+\(PlayerProgress.XP.decline) XP)") {
+                    dismiss()
+                    model.declinePause()
+                }
+                .buttonStyle(GlowButtonStyle())
+
+                Button("Pausa i \(model.rules.pause.minutes) min") {
                     model.takePause()
                     dismiss()
-                } label: {
-                    Text("Pausa i \(model.rules.pause.minutes) min")
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .buttonStyle(ChipButtonStyle())
                 .disabled(remaining > 0)
-
-                Button("Nej tack, jag klarar mig") { dismiss() }
-                    .controlSize(.large)
             }
         }
         .padding(24)

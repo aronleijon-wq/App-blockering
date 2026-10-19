@@ -37,9 +37,9 @@ enum ActivityScheduler {
         return registered == expectedActivities(rules: rules, selection: selection)
     }
 
-    /// Re-registers schedule and daily-limit monitoring from the saved rules. Focus and pause are left running.
+    /// Re-registers schedule and daily-limit monitoring from the enforced rules. Focus and pause are left running.
     static func sync() throws {
-        let rules = SharedStore.rules
+        let rules = SharedStore.effectiveRules
         let selection = SharedStore.selection
         let stale = center.activities.filter { $0.scheduleID != nil || $0 == .dailyLimit }
         // An empty list would stop every activity, focus and pause included.
