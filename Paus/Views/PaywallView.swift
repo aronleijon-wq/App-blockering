@@ -37,6 +37,10 @@ struct PaywallView: View {
             .background(Theme.backdrop)
         }
         .storeButton(.visible, for: .restorePurchases)
+        .subscriptionStorePolicyDestination(url: AppInfo.termsURL, for: .termsOfService)
+        .subscriptionStorePolicyDestination(for: .privacyPolicy) {
+            NavigationStack { PrivacyPolicyView() }
+        }
         .subscriptionStoreControlStyle(.prominentPicker)
         .onInAppPurchaseCompletion { _, result in
             if case .success(.success) = result {

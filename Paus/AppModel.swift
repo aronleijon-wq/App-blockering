@@ -117,6 +117,32 @@ final class AppModel {
         Task { await syncLeague(force: false) }
     }
 
+    // MARK: Privacy
+
+    /// Deletes the league record, local progress, rules and selection, and lifts every block.
+    /// Not offered during strict focus, where it would be a way around the session.
+    func deleteAllData() async {
+        guard !isStrictFocusActive else { return }
+        if league.nickname != nil {
+            do {
+                try await league.leave()
+            } catch {
+                errorMessage = "Din ligadata kunde inte raderas just nu. Kontrollera internet och försök igen."
+                return
+            }
+        }
+        ActivityScheduler.stopAll()
+        SharedStore.eraseUserData()
+        ShieldController.refresh()
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        selection = SharedStore.selection
+        rules = SharedStore.rules
+        runtime = SharedStore.runtime
+        progress = SharedStore.progress
+        celebration = []
+        selectedTab = .home
+    }
+
     // MARK: League
 
     /// Settles a finished week, joins this week's group once the player has points and publishes the score.

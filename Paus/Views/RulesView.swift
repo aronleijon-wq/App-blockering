@@ -3,6 +3,7 @@ import SwiftUI
 struct RulesView: View {
     @Environment(AppModel.self) private var model
     @State private var editing: BlockSchedule?
+    @State private var isDeleteConfirmationPresented = false
 
     private let limitOptions = [15, 30, 45, 60, 90, 120]
 
@@ -91,10 +92,34 @@ struct RulesView: View {
                 } footer: {
                     Text("En paus öppnar de blockerade apparna en kort stund. Först svarar du varför och andas en stund. Dagens första paus är gratis, sedan kostar de \(League.pausePenalty(forPause: 2)), \(League.pausePenalty(forPause: 3)) och \(League.pausePenalty(forPause: 4)) veckopoäng. Tackar du nej får du \(PlayerProgress.XP.decline) XP.")
                 }
+
+                Section {
+                    NavigationLink("Integritetspolicy") { PrivacyPolicyView() }
+                    Link("Användarvillkor", destination: AppInfo.termsURL)
+                    if let mail = AppInfo.supportMailURL {
+                        Link("Kontakta support", destination: mail)
+                    }
+                    Button("Radera all min data", role: .destructive) {
+                        isDeleteConfirmationPresented = true
+                    }
+                    .disabled(model.isStrictFocusActive)
+                } header: {
+                    Text("Om och integritet")
+                } footer: {
+                    Text(model.isStrictFocusActive ? "Data kan inte raderas under strikt fokus." : "Paus fungerar utan konto, och det mesta stannar på din telefon.")
+                }
             }
             .scrollContentBackground(.hidden)
             .screenBackground()
             .navigationTitle("Regler")
+            .confirmationDialog("Radera all din data?", isPresented: $isDeleteConfirmationPresented, titleVisibility: .visible) {
+                Button("Radera allt", role: .destructive) {
+                    Task { await model.deleteAllData() }
+                }
+                Button("Avbryt", role: .cancel) {}
+            } message: {
+                Text("XP, nivå, streak, troféer, regler och ditt ligakonto raderas och alla blockeringar tas bort. Det går inte att ångra. En prenumeration sägs upp separat i Inställningar.")
+            }
             .sheet(item: $editing) { schedule in
                 ScheduleEditorView(
                     schedule: schedule,

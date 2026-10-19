@@ -54,6 +54,13 @@ enum SharedStore {
     /// The rules actually enforced, with Pro-only features dropped for free users.
     static var effectiveRules: PausRules { rules.effective(isPro: isPro) }
 
+    /// Erases everything Paus stores about the user on this device, except the Pro entitlement mirror.
+    static func eraseUserData() {
+        for key in [rulesKey, runtimeKey, selectionKey, progressKey, wasAuthorizedKey] {
+            AppGroup.defaults.removeObject(forKey: key)
+        }
+    }
+
     static func updateRuntime(_ change: (inout PausRuntime) -> Void) {
         var value = runtime
         change(&value)

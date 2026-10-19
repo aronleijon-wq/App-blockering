@@ -42,6 +42,24 @@ Inskickade anmälningar sparas som posttypen `Report` och kan granskas i CloudKi
 - Skärmtid-funktionerna fungerar inte i simulatorn. Testa på en riktig iPhone.
 - Capability-en *Family Controls* kräver ett betalt Apple Developer-konto (99 USD/år). För att publicera i App Store måste du dessutom ansöka hos Apple om distributionsrätt för Family Controls, för appen och alla tre tillägg.
 
+## Integritet och moderering
+
+- **Integritetspolicy** finns i appen (*Regler → Om och integritet*, på köpsidan och vid val av smeknamn) och som `PRIVACY.md` för webben.
+- **Kontakt och ansvarig:** fyll i ditt namn och din supportadress i `Paus/AppInfo.swift`. Xcode visar en varning tills det är gjort. Lägg in samma uppgifter i `PRIVACY.md`.
+- **Radera data:** *Lämna ligan* tar bort ligaposten, och *Radera all min data* tar bort allt (spärrat under strikt fokus).
+- **Moderering:** anmälningar hamnar som `Report`-poster i CloudKit Console. Ta bort ett olämpligt namn genom att radera spelarens `Player`-post (id:t står i anmälan). Apple förväntar sig att anmälningar hanteras inom 24 timmar.
+- **Integritetsmanifest:** `Shared/PrivacyInfo.xcprivacy` deklarerar UserDefaults och den data ligan samlar in.
+
+## Lanseringschecklista
+
+1. Fyll i `Paus/AppInfo.swift` och `PRIVACY.md`, och publicera `PRIVACY.md` på en webbadress (till exempel landningssidan).
+2. Ansök om distributionsrätt för Family Controls för alla fyra bundle-id:n: <https://developer.apple.com/contact/request/family-controls-distribution>
+3. CloudKit: lägg till index (se ovan) och *Deploy Schema Changes* till produktion.
+4. App Store Connect: skapa appen, båda prenumerationerna, avtalet för betalappar, bank- och skatteuppgifter, och ansök om Small Business Program.
+5. Fyll i *App Privacy*: User ID, Other User Content (smeknamn), Gameplay Content (poäng) och Coarse Location (land), alla kopplade till användaren, för appens funktion och inte för spårning.
+6. Åldersgräns: svara att appen har användargenererat innehåll (smeknamn).
+7. Ladda upp via *Product → Archive*, testa med TestFlight och skicka in för granskning.
+
 ## Projektstruktur
 
 | Mapp | Innehåll |

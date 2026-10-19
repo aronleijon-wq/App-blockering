@@ -21,6 +21,17 @@ struct NicknameSheet: View {
                         .foregroundStyle(problem == nil || name.isEmpty ? Color.secondary : Theme.pink)
                 }
 
+                Section {
+                    Label("Inga kränkande, sexuella eller hatiska namn.", systemImage: "hand.raised")
+                    Label("Använd inte ditt riktiga namn.", systemImage: "person.fill.questionmark")
+                    Label("Anmälda namn granskas och kan tas bort.", systemImage: "flag")
+                    NavigationLink("Läs integritetspolicyn") { PrivacyPolicyView() }
+                } header: {
+                    Text("Regler för ligan")
+                } footer: {
+                    Text("Genom att spara går du med i ligan. Ditt smeknamn och dina poäng syns för andra spelare.")
+                }
+
                 if model.league.nickname != nil {
                     Section {
                         Button("Lämna ligan och ta bort mitt namn", role: .destructive) {

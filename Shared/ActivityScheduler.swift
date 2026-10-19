@@ -78,6 +78,11 @@ enum ActivityScheduler {
         if let firstError { throw firstError }
     }
 
+    /// Stops every schedule, limit, focus session and pause.
+    static func stopAll() {
+        center.stopMonitoring()
+    }
+
     static func startFocus(until end: Date) throws {
         try startOneShot(.focus, until: end)
     }
