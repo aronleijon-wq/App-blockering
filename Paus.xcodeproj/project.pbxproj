@@ -1,0 +1,748 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		F63A06AD15A0912274D9E219 /* PausMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 41E668286B0796FB7E488F39 /* PausMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A762749A0A80138B67008C07 /* PausShieldConfiguration.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CF1643F1F0D7FFD88370D2D0 /* PausShieldConfiguration.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		47FC4BA2B18D0FAF779FB90B /* PausShieldAction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 764F188140277AF7321C7FA0 /* PausShieldAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C00FB2DECE106F408FEFB3E2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EB3FD700DF2BCCADB6EFC596;
+			remoteInfo = PausMonitor;
+		};
+		243887F2A21674ED8B6EBD69 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ABE7401FD69068A88A1897DB;
+			remoteInfo = PausShieldConfiguration;
+		};
+		FBC4065EA1A459204944519B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D21BAD69FD2B88C955D02991;
+			remoteInfo = PausShieldAction;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		370629FD6D8AA78693D12695 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F63A06AD15A0912274D9E219 /* PausMonitor.appex in Embed Foundation Extensions */,
+				A762749A0A80138B67008C07 /* PausShieldConfiguration.appex in Embed Foundation Extensions */,
+				47FC4BA2B18D0FAF779FB90B /* PausShieldAction.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		911FCC16E779FA191C2E3EDE /* Paus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Paus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		41E668286B0796FB7E488F39 /* PausMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PausMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		CF1643F1F0D7FFD88370D2D0 /* PausShieldConfiguration.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PausShieldConfiguration.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		764F188140277AF7321C7FA0 /* PausShieldAction.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PausShieldAction.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		C66D821B8AFF026F504788C6 /* Paus */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Paus;
+			sourceTree = "<group>";
+		};
+		71CF18FAD41D5536C0497AA2 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		DB525CDD853270E7C68F1BE1 /* PausCore */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "PausCore/Sources/PausCore";
+			sourceTree = "<group>";
+		};
+		17B68358202B543197E8735B /* PausMonitor */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PausMonitor;
+			sourceTree = "<group>";
+		};
+		C5A7E7F6C7DD7F4846597CEF /* PausShieldConfiguration */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PausShieldConfiguration;
+			sourceTree = "<group>";
+		};
+		CFA40C5788693F5A6A2DEC94 /* PausShieldAction */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PausShieldAction;
+			sourceTree = "<group>";
+		};
+		8D36E4C8C1445369A8090D18 /* Config */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Config;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0431B8F210F5D9F16D3C321B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F625E8CC1384C0D049F6080D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C9BB9766F82327B70D6FA475 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		513579883AD04DBAAE91ABC1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		71DC27D9F8E3B109C877BFC4 = {
+			isa = PBXGroup;
+			children = (
+				C66D821B8AFF026F504788C6 /* Paus */,
+				71CF18FAD41D5536C0497AA2 /* Shared */,
+				DB525CDD853270E7C68F1BE1 /* PausCore */,
+				17B68358202B543197E8735B /* PausMonitor */,
+				C5A7E7F6C7DD7F4846597CEF /* PausShieldConfiguration */,
+				CFA40C5788693F5A6A2DEC94 /* PausShieldAction */,
+				8D36E4C8C1445369A8090D18 /* Config */,
+				113236722DEE1DC96F378B9D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		113236722DEE1DC96F378B9D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				911FCC16E779FA191C2E3EDE /* Paus.app */,
+				41E668286B0796FB7E488F39 /* PausMonitor.appex */,
+				CF1643F1F0D7FFD88370D2D0 /* PausShieldConfiguration.appex */,
+				764F188140277AF7321C7FA0 /* PausShieldAction.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		984E493762CB9EFA820A492B /* Paus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 16FE4B11DA5158303E2B3759 /* Build configuration list for PBXNativeTarget "Paus" */;
+			buildPhases = (
+				4C5D261A36E2561CD239D13D /* Sources */,
+				0431B8F210F5D9F16D3C321B /* Frameworks */,
+				8C4D982934685C2AFDA0DAE6 /* Resources */,
+				370629FD6D8AA78693D12695 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				656336EC0207A4525AD574F5 /* PBXTargetDependency */,
+				4E7AA56B70A1AF41F02BB3E7 /* PBXTargetDependency */,
+				4B654E1C422761CC863C703F /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C66D821B8AFF026F504788C6 /* Paus */,
+				71CF18FAD41D5536C0497AA2 /* Shared */,
+				DB525CDD853270E7C68F1BE1 /* PausCore */,
+			);
+			name = Paus;
+			packageProductDependencies = (
+			);
+			productName = Paus;
+			productReference = 911FCC16E779FA191C2E3EDE /* Paus.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EB3FD700DF2BCCADB6EFC596 /* PausMonitor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D13A1D42B88A8364BC5D87B6 /* Build configuration list for PBXNativeTarget "PausMonitor" */;
+			buildPhases = (
+				067D4A01F161700D39CFA9D9 /* Sources */,
+				F625E8CC1384C0D049F6080D /* Frameworks */,
+				2AC37AE359BDA0EF1D96F25C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				17B68358202B543197E8735B /* PausMonitor */,
+				71CF18FAD41D5536C0497AA2 /* Shared */,
+				DB525CDD853270E7C68F1BE1 /* PausCore */,
+			);
+			name = PausMonitor;
+			packageProductDependencies = (
+			);
+			productName = PausMonitor;
+			productReference = 41E668286B0796FB7E488F39 /* PausMonitor.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		ABE7401FD69068A88A1897DB /* PausShieldConfiguration */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F899DCB085AC8D9A8EDD19D8 /* Build configuration list for PBXNativeTarget "PausShieldConfiguration" */;
+			buildPhases = (
+				8CB1B21CF84F64824A72EEF9 /* Sources */,
+				C9BB9766F82327B70D6FA475 /* Frameworks */,
+				F0475B4A9F5442AC6D8A7E4D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C5A7E7F6C7DD7F4846597CEF /* PausShieldConfiguration */,
+				71CF18FAD41D5536C0497AA2 /* Shared */,
+				DB525CDD853270E7C68F1BE1 /* PausCore */,
+			);
+			name = PausShieldConfiguration;
+			packageProductDependencies = (
+			);
+			productName = PausShieldConfiguration;
+			productReference = CF1643F1F0D7FFD88370D2D0 /* PausShieldConfiguration.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		D21BAD69FD2B88C955D02991 /* PausShieldAction */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C0850C69029933D2F04D2B07 /* Build configuration list for PBXNativeTarget "PausShieldAction" */;
+			buildPhases = (
+				FCC2A0C51C81AC35979E9CB1 /* Sources */,
+				513579883AD04DBAAE91ABC1 /* Frameworks */,
+				D8FED54ED794760F5F0E77C8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CFA40C5788693F5A6A2DEC94 /* PausShieldAction */,
+				71CF18FAD41D5536C0497AA2 /* Shared */,
+				DB525CDD853270E7C68F1BE1 /* PausCore */,
+			);
+			name = PausShieldAction;
+			packageProductDependencies = (
+			);
+			productName = PausShieldAction;
+			productReference = 764F188140277AF7321C7FA0 /* PausShieldAction.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		46F86FAA6BBF9AC94A7E4595 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					984E493762CB9EFA820A492B = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					EB3FD700DF2BCCADB6EFC596 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					ABE7401FD69068A88A1897DB = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					D21BAD69FD2B88C955D02991 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 946392D46B65BE2E368A0D3B /* Build configuration list for PBXProject "Paus" */;
+			developmentRegion = sv;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				sv,
+				en,
+				Base,
+			);
+			mainGroup = 71DC27D9F8E3B109C877BFC4;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 113236722DEE1DC96F378B9D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				984E493762CB9EFA820A492B /* Paus */,
+				EB3FD700DF2BCCADB6EFC596 /* PausMonitor */,
+				ABE7401FD69068A88A1897DB /* PausShieldConfiguration */,
+				D21BAD69FD2B88C955D02991 /* PausShieldAction */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		8C4D982934685C2AFDA0DAE6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2AC37AE359BDA0EF1D96F25C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F0475B4A9F5442AC6D8A7E4D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D8FED54ED794760F5F0E77C8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4C5D261A36E2561CD239D13D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		067D4A01F161700D39CFA9D9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8CB1B21CF84F64824A72EEF9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FCC2A0C51C81AC35979E9CB1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		656336EC0207A4525AD574F5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EB3FD700DF2BCCADB6EFC596 /* PausMonitor */;
+			targetProxy = C00FB2DECE106F408FEFB3E2 /* PBXContainerItemProxy */;
+		};
+		4E7AA56B70A1AF41F02BB3E7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ABE7401FD69068A88A1897DB /* PausShieldConfiguration */;
+			targetProxy = 243887F2A21674ED8B6EBD69 /* PBXContainerItemProxy */;
+		};
+		4B654E1C422761CC863C703F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D21BAD69FD2B88C955D02991 /* PausShieldAction */;
+			targetProxy = FBC4065EA1A459204944519B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		5E1134544568A0C1B09E583D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PAUS_BUNDLE_PREFIX = se.aronleijon.paus;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		B3AFDE6F970A0432673383DD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PAUS_BUNDLE_PREFIX = se.aronleijon.paus;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		EDA7C483987D8616E7AC73DD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/Paus.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Paus-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Paus;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PAUS_BUNDLE_PREFIX)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		74BE001FA301F0FB6480E9A8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/Paus.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Paus-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Paus;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PAUS_BUNDLE_PREFIX)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		DE2021CB450956F3574F81FC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/PausMonitor.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/PausMonitor-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = PausMonitor;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PAUS_BUNDLE_PREFIX).monitor";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		D75254E6622E1DD3DCA8BEA0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/PausMonitor.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/PausMonitor-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = PausMonitor;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PAUS_BUNDLE_PREFIX).monitor";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		E35AA9C90BBE9283022663F2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/PausShieldConfiguration.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/PausShieldConfiguration-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = PausShieldConfiguration;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PAUS_BUNDLE_PREFIX).shieldconfiguration";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		2334FA43A3D29F4E7163E643 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/PausShieldConfiguration.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/PausShieldConfiguration-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = PausShieldConfiguration;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PAUS_BUNDLE_PREFIX).shieldconfiguration";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		D9A8EE73A95174E1A94C3963 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/PausShieldAction.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/PausShieldAction-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = PausShieldAction;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PAUS_BUNDLE_PREFIX).shieldaction";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		5ABDD2F11C6197F02D981483 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/PausShieldAction.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/PausShieldAction-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = PausShieldAction;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PAUS_BUNDLE_PREFIX).shieldaction";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		946392D46B65BE2E368A0D3B /* Build configuration list for PBXProject "Paus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5E1134544568A0C1B09E583D /* Debug */,
+				B3AFDE6F970A0432673383DD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		16FE4B11DA5158303E2B3759 /* Build configuration list for PBXNativeTarget "Paus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EDA7C483987D8616E7AC73DD /* Debug */,
+				74BE001FA301F0FB6480E9A8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D13A1D42B88A8364BC5D87B6 /* Build configuration list for PBXNativeTarget "PausMonitor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DE2021CB450956F3574F81FC /* Debug */,
+				D75254E6622E1DD3DCA8BEA0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F899DCB085AC8D9A8EDD19D8 /* Build configuration list for PBXNativeTarget "PausShieldConfiguration" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E35AA9C90BBE9283022663F2 /* Debug */,
+				2334FA43A3D29F4E7163E643 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C0850C69029933D2F04D2B07 /* Build configuration list for PBXNativeTarget "PausShieldAction" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D9A8EE73A95174E1A94C3963 /* Debug */,
+				5ABDD2F11C6197F02D981483 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+}

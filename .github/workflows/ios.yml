@@ -1,0 +1,29 @@
+name: iOS
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Test blocking logic
+        working-directory: PausCore
+        run: swift test
+
+      - name: Build app and extensions (unsigned)
+        run: |
+          xcodebuild build \
+            -project Paus.xcodeproj \
+            -target Paus \
+            -configuration Debug \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO
