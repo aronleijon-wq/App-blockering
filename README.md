@@ -12,6 +12,7 @@ En iPhone-app som blockerar sociala medier och andra appar som stjäl tid. "Paus
 - **Fokuspass, scheman, daglig gräns och medvetna pauser** som blockerar via iOS Skärmtid, även när appen är stängd.
 - **Paus Pro (19 kr/mån, 7 dagar gratis)**: obegränsade scheman, daglig gräns, strikt fokus och en AI-coach. Pip skriver då personliga meddelanden med Apple Intelligence direkt i telefonen, där det finns. Gratisversionen har fokuspass, ett schema, pauser och hela spelsystemet.
 - **Egen spärrskärm** på svenska: "Pip säger nej till TikTok", där *Stäng* ger XP.
+- **Liga**: veckopoäng och grupper om upp till 30 spelare per division (Brons → Silver → Guld → Diamant → Legend). De bästa i gruppen går upp och de sämsta åker ner. Det finns också topplistor för Sverige och världen. Man syns med smeknamn och kan anmäla eller blockera andra, och lämna ligan.
 
 Appen använder Apples Skärmtid-ramverk (FamilyControls, ManagedSettings och DeviceActivity), StoreKit 2 och, på iOS 26, Foundation Models.
 
@@ -24,6 +25,16 @@ Appen använder Apples Skärmtid-ramverk (FamilyControls, ManagedSettings och De
 4. För var och en av de fyra targets (**Paus**, **PausMonitor**, **PausShieldConfiguration** och **PausShieldAction**) går du till *Signing & Capabilities* och väljer ditt Team.
 5. Anslut din iPhone, välj den som mål och tryck på ▶︎.
 6. Testa prenumerationen utan riktiga pengar: gå till *Product → Scheme → Edit Scheme… → Run → Options* och välj `Paus.storekit` under *StoreKit Configuration*.
+
+**Ligan (CloudKit):**
+1. Under *Signing & Capabilities* för target **Paus**, kontrollera att *iCloud* finns med, att *CloudKit* är ikryssat och att containern `iCloud.se.aronleijon.paus` är vald. Om den saknas: klicka på **+ Capability**, välj **iCloud** och skapa containern.
+2. Kör appen och välj ett smeknamn i Liga-fliken, så skapas posttypen `Player` automatiskt i utvecklingsmiljön.
+3. Öppna [CloudKit Console](https://icloud.developer.apple.com) → din container → *Schema* → *Indexes* → `Player`, och lägg till:
+   - **Queryable:** `recordName`, `weekKey`, `groupID`, `division`, `country`
+   - **Sortable:** `weeklyPoints`, `joinedAt`
+4. Före lansering: *Deploy Schema Changes* till produktion.
+
+Inskickade anmälningar sparas som posttypen `Report` och kan granskas i CloudKit Console.
 
 **Inför App Store:** skapa en automatiskt förnyad prenumeration med produkt-id `paus.pro.monthly` i App Store Connect. Sätt priset till 19 kr/mån och lägg till ett introduktionserbjudande med 7 dagar gratis.
 
@@ -38,7 +49,7 @@ Appen använder Apples Skärmtid-ramverk (FamilyControls, ManagedSettings och De
 | `Paus/` | Själva appen: SwiftUI-vyer och `AppModel` |
 | `Shared/` | Kod som både appen och tilläggen använder: lagring i App Group, sköld och schemaläggning |
 | `Paus/Design/` | Färger, knappstilar, maskoten Pip och konfetti |
-| `PausCore/` | Ren logik för scheman, regler, pauser, XP, nivåer, uppdrag och troféer, med enhetstester (`swift test`) |
+| `PausCore/` | Ren logik för scheman, regler, pauser, XP, nivåer, uppdrag, troféer, ligapoäng och divisioner, med enhetstester (`swift test`) |
 | `PausMonitor/` | DeviceActivity-tillägg som startar och stoppar blockeringen när ett schema, ett fokuspass eller en paus börjar eller slutar |
 | `PausShieldConfiguration/` | Utseendet på spärrskärmen |
 | `PausShieldAction/` | Vad knapparna på spärrskärmen gör |

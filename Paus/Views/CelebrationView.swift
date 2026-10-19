@@ -15,6 +15,15 @@ struct CelebrationView: View {
         }
     }
 
+    private var divisionChange: (division: Division, promoted: Bool)? {
+        for reward in rewards {
+            if case .division(let raw, let promoted) = reward, let division = Division(rawValue: raw) {
+                return (division, promoted)
+            }
+        }
+        return nil
+    }
+
     private var newLevel: Int? {
         rewards.compactMap { reward -> Int? in
             if case .levelUp(let level) = reward { return level }
@@ -31,7 +40,16 @@ struct CelebrationView: View {
                 Spacer()
                 MascotView(mood: .proud, level: newLevel ?? model.progress.level, size: 180)
 
-                if let newLevel {
+                if let change = divisionChange {
+                    DivisionBadge(division: change.division, size: 72)
+                    Text(change.promoted ? "Upp till \(change.division.title)!" : "Ner till \(change.division.title)")
+                        .font(.system(size: 36, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Theme.brand)
+                        .multilineTextAlignment(.center)
+                    Text(change.promoted ? "Grym vecka! Nu möter du tuffare motstånd." : "Ny vecka, ny chans. Du tar dig upp igen!")
+                        .font(.title3.weight(.semibold))
+                        .multilineTextAlignment(.center)
+                } else if let newLevel {
                     Text("Nivå \(newLevel)!")
                         .font(.system(size: 44, weight: .heavy, design: .rounded))
                         .foregroundStyle(Theme.brand)
@@ -90,6 +108,9 @@ struct CelebrationView: View {
         case .quest(let id):
             guard let quest = Quest.with(id: id) else { return nil }
             return ("checkmark", "Uppdrag klart: \(quest.title) (+\(quest.xp) XP)")
+        case .division(let raw, let promoted):
+            guard let division = Division(rawValue: raw) else { return nil }
+            return (promoted ? "arrow.up.right" : "arrow.down.right", promoted ? "Du gick upp till \(division.title)-ligan" : "Du åkte ner till \(division.title)-ligan")
         }
     }
 }

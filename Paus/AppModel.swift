@@ -9,7 +9,7 @@ import UserNotifications
 @Observable
 final class AppModel {
     enum Tab: Hashable {
-        case home, trophies, apps, rules
+        case home, league, trophies, apps, rules
     }
 
     var selectedTab: Tab = .home
@@ -26,6 +26,8 @@ final class AppModel {
     var errorMessage: String?
 
     let store = Store()
+    let league = LeagueService()
+    @ObservationIgnored private var lastLeagueSync: Date?
     /// Screen Time can't be authorized in the Simulator, so there the app skips onboarding to let the design be tried out.
     /// Blocking itself only works on a real iPhone.
     private(set) var isSimulatorPreview = false
@@ -109,6 +111,47 @@ final class AppModel {
         }
         Task { await store.refresh() }
         Task { await refreshCoach() }
+        Task { await syncLeague(force: false) }
+    }
+
+    // MARK: League
+
+    /// Settles a finished week, joins this week's group once the player has points and publishes the score.
+    func syncLeague(force: Bool) async {
+        if !force, let lastLeagueSync, Date.now.timeIntervalSince(lastLeagueSync) < 60 { return }
+        lastLeagueSync = .now
+        await league.refreshAccount()
+        guard league.canCompete else { return }
+        do {
+            SharedStore.updateProgress { progress in
+                progress.rollWeek(at: .now, calendar: .current)
+                return []
+            }
+            if let finished = SharedStore.progress.finishedWeek {
+                var standing: (rank: Int, size: Int)?
+                if let groupID = finished.groupID {
+                    standing = try await league.standing(weekKey: finished.weekKey, groupID: groupID)
+                }
+                SharedStore.updateProgress { $0.settleFinishedWeek(rank: standing?.rank, groupSize: standing?.size) }
+            }
+
+            let current = SharedStore.progress
+            if current.leagueGroupID == nil, current.weeklyPoints > 0, let weekKey = current.weekKey {
+                let groupID = try await league.findGroup(weekKey: weekKey, division: current.division)
+                SharedStore.updateProgress { progress in
+                    if progress.weekKey == weekKey, progress.leagueGroupID == nil {
+                        progress.leagueGroupID = groupID
+                    }
+                    return []
+                }
+            }
+            progress = SharedStore.progress
+            try await league.upload(progress)
+            showPendingCelebrations()
+        } catch {
+            // The league is a bonus; it retries on the next sync rather than interrupting the user.
+            lastLeagueSync = nil
+        }
     }
 
     // MARK: Rewards

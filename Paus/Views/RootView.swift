@@ -13,6 +13,9 @@ struct RootView: View {
                     HomeView()
                         .tabItem { Label("Hem", systemImage: "house.fill") }
                         .tag(AppModel.Tab.home)
+                    LeagueView()
+                        .tabItem { Label("Liga", systemImage: "flag.checkered") }
+                        .tag(AppModel.Tab.league)
                     TrophiesView()
                         .tabItem { Label("Troféer", systemImage: "trophy.fill") }
                         .tag(AppModel.Tab.trophies)
