@@ -8,7 +8,7 @@ Paus fungerar utan konto. Det mesta stannar på din telefon. Om du går med i li
 
 ## Personuppgiftsansvarig
 
-[Ditt namn]. Kontakt: [din e-post].
+Aron Leijon. Kontakt: aronleijon@icloud.com.
 
 ## Det som bara finns på din telefon
 
@@ -32,7 +32,7 @@ Paus skickar påminnelser och pausnotiser lokalt från telefonen. Ingen notisdat
 
 ## Dina rättigheter
 
-Du kan när som helst lämna ligan och radera ditt smeknamn under Liga, eller radera all din data under Regler > Radera all min data. Du har rätt att få veta vilka uppgifter vi har om dig, få dem rättade eller raderade, och att klaga hos Integritetsskyddsmyndigheten (IMY). Kontakta [din e-post] med frågor.
+Du kan när som helst lämna ligan och radera ditt smeknamn under Liga, eller radera all din data under Regler > Radera all min data. Du har rätt att få veta vilka uppgifter vi har om dig, få dem rättade eller raderade, och att klaga hos Integritetsskyddsmyndigheten (IMY). Kontakta aronleijon@icloud.com med frågor.
 
 ## Barn
 

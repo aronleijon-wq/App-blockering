@@ -45,14 +45,14 @@ Inskickade anmälningar sparas som posttypen `Report` och kan granskas i CloudKi
 ## Integritet och moderering
 
 - **Integritetspolicy** finns i appen (*Regler → Om och integritet*, på köpsidan och vid val av smeknamn) och som `PRIVACY.md` för webben.
-- **Kontakt och ansvarig:** fyll i ditt namn och din supportadress i `Paus/AppInfo.swift`. Xcode visar en varning tills det är gjort. Lägg in samma uppgifter i `PRIVACY.md`.
+- **Kontakt och ansvarig:** namn och supportadress finns i `Paus/AppInfo.swift` och `PRIVACY.md`. Ändra på båda ställena om de byts.
 - **Radera data:** *Lämna ligan* tar bort ligaposten, och *Radera all min data* tar bort allt (spärrat under strikt fokus).
 - **Moderering:** anmälningar hamnar som `Report`-poster i CloudKit Console. Ta bort ett olämpligt namn genom att radera spelarens `Player`-post (id:t står i anmälan). Apple förväntar sig att anmälningar hanteras inom 24 timmar.
 - **Integritetsmanifest:** `Shared/PrivacyInfo.xcprivacy` deklarerar UserDefaults och den data ligan samlar in.
 
 ## Lanseringschecklista
 
-1. Fyll i `Paus/AppInfo.swift` och `PRIVACY.md`, och publicera `PRIVACY.md` på en webbadress (till exempel landningssidan).
+1. Publicera integritetspolicyn och en supportsida på en webbadress (till exempel en enkel sida i Lovable).
 2. Ansök om distributionsrätt för Family Controls för alla fyra bundle-id:n: <https://developer.apple.com/contact/request/family-controls-distribution>
 3. CloudKit: lägg till index (se ovan) och *Deploy Schema Changes* till produktion.
 4. App Store Connect: skapa appen, båda prenumerationerna, avtalet för betalappar, bank- och skatteuppgifter, och ansök om Small Business Program.
