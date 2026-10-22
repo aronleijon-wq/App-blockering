@@ -18,6 +18,7 @@ enum SharedStore {
     private static let progressKey = "progress"
     private static let proKey = "isPro"
     private static let wasAuthorizedKey = "wasAuthorized"
+    private static let notificationSettingsKey = "notificationSettings"
 
     static var rules: PausRules {
         get { load(rulesKey) ?? PausRules() }
@@ -51,12 +52,17 @@ enum SharedStore {
         set { AppGroup.defaults.set(newValue, forKey: wasAuthorizedKey) }
     }
 
+    static var notificationSettings: NotificationSettings {
+        get { load(notificationSettingsKey) ?? NotificationSettings() }
+        set { save(newValue, forKey: notificationSettingsKey) }
+    }
+
     /// The rules actually enforced, with Pro-only features dropped for free users.
     static var effectiveRules: PausRules { rules.effective(isPro: isPro) }
 
     /// Erases everything Paus stores about the user on this device, except the Pro entitlement mirror.
     static func eraseUserData() {
-        for key in [rulesKey, runtimeKey, selectionKey, progressKey, wasAuthorizedKey] {
+        for key in [rulesKey, runtimeKey, selectionKey, progressKey, wasAuthorizedKey, notificationSettingsKey] {
             AppGroup.defaults.removeObject(forKey: key)
         }
     }

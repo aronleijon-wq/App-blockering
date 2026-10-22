@@ -4,6 +4,7 @@ struct HomeView: View {
     @Environment(AppModel.self) private var model
     @State private var isHealthInfoPresented = false
     @State private var isSettingsPresented = false
+    @State private var isStopFocusConfirming = false
 
     private let focusLengths = [25, 50, 90]
 
@@ -197,7 +198,7 @@ struct HomeView: View {
                         } label: {
                             let penalty = model.progress.nextPausePenalty(at: date, calendar: .current)
                             Label(
-                                penalty == 0 ? "Ta en paus på \(model.rules.pause.minutes) min (gratis)" : "Ta en paus (−\(penalty) poäng)",
+                                penalty == 0 ? "Ta en paus på \(model.rules.pause.minutes) min (gratis)" : "Ta en paus (−\(penalty) XP och poäng)",
                                 systemImage: "cup.and.saucer.fill"
                             )
                         }
@@ -250,8 +251,16 @@ struct HomeView: View {
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(Theme.pink)
                         } else {
-                            Button("Avsluta utan XP", role: .destructive) { model.stopFocus() }
-                                .font(.subheadline)
+                            Button("Avbryt (−\(PlayerProgress.XP.abandonedFocus) XP)", role: .destructive) {
+                                isStopFocusConfirming = true
+                            }
+                            .font(.subheadline)
+                            .confirmationDialog("Avbryta fokuspasset?", isPresented: $isStopFocusConfirming, titleVisibility: .visible) {
+                                Button("Avbryt ändå (−\(PlayerProgress.XP.abandonedFocus) XP)", role: .destructive) { model.stopFocus() }
+                                Button("Fortsätt fokusera", role: .cancel) {}
+                            } message: {
+                                Text("Du förlorar \(PlayerProgress.XP.abandonedFocus) XP, \(League.Points.abandonedFocus) veckopoäng och Pip blir ledsen. Du är så nära!")
+                            }
                         }
                     }
                 }

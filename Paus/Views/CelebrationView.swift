@@ -98,7 +98,7 @@ struct CelebrationView: View {
 
     private func row(for reward: Reward) -> (symbol: String, text: String)? {
         switch reward {
-        case .xp:
+        case .xp, .xpLost:
             return nil
         case .levelUp(let level):
             return ("arrow.up.circle.fill", "Ny nivå: \(Level.title(for: level))")

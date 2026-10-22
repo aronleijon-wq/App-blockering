@@ -4,7 +4,7 @@ import UserNotifications
 
 /// A daily nudge to come back for the reward and keep the streak alive.
 enum Reminders {
-    private static let identifier = "paus.daily-reward"
+    static let identifier = "paus.daily-reward"
     private static let hour = 18
     private static let minute = 30
 

@@ -15,7 +15,7 @@ struct IntroView: View {
     @State private var isPaywallPresented = false
 
     enum Step: Int, CaseIterable {
-        case hello, name, age, hours, apps, goals, calculating, reveal, plan, account, tour, nickname, trial
+        case hello, name, age, hours, apps, goals, calculating, reveal, plan, account, tour, nickname, friends, trial
     }
 
     private let appChoices = ["TikTok", "Instagram", "YouTube", "Snapchat", "X", "Reddit", "Netflix", "Spel", "Nyheter"]
@@ -230,9 +230,27 @@ struct IntroView: View {
                 Button("Klar!") { submitNickname() }
                     .buttonStyle(GlowButtonStyle())
                     .disabled(Nickname.problem(with: nickname) != nil)
-                Button("Hoppa över ligan") { goToTrial() }
+                Button("Hoppa över ligan") { step = .friends }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
+            }
+
+        case .friends:
+            ChatStep(mood: .hyped, lines: [
+                "Allt är roligare tillsammans! 🏆",
+                "Utmana dina vänner. Den som scrollar minst vinner veckan.",
+            ]) {
+                InviteCard(nickname: model.league.nickname)
+                ShareLink(
+                    item: AppInfo.inviteURL,
+                    subject: Text("Utmana mig i Paus"),
+                    message: Text(AppInfo.inviteMessage(nickname: model.league.nickname))
+                ) {
+                    Label("Bjud in vänner", systemImage: "square.and.arrow.up")
+                }
+                .buttonStyle(GlowButtonStyle())
+                Button("Fortsätt") { goToTrial() }
+                    .buttonStyle(ChipButtonStyle())
             }
 
         case .trial:
@@ -259,7 +277,7 @@ struct IntroView: View {
         guard Nickname.problem(with: nickname) == nil else { return }
         model.league.setNickname(nickname)
         Task { await model.syncLeague(force: true) }
-        goToTrial()
+        step = .friends
     }
 
     /// Offers the free week, unless the user already has Pro.
@@ -598,6 +616,44 @@ private struct TourList: View {
                 withAnimation(.spring(duration: 0.5, bounce: 0.35)) { shown = index + 1 }
             }
         }
+    }
+}
+
+// MARK: - Friends
+
+/// Pip and a few friendly faces racing up the board.
+private struct InviteCard: View {
+    let nickname: String?
+    @State private var isRaised = false
+
+    var body: some View {
+        VStack(spacing: 14) {
+            HStack(alignment: .bottom, spacing: 18) {
+                podium(height: 52, mood: .happy, place: "2")
+                podium(height: 76, mood: .hyped, place: "1")
+                podium(height: 38, mood: .sleepy, place: "3")
+            }
+            Text(nickname.map { "Dina vänner hittar dig som **\($0)**." } ?? "Dina vänner kan gå med i samma liga.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .card(highlighted: true)
+        .onAppear {
+            withAnimation(.spring(duration: 0.8, bounce: 0.4).delay(0.2)) { isRaised = true }
+        }
+    }
+
+    private func podium(height: CGFloat, mood: MascotMood, place: String) -> some View {
+        VStack(spacing: 6) {
+            MascotView(mood: mood, level: place == "1" ? 8 : 3, size: 54)
+            Text(place)
+                .font(.title3.weight(.heavy))
+                .frame(width: 64, height: isRaised ? height : 0)
+                .background(Theme.glow, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipped()
+        }
+        .accessibilityHidden(true)
     }
 }
 

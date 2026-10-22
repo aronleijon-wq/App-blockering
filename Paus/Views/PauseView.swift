@@ -164,7 +164,7 @@ struct PauseView: View {
     private var penalty: Int { model.progress.nextPausePenalty(at: .now, calendar: .current) }
 
     private var pauseButtonTitle: String {
-        penalty == 0 ? "Pausa i \(model.rules.pause.minutes) min (gratis)" : "Pausa ändå (−\(penalty) poäng)"
+        penalty == 0 ? "Pausa i \(model.rules.pause.minutes) min (gratis)" : "Pausa ändå (−\(penalty) XP och poäng)"
     }
 
     private var costCard: some View {
@@ -175,15 +175,15 @@ struct PauseView: View {
             HStack {
                 Image(systemName: penalty == 0 ? "gift.fill" : "exclamationmark.triangle.fill")
                     .foregroundStyle(penalty == 0 ? Theme.mint : Theme.orange)
-                Text(penalty == 0 ? "Dagens första paus är gratis" : "Den här pausen kostar \(penalty) poäng")
+                Text(penalty == 0 ? "Dagens första paus är gratis" : "Den här pausen kostar \(penalty) XP och \(penalty) veckopoäng")
                     .font(.headline)
             }
             if penalty > 0 {
-                Text("Dina veckopoäng: \(points) → \(max(0, points - penalty)). Nästa paus kostar \(League.pausePenalty(forPause: pausesToday + 2)) poäng.")
+                Text("Dina veckopoäng: \(points) → \(max(0, points - penalty)). Nästa paus kostar \(League.pausePenalty(forPause: pausesToday + 2)) XP och poäng. Du åker aldrig ner en nivå.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                Text("Nästa paus i dag kostar \(League.pausePenalty(forPause: 2)) poäng. Tackar du nej får du +\(League.Points.decline) poäng.")
+                Text("Nästa paus i dag kostar \(League.pausePenalty(forPause: 2)) XP och poäng. Tackar du nej får du +\(PlayerProgress.XP.decline) XP och +\(League.Points.decline) poäng.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

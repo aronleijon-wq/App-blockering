@@ -8,8 +8,18 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         super.intervalDidStart(for: activity)
         if let id = activity.scheduleID {
             ShieldController.refresh(scheduleOverrides: [id: true])
+            announceSchedule(id)
         } else {
             ShieldController.refresh()
+        }
+    }
+
+    /// Tells the user a schedule just started blocking, unless it doesn't run today or they're on vacation.
+    private func announceSchedule(_ id: UUID) {
+        let engine = BlockEngine(rules: SharedStore.effectiveRules, runtime: SharedStore.runtime)
+        if case .schedule(let name, let until) = engine.reason(at: .now, scheduleOverrides: [id: true]),
+           SharedStore.effectiveRules.schedules.contains(where: { $0.id == id && $0.name == name }) {
+            Notifier.scheduleStarted(name: name, until: until)
         }
     }
 
@@ -47,6 +57,9 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             runtime.limitReachedDay = today
         }
         if isFirstTimeToday {
+            if let minutes = SharedStore.effectiveRules.dailyLimitMinutes {
+                Notifier.limitReached(minutes: minutes)
+            }
             recordHealth(.reachedDailyLimit, scrolledMinutes: nil)
         }
         ShieldController.refresh()
@@ -58,6 +71,6 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         ProgressRecorder.record(event)
         let progress = SharedStore.progress
         guard progress.healthStage < before else { return }
-        PipNotifier.healthDropped(to: progress.healthStage, health: progress.health, scrolledMinutes: scrolledMinutes)
+        Notifier.healthDropped(to: progress.healthStage, health: progress.health, scrolledMinutes: scrolledMinutes)
     }
 }

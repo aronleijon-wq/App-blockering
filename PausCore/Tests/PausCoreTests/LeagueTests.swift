@@ -114,11 +114,31 @@ final class PausePenaltyTests: XCTestCase {
         XCTAssertEqual(progress.nextPausePenalty(at: tuesday, calendar: calendar), 0, "a new day starts free")
     }
 
-    func testPausesDoNotTakeXP() {
+    func testPausesTakeXPButNeverALevel() {
         var progress = PlayerProgress(xp: 250)
+        XCTAssertEqual(progress.record(.tookPause, at: monday, calendar: calendar), [], "the first pause is free")
+        XCTAssertEqual(progress.record(.tookPause, at: monday, calendar: calendar), [.xpLost(10)])
         progress.record(.tookPause, at: monday, calendar: calendar)
-        progress.record(.tookPause, at: monday, calendar: calendar)
-        XCTAssertEqual(progress.xp, 250)
+        XCTAssertEqual(progress.xp, 220)
+        // Level 2 starts at 100 XP; a 40 XP pause can't take the player below it.
+        progress.xp = 120
+        XCTAssertEqual(progress.record(.tookPause, at: monday, calendar: calendar), [.xpLost(20)])
+        XCTAssertEqual(progress.xp, 100)
+        XCTAssertEqual(progress.level, 2)
+        XCTAssertEqual(progress.record(.tookPause, at: monday, calendar: calendar), [], "nothing left to take")
+    }
+
+    func testGivingInCostsXPPointsAndHealth() {
+        var progress = PlayerProgress(xp: 500, health: 80)
+        progress.record(.claimedDailyReward, at: monday, calendar: calendar)
+        let points = progress.weeklyPoints
+        let xp = progress.xp
+        XCTAssertEqual(progress.record(.abandonedFocus, at: monday, calendar: calendar), [.xpLost(PlayerProgress.XP.abandonedFocus)])
+        progress.record(.escapedBlock, at: monday, calendar: calendar)
+        XCTAssertEqual(progress.xp, xp - PlayerProgress.XP.abandonedFocus - PlayerProgress.XP.escapedBlock)
+        XCTAssertEqual(progress.weeklyPoints, max(0, points - League.Points.abandonedFocus - League.Points.escapedBlock))
+        XCTAssertEqual(progress.health, 85 - PipHealth.abandonedFocus - PipHealth.escapedBlock)
+        XCTAssertTrue(progress.pendingRewards.allSatisfy(\.isCelebration), "losses aren't celebrated")
     }
 
     func testDisablingProtectionCostsPointsAndStreak() {

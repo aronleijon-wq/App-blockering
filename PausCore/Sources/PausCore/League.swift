@@ -65,6 +65,8 @@ enum League {
         static let dailyReward = 10
         static let dayUnderLimit = 30
         static let disabledProtectionPenalty = 100
+        static let abandonedFocus = 10
+        static let escapedBlock = 20
     }
 
     /// League points the `number`th pause of a day costs: the first is free, then 10, 20 and 40.

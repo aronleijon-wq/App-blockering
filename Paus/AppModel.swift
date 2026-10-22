@@ -1,8 +1,9 @@
 import AuthenticationServices
 import FamilyControls
 import Foundation
-import StoreKit
 import Observation
+import StoreKit
+import UIKit
 import UserNotifications
 
 /// App-side state. Every change is written to `SharedStore` and followed by a shield refresh,
@@ -28,6 +29,11 @@ final class AppModel {
     var errorMessage: String?
     /// Set when Paus finds its Screen Time access was turned off since the last launch.
     var isProtectionWarningPresented = false
+    private(set) var notificationSettings = SharedStore.notificationSettings
+    /// Whether iOS lets Paus send notifications at all.
+    private(set) var notificationsAllowed = true
+    /// Explains XP just lost for giving in, so the penalty never feels like a bug.
+    var lossMessage: String?
     private(set) var hasFinishedIntro = IntroStore.isFinished
     private(set) var introAnswers = IntroStore.answers
     private(set) var account = IntroStore.account
@@ -110,7 +116,7 @@ final class AppModel {
         if !ActivityScheduler.isInSync(rules: effectiveRules, selection: selection) {
             resyncMonitoring()
         }
-        ShieldController.refresh()
+        refreshShield()
         scheduleReminder()
         showPendingCelebrations()
 
@@ -121,6 +127,7 @@ final class AppModel {
             }
         }
         Task { await store.refresh() }
+        Task { await refreshNotificationPermission() }
         Task { await refreshCoach() }
         Task { await syncLeague(force: false) }
     }
@@ -199,7 +206,7 @@ final class AppModel {
         signOut()
         introAnswers = nil
         IntroStore.answers = nil
-        ShieldController.refresh()
+        refreshShield()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         selection = SharedStore.selection
         rules = SharedStore.rules
@@ -322,6 +329,10 @@ final class AppModel {
     }
 
     private func scheduleReminder() {
+        guard notificationSettings.dailyReminder else {
+            Notifier.cancel([Reminders.identifier])
+            return
+        }
         let now = Date.now
         Reminders.scheduleNext(
             rewardClaimedToday: !progress.canClaimDailyReward(at: now, calendar: .current),
@@ -334,15 +345,24 @@ final class AppModel {
 
     func saveSelection(_ newSelection: FamilyActivitySelection) {
         guard newSelection != selection, !isStrictFocusActive else { return }
+        let removesBlockedApps = engine.shouldShield(at: .now) && !(
+            selection.applicationTokens.isSubset(of: newSelection.applicationTokens)
+                && selection.categoryTokens.isSubset(of: newSelection.categoryTokens)
+                && selection.webDomainTokens.isSubset(of: newSelection.webDomainTokens)
+        )
+        if removesBlockedApps {
+            penalize(.escapedBlock, because: "Du tog bort appar som var blockerade.")
+        }
         selection = newSelection
         SharedStore.selection = newSelection
         resyncMonitoring()
-        ShieldController.refresh()
+        refreshShield()
     }
 
     func updateRules(_ change: (inout PausRules) -> Void) {
         let oldRules = rules
         let oldEffective = effectiveRules
+        let wasShielding = engine.shouldShield(at: .now)
         var new = rules
         change(&new)
         guard new != oldRules else { return }
@@ -361,10 +381,58 @@ final class AppModel {
         if newEffective.schedules != oldEffective.schedules || newEffective.dailyLimitMinutes != oldEffective.dailyLimitMinutes {
             resyncMonitoring()
         }
+        refreshShield()
+        if wasShielding, !engine.shouldShield(at: .now) {
+            penalize(.escapedBlock, because: "Du stängde av en blockering medan den pågick.")
+        }
+    }
+
+    /// Raises or lowers the shield and brings the lock screen up to date.
+    private func refreshShield() {
         ShieldController.refresh()
+        runtime = SharedStore.runtime
+        let status = PausStatus.at(.now, rules: effectiveRules, runtime: runtime, calendar: .current)
+        LiveActivities.sync(status: status, health: progress.health)
+    }
+
+    /// Records giving in and tells the user what it cost.
+    private func penalize(_ event: ProgressEvent, because reason: String) {
+        let rewards = ProgressRecorder.record(event)
+        progress = SharedStore.progress
+        let lost = rewards.reduce(0) { total, reward in
+            if case .xpLost(let amount) = reward { return total + amount }
+            return total
+        }
+        lossMessage = lost > 0 ? "\(reason) Det kostade \(lost) XP, veckopoäng och lite av Pips hälsa." : "\(reason) Det kostade veckopoäng och lite av Pips hälsa."
+        Task { await refreshCoach() }
     }
 
     // MARK: Settings
+
+    func updateNotificationSettings(_ change: (inout NotificationSettings) -> Void) {
+        change(&notificationSettings)
+        Notifier.settings = notificationSettings
+        if !notificationSettings.focusAndPauses {
+            Notifier.cancel([Notifier.ID.focusDone, Notifier.ID.pauseEnding, Notifier.ID.pauseOver])
+        }
+        scheduleReminder()
+    }
+
+    func refreshNotificationPermission() async {
+        let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+        notificationsAllowed = status == .authorized || status == .provisional || status == .ephemeral
+    }
+
+    /// Asks for notifications, or opens Settings when the user already said no.
+    func enableNotifications() async {
+        let center = UNUserNotificationCenter.current()
+        if await center.notificationSettings().authorizationStatus == .notDetermined {
+            _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+        } else if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+            _ = await UIApplication.shared.open(url)
+        }
+        await refreshNotificationPermission()
+    }
 
     /// Rests schedules and the daily limit for `days` days. Focus sessions still work.
     func startVacation(days: Int) {
@@ -376,17 +444,19 @@ final class AppModel {
             return
         }
         updateRules { $0.vacationUntil = end }
+        Notifier.scheduleVacationOver(at: end)
     }
 
     func endVacation() {
         ActivityScheduler.stopVacation()
+        Notifier.cancel([Notifier.ID.vacationOver])
         updateRules { $0.vacationUntil = nil }
     }
 
     /// Registers all monitoring again and reapplies the shield, for when something seems stuck.
     func reapplyEverything() {
         resyncMonitoring()
-        ShieldController.refresh()
+        refreshShield()
         reload()
     }
 
@@ -423,7 +493,7 @@ final class AppModel {
 
     private func applyEntitlement() {
         resyncMonitoring()
-        ShieldController.refresh()
+        refreshShield()
         Task { await refreshCoach() }
     }
 
@@ -443,20 +513,24 @@ final class AppModel {
             $0.focusStartedAt = now
             $0.focusEndsAt = end
         }
-        ShieldController.refresh()
+        refreshShield()
+        Notifier.scheduleFocusDone(at: end, xp: minutes + PlayerProgress.XP.focusBonus)
         Task { await refreshCoach() }
     }
 
-    /// Ends a non-strict focus session early, without XP.
+    /// Ends a non-strict focus session early. It earns nothing and costs XP, points and health.
     func stopFocus() {
-        guard !isStrictFocusActive else { return }
-        ActivityScheduler.stopFocus()
+        guard !isStrictFocusActive, let end = runtime.focusEndsAt, end > .now else { return }
+        // Clear the session before stopping its monitoring: the monitor hears about the stop too,
+        // and must find nothing left to award.
         updateRuntime {
             $0.focusStartedAt = nil
             $0.focusEndsAt = nil
         }
-        ShieldController.refresh()
-        Task { await refreshCoach() }
+        ActivityScheduler.stopFocus()
+        Notifier.cancel([Notifier.ID.focusDone])
+        refreshShield()
+        penalize(.abandonedFocus, because: "Du avbröt fokuspasset innan det var klart.")
     }
 
     func takePause() {
@@ -471,15 +545,17 @@ final class AppModel {
             return
         }
         updateRuntime { $0.startPause(at: now, until: end, calendar: .current) }
+        Notifier.schedulePauseEnd(at: end)
         ProgressRecorder.record(.tookPause)
         progress = SharedStore.progress
-        ShieldController.refresh()
+        refreshShield()
     }
 
     func endPause() {
         ActivityScheduler.stopPause()
+        Notifier.cancel([Notifier.ID.pauseEnding, Notifier.ID.pauseOver])
         updateRuntime { $0.pausedUntil = nil }
-        ShieldController.refresh()
+        refreshShield()
     }
 
     private func updateRuntime(_ change: (inout PausRuntime) -> Void) {

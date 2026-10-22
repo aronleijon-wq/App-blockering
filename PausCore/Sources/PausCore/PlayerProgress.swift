@@ -7,10 +7,14 @@ enum ProgressEvent: Equatable {
     case declinedPause
     case claimedDailyReward
     case dayUnderLimit
-    /// Took a pause from a block anyway. Costs league points after the first one each day.
+    /// Took a pause from a block anyway. Costs XP and league points after the first one each day.
     case tookPause
-    /// Turned off Paus's Screen Time access. Costs points and the streak.
+    /// Turned off Paus's Screen Time access. Costs XP, points and the streak.
     case disabledProtection
+    /// Ended a focus session early.
+    case abandonedFocus
+    /// Turned off a block while it was on, by changing the rules or the apps.
+    case escapedBlock
     /// The guarded apps have been used for `minutes` today. Only makes Pip sadder.
     case scrolled(minutes: Int)
     /// Used up the daily limit. Only makes Pip sadder.
@@ -23,11 +27,15 @@ enum Reward: Codable, Equatable, Hashable {
     case achievement(String)
     case quest(String)
     case division(Int, promoted: Bool)
+    /// XP taken away for giving in. Never costs a level.
+    case xpLost(Int)
 
-    /// Rewards worth a celebration screen; plain XP only moves the progress bar.
+    /// Rewards worth a celebration screen; plain XP and losses only move the progress bar.
     var isCelebration: Bool {
-        if case .xp = self { return false }
-        return true
+        switch self {
+        case .xp, .xpLost: return false
+        default: return true
+        }
     }
 }
 
@@ -83,6 +91,14 @@ struct PlayerProgress: Codable, Equatable {
         static let dailyRewardPerStreakDay = 5
         static let dailyRewardMaxStreakBonus = 6
         static let dayUnderLimit = 30
+        static let abandonedFocus = 15
+        static let escapedBlock = 25
+        static let disabledProtection = 100
+
+        /// XP the `number`th pause of a day costs, the same as its league points: free, then 10, 20 and 40.
+        static func pausePenalty(forPause number: Int) -> Int {
+            League.pausePenalty(forPause: number)
+        }
     }
 
     static let maxPendingRewards = 20
@@ -229,6 +245,7 @@ struct PlayerProgress: Codable, Equatable {
         recoverOvernight(at: date, calendar: calendar)
         let levelBefore = level
         var gained = 0
+        var lost = 0
         var points = 0
         var healthChange = 0
 
@@ -272,9 +289,11 @@ struct PlayerProgress: Codable, Equatable {
             healthChange = PipHealth.dayUnderLimit
         case .tookPause:
             today.pauses += 1
+            lost = XP.pausePenalty(forPause: today.pauses)
             points = -League.pausePenalty(forPause: today.pauses)
             healthChange = -PipHealth.pauseCost(forPause: today.pauses)
         case .disabledProtection:
+            lost = XP.disabledProtection
             points = -League.Points.disabledProtectionPenalty
             healthChange = -PipHealth.disabledProtection
             streak = 0
@@ -288,12 +307,25 @@ struct PlayerProgress: Codable, Equatable {
             healthChange = -steps * PipHealth.perScrollStep
         case .reachedDailyLimit:
             healthChange = -PipHealth.reachedDailyLimit
+        case .abandonedFocus:
+            lost = XP.abandonedFocus
+            points = -League.Points.abandonedFocus
+            healthChange = -PipHealth.abandonedFocus
+        case .escapedBlock:
+            lost = XP.escapedBlock
+            points = -League.Points.escapedBlock
+            healthChange = -PipHealth.escapedBlock
         }
         health = min(PipHealth.maximum, max(0, health + healthChange))
-        // XP is never taken away, so levels stay earned; only this week's league points drop.
         weeklyPoints = max(0, weeklyPoints + points)
 
         var rewards: [Reward] = []
+        // Giving in costs XP, but never below the start of the current level, so levels stay earned.
+        let taken = min(lost, xp - Level.xpRequired(for: level))
+        if taken > 0 {
+            xp -= taken
+            rewards.append(.xpLost(taken))
+        }
         if gained > 0 { rewards.append(.xp(gained)) }
 
         for quest in Quest.daily(for: day) where !today.completedQuests.contains(quest.id) && quest.progress(in: today) >= quest.target {

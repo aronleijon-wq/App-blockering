@@ -9,6 +9,10 @@ En iPhone-app som blockerar sociala medier och andra appar som stjäl tid. "Paus
 - **Introduktion som en chatt med Pip**: Pip frågar efter namn, ålder, skärmtid, vilka appar som tar mest tid och vad man hellre vill göra. Sedan räknar Pip ut hur många år av det vakna livet det blir, med en animation. Därefter följer *Logga in med Apple*, en animerad genomgång av appen och val av smeknamn för ligan. Krysset högst upp hoppar över resten, och då skapas inget konto.
 - **Löfte och gratisvecka**: efter uträkningen visar Pip vad 30 % mindre skärmtid ger tillbaka (år, dygn per år, mer tid offline), som man bekräftar med en fist bump 👊. Sist väljer man om Pip ska påminna 2 eller 3 dagar innan gratisveckan tar slut. Påminnelsen schemaläggs när provperioden startar.
 - **Inställningar** (profilknappen på startsidan): Pro-kort, *Mitt konto* (namn, smeknamn, ålder, skärmtid innan Paus, Apple-konto och radering), avinstallationsskydd (Pro), vuxenfilter, semesterläge, ladda om Paus, support, dela, återställ köp och version.
+- **Straff för att ge upp**: att avbryta ett fokuspass (−15 XP), ta en paus (gratis, sedan −10, −20 och −40 XP), stänga av en blockering medan den pågår genom att ändra regler, appar eller starta semesterläget (−25 XP) och att stänga av Paus i Skärmtid (−100 XP) kostar XP, veckopoäng och Pips hälsa. Man åker aldrig ner en nivå. Ett avbrutet fokuspass ger aldrig XP.
+- **Notiser** (kan väljas under Inställningar): fokuspass klart, en minut kvar av pausen och pausen slut, dagens tid slut, ett schema som börjar, Pip mår sämre, daglig påminnelse, påminnelse innan gratisveckan tar slut och semesterläget slut.
+- **Låsskärmen**: en Live Activity med nedräkning för fokuspass, pauser, scheman och daglig gräns, även i Dynamic Island. Dessutom finns widgetar för låsskärmen och hemskärmen med status, nedräkning, Pips hälsa och streak.
+- **Utmana vänner**: ett steg i introduktionen och ett kort i Liga-fliken som delar en inbjudningslänk med ditt smeknamn.
 - **Skärmtidsrapport**: dagens skärmtid, upplockningar, en stapel för varje dag i veckan, snittet jämfört med veckan innan, de mest använda apparna och hur många dygn per år det blir. Du kan se hela telefonen eller bara Pips appar.
 - **XP och nivåer**: från *Scrollzombie* till *Legend*. Du får XP för fokuspass (1 per minut + bonus), för att stänga en blockerad app, för att tacka nej till en paus och för att hålla dig under den dagliga gränsen.
 - **Dagens belöning och streak**: en belöning per dag som växer med streaken. En påminnelse kl. 18.30 ser till att streaken inte bryts.
@@ -27,7 +31,7 @@ Appen använder Apples Skärmtid-ramverk (FamilyControls, ManagedSettings och De
    `https://github.com/aronleijon-wq/App-blockering.git`
 2. Öppna `Paus.xcodeproj`.
 3. Välj projektet **Paus** i listan till vänster. Gå till *Build Settings* och sök på `PAUS_BUNDLE_PREFIX`. Byt `se.aronleijon.paus` till ett eget id om Xcode säger att det är upptaget. App Group och alla bundle-id:n byggs från det värdet.
-4. För var och en av de fem targets (**Paus**, **PausMonitor**, **PausShieldConfiguration**, **PausShieldAction** och **PausReport**) går du till *Signing & Capabilities* och väljer ditt Team.
+4. För var och en av de sex targets (**Paus**, **PausMonitor**, **PausShieldConfiguration**, **PausShieldAction**, **PausReport** och **PausWidgets**) går du till *Signing & Capabilities* och väljer ditt Team.
 5. Anslut din iPhone, välj den som mål och tryck på ▶︎.
 6. Testa prenumerationen utan riktiga pengar: gå till *Product → Scheme → Edit Scheme… → Run → Options* och välj `Paus.storekit` under *StoreKit Configuration*.
 
@@ -77,6 +81,7 @@ Inskickade anmälningar sparas som posttypen `Report` och kan granskas i CloudKi
 | `PausMonitor/` | DeviceActivity-tillägg som startar och stoppar blockeringen när ett schema, ett fokuspass eller en paus börjar eller slutar, och som sänker Pips hälsa för varje halvtimme i de valda apparna |
 | `PausShieldConfiguration/` | Utseendet på spärrskärmen |
 | `PausShieldAction/` | Vad knapparna på spärrskärmen gör |
+| `PausWidgets/` | Widgetar för låsskärmen och hemskärmen, och Live Activity med nedräkning |
 | `PausReport/` | DeviceActivityReport-tillägg som räknar ut skärmtidsrapporten. iOS låter inte siffrorna lämna tillägget, så de visas bara och sparas aldrig. |
 | `ReportUI/` | Rapportens vyer, som både tillägget och appen använder (appen visar exempeldata i simulatorn) |
 | `Config/` | Info.plist och entitlements för varje target |

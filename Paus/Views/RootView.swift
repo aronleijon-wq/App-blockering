@@ -53,10 +53,21 @@ struct RootView: View {
         ) {
             CelebrationView(rewards: model.celebration)
         }
+        .alert(
+            "Pip blev ledsen 😢",
+            isPresented: Binding(
+                get: { model.lossMessage != nil },
+                set: { if !$0 { model.lossMessage = nil } }
+            )
+        ) {
+            Button("Okej", role: .cancel) {}
+        } message: {
+            Text(model.lossMessage ?? "")
+        }
         .alert("Pip märkte att du stängde av Paus", isPresented: $model.isProtectionWarningPresented) {
             Button("Okej", role: .cancel) {}
         } message: {
-            Text("Din streak nollställdes, du förlorade \(League.Points.disabledProtectionPenalty) veckopoäng och Pip tappade \(PipHealth.disabledProtection) i hälsa. Slå på Paus igen för att fortsätta blockera.")
+            Text("Din streak nollställdes, du förlorade upp till \(PlayerProgress.XP.disabledProtection) XP och \(League.Points.disabledProtectionPenalty) veckopoäng, och Pip tappade \(PipHealth.disabledProtection) i hälsa. Slå på Paus igen för att fortsätta blockera.")
         }
         .alert(
             "Något gick fel",

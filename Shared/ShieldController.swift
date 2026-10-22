@@ -23,6 +23,7 @@ enum ShieldController {
             store.clearAllSettings()
         }
         store.webContent.blockedByFilter = rules.adultFilter ? .auto() : nil
+        WidgetRefresher.reload()
     }
 
     private static func apply(_ selection: FamilyActivitySelection) {

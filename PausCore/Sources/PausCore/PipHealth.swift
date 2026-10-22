@@ -21,6 +21,8 @@ enum PipHealth {
     static let perScrollStep = 5
     static let reachedDailyLimit = 15
     static let disabledProtection = 40
+    static let abandonedFocus = 10
+    static let escapedBlock = 15
 
     /// Health the `number`th pause of a day costs, rising like the league penalty.
     static func pauseCost(forPause number: Int) -> Int {

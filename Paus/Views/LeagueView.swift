@@ -24,6 +24,7 @@ struct LeagueView: View {
                     } else {
                         leaderboard
                     }
+                    inviteCard
                     pointsCard
                 }
                 .padding(.horizontal, 16)
@@ -171,6 +172,35 @@ struct LeagueView: View {
         case .sweden, .world:
             return "Ingen har fått poäng den här veckan än. Bli först!"
         }
+    }
+
+    private var inviteCard: some View {
+        ShareLink(
+            item: AppInfo.inviteURL,
+            subject: Text("Utmana mig i Paus"),
+            message: Text(AppInfo.inviteMessage(nickname: league.nickname))
+        ) {
+            HStack(spacing: 14) {
+                Image(systemName: "person.2.fill")
+                    .font(.title3)
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Theme.glow, in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Utmana dina vänner")
+                        .font(.headline)
+                    Text("Skicka en länk. Den som scrollar minst vinner veckan.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "square.and.arrow.up")
+                    .foregroundStyle(.secondary)
+            }
+            .foregroundStyle(.white)
+            .card()
+        }
+        .buttonStyle(.plain)
     }
 
     private var joinCard: some View {

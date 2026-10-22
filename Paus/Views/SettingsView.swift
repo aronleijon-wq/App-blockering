@@ -28,6 +28,29 @@ struct SettingsView: View {
                         }
                     }
 
+                    SettingsGroup(title: "Notiser") {
+                        if !model.notificationsAllowed {
+                            Button {
+                                Task { await model.enableNotifications() }
+                            } label: {
+                                SettingsRow(
+                                    symbol: "bell.slash.fill",
+                                    title: "Notiser är avstängda",
+                                    detail: "Slå på dem så att Pip kan säga till när pausen tar slut och fokuspasset är klart.",
+                                    accessory: .chevron
+                                )
+                            }
+                            SettingsDivider()
+                        }
+                        notificationToggle(\.focusAndPauses, symbol: "timer", title: "Fokus och pauser", detail: "När ett fokuspass är klart, en minut innan pausen tar slut och när dagens tid är slut.")
+                        SettingsDivider()
+                        notificationToggle(\.schedules, symbol: "calendar", title: "Scheman", detail: "När ett schema börjar blockera.")
+                        SettingsDivider()
+                        notificationToggle(\.pipHealth, symbol: "heart.fill", title: "Pips mående", detail: "När Pip mår sämre av scrollandet.")
+                        SettingsDivider()
+                        notificationToggle(\.dailyReminder, symbol: "flame.fill", title: "Daglig påminnelse", detail: "Kl. 18.30 om dagens belöning och streaken.")
+                    }
+
                     SettingsGroup(title: "Skydd") {
                         Toggle(isOn: Binding(
                             get: { model.effectiveRules.preventUninstall },
@@ -97,9 +120,9 @@ struct SettingsView: View {
 
                     SettingsGroup(title: "Dela") {
                         ShareLink(
-                            item: AppInfo.websiteURL,
-                            subject: Text("Paus"),
-                            message: Text("Jag använder Paus för att scrolla mindre. Häng med och tävla mot mig i ligan!")
+                            item: AppInfo.inviteURL,
+                            subject: Text("Utmana mig i Paus"),
+                            message: Text(AppInfo.inviteMessage(nickname: model.league.nickname))
                         ) {
                             SettingsRow(symbol: "square.and.arrow.up", title: "Dela Paus med en vän", accessory: .chevron)
                         }
@@ -147,12 +170,23 @@ struct SettingsView: View {
                     .accessibilityLabel("Klar")
                 }
             }
+            .task { await model.refreshNotificationPermission() }
             .manageSubscriptionsSheet(isPresented: $isManagingSubscription)
             // Presented from here, since the root can't show a second sheet on top of this one.
             .sheet(isPresented: $isPaywallPresented) {
                 PaywallView()
             }
         }
+    }
+
+    private func notificationToggle(_ keyPath: WritableKeyPath<NotificationSettings, Bool>, symbol: String, title: String, detail: String) -> some View {
+        Toggle(isOn: Binding(
+            get: { model.notificationSettings[keyPath: keyPath] },
+            set: { newValue in model.updateNotificationSettings { $0[keyPath: keyPath] = newValue } }
+        )) {
+            SettingsRow(symbol: symbol, title: title, detail: detail)
+        }
+        .tint(Theme.pink)
     }
 
     private var vacationDetail: String {
@@ -332,7 +366,7 @@ private struct VacationView: View {
                 } else {
                     Text("Ta ledigt från reglerna")
                         .font(.title2.bold())
-                    Text("Scheman och daglig gräns vilar medan du är borta. Fokuspass fungerar som vanligt, och allt slås på igen av sig självt.")
+                    Text("Scheman och daglig gräns vilar medan du är borta. Fokuspass fungerar som vanligt, och allt slås på igen av sig självt. Startar du mitt i en blockering kostar det \(PlayerProgress.XP.escapedBlock) XP.")
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
                     ForEach(lengths, id: \.self) { days in

@@ -50,7 +50,7 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             primaryButtonLabel: ShieldConfiguration.Label(text: earnsXP ? "Stäng (+\(PlayerProgress.XP.close) XP)" : "Stäng", color: .white),
             primaryButtonBackgroundColor: pink,
             secondaryButtonLabel: canPause
-                ? ShieldConfiguration.Label(text: penalty == 0 ? "Ta en paus (gratis)" : "Ta en paus (−\(penalty) poäng)", color: pink)
+                ? ShieldConfiguration.Label(text: penalty == 0 ? "Ta en paus (gratis)" : "Ta en paus (−\(penalty) XP)", color: pink)
                 : nil
         )
     }
