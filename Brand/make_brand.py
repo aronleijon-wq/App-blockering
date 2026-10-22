@@ -280,6 +280,9 @@ def main():
         save(banner(1584, 396, lang, safe=(1220, 360), left=340), "social", lang, "linkedin-cover-1584x396.png")
         save(banner(1640, 624, lang, safe=(1640, 480)), "social", lang, "facebook-cover-1640x624.png")
         save(launch_post(lang), "social", lang, "instagram-launch-post-1080x1350.png")
+        # App Store product page headers; the store crops the edges on smaller screens, so the content stays central.
+        save(banner(3840, 1646, lang, safe=(2600, 1100)), "appstore", lang, "appstore-header-3840x1646.png")
+        save(banner(5244, 2950, lang, safe=(3500, 1500)), "appstore", lang, "appstore-header-5244x2950.png")
     save(brand_sheet(), "paus-brand-sheet.png")
 
 
