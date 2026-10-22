@@ -8,10 +8,10 @@ enum Division: Int, Codable, CaseIterable, Comparable {
 
     var title: String {
         switch self {
-        case .brons: return "Brons"
+        case .brons: return L("Brons")
         case .silver: return "Silver"
-        case .guld: return "Guld"
-        case .diamant: return "Diamant"
+        case .guld: return L("Guld")
+        case .diamant: return L("Diamant")
         case .legend: return "Legend"
         }
     }
@@ -132,12 +132,25 @@ enum Nickname {
         return nil
     }
 
-    static let suggestionWords = ["Fokus", "Lugn", "Snabb", "Modig", "Klok", "Stark", "Glad", "Cool"]
-    static let suggestionAnimals = ["Räv", "Uggla", "Tiger", "Panda", "Varg", "Lo", "Örn", "Delfin"]
+    static func suggestionWords(in language: Language) -> [String] {
+        switch language {
+        case .sv: return ["Fokus", "Lugn", "Snabb", "Modig", "Klok", "Stark", "Glad", "Cool"]
+        case .en: return ["Focus", "Calm", "Quick", "Brave", "Wise", "Strong", "Happy", "Cool"]
+        }
+    }
 
-    /// Fun nicknames such as "ModigRäv27". Every one passes `problem(with:)`.
-    static func suggestions(count: Int, seed: Int) -> [String] {
-        (0..<count).map { index in
+    static func suggestionAnimals(in language: Language) -> [String] {
+        switch language {
+        case .sv: return ["Räv", "Uggla", "Tiger", "Panda", "Varg", "Lo", "Örn", "Delfin"]
+        case .en: return ["Fox", "Owl", "Tiger", "Panda", "Wolf", "Lynx", "Eagle", "Dolphin"]
+        }
+    }
+
+    /// Fun nicknames such as "ModigRäv27" or "BraveFox27". Every one passes `problem(with:)`.
+    static func suggestions(count: Int, seed: Int, language: Language = .current) -> [String] {
+        let suggestionWords = suggestionWords(in: language)
+        let suggestionAnimals = suggestionAnimals(in: language)
+        return (0..<count).map { index in
             let value = abs(seed &+ index &* 7919)
             let word = suggestionWords[value % suggestionWords.count]
             let animal = suggestionAnimals[(value / suggestionWords.count + index) % suggestionAnimals.count]

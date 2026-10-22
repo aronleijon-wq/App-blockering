@@ -364,6 +364,7 @@
 			fileSystemSynchronizedGroups = (
 				DF7382602F6ACE72DE54E3D0 /* PausReport */,
 				EF81914CCCEF443025E3A526 /* ReportUI */,
+				DB525CDD853270E7C68F1BE1 /* PausCore */,
 			);
 			name = PausReport;
 			packageProductDependencies = (

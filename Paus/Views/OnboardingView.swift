@@ -11,31 +11,31 @@ struct OnboardingView: View {
                     .padding(.top, 24)
 
                 VStack(spacing: 10) {
-                    Text(model.firstName.map { "Sista steget, \($0)!" } ?? "Hej! Jag är Pip.")
+                    Text(model.firstName.map { L("Sista steget, \($0)!") } ?? L("Hej! Jag är Pip."))
                         .font(.system(size: 34, weight: .heavy, design: .rounded))
                         .foregroundStyle(Theme.brand)
                     Text(model.hasFinishedIntro
-                        ? "Ge mig tillgång till Skärmtid, så kan jag börja vakta dina appar."
-                        : "Tillsammans tar vi tillbaka din tid från scrollandet. Varje gång du väljer bort TikTok blir jag lite starkare.")
+                        ? L("Ge mig tillgång till Skärmtid, så kan jag börja vakta dina appar.")
+                        : L("Tillsammans tar vi tillbaka din tid från scrollandet. Varje gång du väljer bort TikTok blir jag lite starkare."))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 18) {
-                    FeatureRow(symbol: "scope", title: "Fokuspass", text: "Blockera sociala medier direkt och få XP för varje minut.")
-                    FeatureRow(symbol: "flame.fill", title: "Streaks och belöningar", text: "Hämta dagens belöning och håll streaken vid liv.")
-                    FeatureRow(symbol: "trophy.fill", title: "Nivåer och troféer", text: "Gå från Scrollzombie till Legend, och se Pip växa.")
-                    FeatureRow(symbol: "wind", title: "Medvetna pauser", text: "Måste du ändå in? Andas först, sedan får du en kort paus.")
+                    FeatureRow(symbol: "scope", title: L("Fokuspass"), text: L("Blockera sociala medier direkt och få XP för varje minut."))
+                    FeatureRow(symbol: "flame.fill", title: L("Streaks och belöningar"), text: L("Hämta dagens belöning och håll streaken vid liv."))
+                    FeatureRow(symbol: "trophy.fill", title: L("Nivåer och troféer"), text: L("Gå från Scrollzombie till Legend, och se Pip växa."))
+                    FeatureRow(symbol: "wind", title: L("Medvetna pauser"), text: L("Måste du ändå in? Andas först, sedan får du en kort paus."))
                 }
                 .card()
 
-                Text("Paus använder Apples Skärmtid. Paus ser bara anonyma symboler för apparna du väljer, och ingenting om vad du gör lämnar telefonen.")
+                Text(L("Paus använder Apples Skärmtid. Paus ser bara anonyma symboler för apparna du väljer, och ingenting om vad du gör lämnar telefonen."))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
 
                 if model.authorizationStatus == .denied {
-                    Text("Paus har inte fått tillgång till Skärmtid. Tryck på knappen igen, eller tillåt Paus under Inställningar > Skärmtid.")
+                    Text(L("Paus har inte fått tillgång till Skärmtid. Tryck på knappen igen, eller tillåt Paus under Inställningar > Skärmtid."))
                         .font(.footnote)
                         .foregroundStyle(Theme.pink)
                         .multilineTextAlignment(.center)
@@ -53,7 +53,7 @@ struct OnboardingView: View {
                     isRequesting = false
                 }
             } label: {
-                Text("Kom igång")
+                Text(L("Kom igång"))
             }
             .buttonStyle(GlowButtonStyle())
             .disabled(isRequesting)

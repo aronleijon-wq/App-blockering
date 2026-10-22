@@ -42,18 +42,18 @@ struct CelebrationView: View {
 
                 if let change = divisionChange {
                     DivisionBadge(division: change.division, size: 72)
-                    Text(change.promoted ? "Upp till \(change.division.title)!" : "Ner till \(change.division.title)")
+                    Text(change.promoted ? L("Upp till \(change.division.title)!") : L("Ner till \(change.division.title)"))
                         .font(.system(size: 36, weight: .heavy, design: .rounded))
                         .foregroundStyle(Theme.brand)
                         .multilineTextAlignment(.center)
-                    Text(change.promoted ? "Grym vecka! Nu möter du tuffare motstånd." : "Ny vecka, ny chans. Du tar dig upp igen!")
+                    Text(change.promoted ? L("Grym vecka! Nu möter du tuffare motstånd.") : L("Ny vecka, ny chans. Du tar dig upp igen!"))
                         .font(.title3.weight(.semibold))
                         .multilineTextAlignment(.center)
                 } else if let newLevel {
-                    Text("Nivå \(newLevel)!")
+                    Text(L("Nivå \(newLevel)!"))
                         .font(.system(size: 44, weight: .heavy, design: .rounded))
                         .foregroundStyle(Theme.brand)
-                    Text("Du är nu \(Level.title(for: newLevel)).")
+                    Text(L("Du är nu \(Level.title(for: newLevel))."))
                         .font(.title3.weight(.semibold))
                 } else if totalXP > 0 {
                     Text("+\(totalXP) XP")
@@ -61,7 +61,7 @@ struct CelebrationView: View {
                         .foregroundStyle(Theme.brand)
                         .contentTransition(.numericText())
                 } else {
-                    Text("Snyggt!")
+                    Text(L("Snyggt!"))
                         .font(.system(size: 44, weight: .heavy, design: .rounded))
                         .foregroundStyle(Theme.brand)
                 }
@@ -87,7 +87,7 @@ struct CelebrationView: View {
                 .padding(.horizontal, 24)
 
                 Spacer()
-                Button("Grymt!") { model.dismissCelebration() }
+                Button(L("Grymt!")) { model.dismissCelebration() }
                     .buttonStyle(GlowButtonStyle())
                     .padding(.horizontal, 24)
                     .padding(.bottom, 12)
@@ -101,16 +101,16 @@ struct CelebrationView: View {
         case .xp, .xpLost:
             return nil
         case .levelUp(let level):
-            return ("arrow.up.circle.fill", "Ny nivå: \(Level.title(for: level))")
+            return ("arrow.up.circle.fill", L("Ny nivå: \(Level.title(for: level))"))
         case .achievement(let id):
             guard let achievement = Achievement.with(id: id) else { return nil }
-            return (achievement.symbol, "Trofé: \(achievement.title)")
+            return (achievement.symbol, L("Trofé: \(achievement.title)"))
         case .quest(let id):
             guard let quest = Quest.with(id: id) else { return nil }
-            return ("checkmark", "Uppdrag klart: \(quest.title) (+\(quest.xp) XP)")
+            return ("checkmark", L("Uppdrag klart: \(quest.title) (+\(quest.xp) XP)"))
         case .division(let raw, let promoted):
             guard let division = Division(rawValue: raw) else { return nil }
-            return (promoted ? "arrow.up.right" : "arrow.down.right", promoted ? "Du gick upp till \(division.title)-ligan" : "Du åkte ner till \(division.title)-ligan")
+            return (promoted ? "arrow.up.right" : "arrow.down.right", promoted ? L("Du gick upp till \(division.title)-ligan") : L("Du åkte ner till \(division.title)-ligan"))
         }
     }
 }

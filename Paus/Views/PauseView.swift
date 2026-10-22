@@ -18,9 +18,9 @@ struct PauseView: View {
             Group {
                 if !model.engine.canPause(at: .now) {
                     ContentUnavailableView(
-                        "Ingen paus just nu",
+                        L("Ingen paus just nu"),
                         systemImage: "cup.and.saucer",
-                        description: Text("Antingen är inget blockerat, pauserna för idag är slut eller så pågår ett strikt fokuspass.")
+                        description: Text(L("Antingen är inget blockerat, pauserna för idag är slut eller så pågår ett strikt fokuspass."))
                     )
                 } else if let reason {
                     TimelineView(.animation) { context in
@@ -33,7 +33,7 @@ struct PauseView: View {
             .screenBackground()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Stäng") { dismiss() }
+                    Button(L("Stäng")) { dismiss() }
                 }
             }
         }
@@ -46,10 +46,10 @@ struct PauseView: View {
             VStack(spacing: 20) {
                 MascotView(mood: .happy, level: model.progress.level, size: 110)
                     .padding(.top, 8)
-                Text("Varför vill du öppna appen?")
+                Text(L("Varför vill du öppna appen?"))
                     .font(.title2.bold())
                     .multilineTextAlignment(.center)
-                Text("Var ärlig, det är bara du som ser svaret.")
+                Text(L("Var ärlig, det är bara du som ser svaret."))
                     .foregroundStyle(.secondary)
 
                 VStack(spacing: 10) {
@@ -120,7 +120,7 @@ struct PauseView: View {
                 .accessibilityHidden(true)
 
                 if remaining > 0 {
-                    Text(isBreathingIn ? "Andas in…" : "Andas ut…")
+                    Text(isBreathingIn ? L("Andas in…") : L("Andas ut…"))
                         .font(.title3.weight(.semibold))
                     Text(ReflectionQuestions.question(at: elapsed, offset: questionOffset))
                         .font(.title3)
@@ -131,9 +131,9 @@ struct PauseView: View {
                     Text("\(remaining)")
                         .font(.largeTitle.monospacedDigit())
                         .foregroundStyle(.secondary)
-                        .accessibilityLabel("\(remaining) sekunder kvar")
+                        .accessibilityLabel(L("\(remaining) sekunder kvar"))
                 } else {
-                    Text("Vill du fortfarande ta en paus?")
+                    Text(L("Vill du fortfarande ta en paus?"))
                         .font(.title2.weight(.semibold))
                         .multilineTextAlignment(.center)
                 }
@@ -141,7 +141,7 @@ struct PauseView: View {
                 costCard
 
                 VStack(spacing: 12) {
-                    Button("Nej tack, jag klarar mig (+\(PlayerProgress.XP.decline) XP)") {
+                    Button(L("Nej tack, jag klarar mig (+\(PlayerProgress.XP.decline) XP)")) {
                         dismiss()
                         model.declinePause()
                     }
@@ -164,7 +164,7 @@ struct PauseView: View {
     private var penalty: Int { model.progress.nextPausePenalty(at: .now, calendar: .current) }
 
     private var pauseButtonTitle: String {
-        penalty == 0 ? "Pausa i \(model.rules.pause.minutes) min (gratis)" : "Pausa ändå (−\(penalty) XP och poäng)"
+        penalty == 0 ? L("Pausa i \(model.rules.pause.minutes) min (gratis)") : L("Pausa ändå (−\(penalty) XP och poäng)")
     }
 
     private var costCard: some View {
@@ -175,23 +175,23 @@ struct PauseView: View {
             HStack {
                 Image(systemName: penalty == 0 ? "gift.fill" : "exclamationmark.triangle.fill")
                     .foregroundStyle(penalty == 0 ? Theme.mint : Theme.orange)
-                Text(penalty == 0 ? "Dagens första paus är gratis" : "Den här pausen kostar \(penalty) XP och \(penalty) veckopoäng")
+                Text(penalty == 0 ? L("Dagens första paus är gratis") : L("Den här pausen kostar \(penalty) XP och \(penalty) veckopoäng"))
                     .font(.headline)
             }
             if penalty > 0 {
-                Text("Dina veckopoäng: \(points) → \(max(0, points - penalty)). Nästa paus kostar \(League.pausePenalty(forPause: pausesToday + 2)) XP och poäng. Du åker aldrig ner en nivå.")
+                Text(L("Dina veckopoäng: \(points) → \(max(0, points - penalty)). Nästa paus kostar \(League.pausePenalty(forPause: pausesToday + 2)) XP och poäng. Du åker aldrig ner en nivå."))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                Text("Nästa paus i dag kostar \(League.pausePenalty(forPause: 2)) XP och poäng. Tackar du nej får du +\(PlayerProgress.XP.decline) XP och +\(League.Points.decline) poäng.")
+                Text(L("Nästa paus i dag kostar \(League.pausePenalty(forPause: 2)) XP och poäng. Tackar du nej får du +\(PlayerProgress.XP.decline) XP och +\(League.Points.decline) poäng."))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             let healthCost = model.progress.nextPauseHealthCost(at: now, calendar: .current)
-            Label("Pip tappar \(healthCost) i hälsa: \(model.progress.health) % → \(max(0, model.progress.health - healthCost)) %", systemImage: "heart.slash.fill")
+            Label(L("Pip tappar \(healthCost) i hälsa: \(model.progress.health) % → \(max(0, model.progress.health - healthCost)) %"), systemImage: "heart.slash.fill")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.pink)
-            Text("Pauser i dag: \(pausesToday) av \(model.rules.pause.maxPerDay). Pausen varar \(model.rules.pause.minutes) min.")
+            Text(L("Pauser i dag: \(pausesToday) av \(model.rules.pause.maxPerDay). Pausen varar \(model.rules.pause.minutes) min."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

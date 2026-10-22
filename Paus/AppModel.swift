@@ -30,6 +30,8 @@ final class AppModel {
     /// Set when Paus finds its Screen Time access was turned off since the last launch.
     var isProtectionWarningPresented = false
     private(set) var notificationSettings = SharedStore.notificationSettings
+    /// The language the app speaks. Changing it redraws everything right away.
+    private(set) var language = Language.current
     /// Whether iOS lets Paus send notifications at all.
     private(set) var notificationsAllowed = true
     /// Explains XP just lost for giving in, so the penalty never feels like a bug.
@@ -77,7 +79,7 @@ final class AppModel {
             #if targetEnvironment(simulator)
             isSimulatorPreview = true
             #else
-            errorMessage = "Paus fick inte tillgång till Skärmtid. Försök igen."
+            errorMessage = L("Paus fick inte tillgång till Skärmtid. Försök igen.")
             #endif
         }
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
@@ -161,7 +163,7 @@ final class AppModel {
             return true
         case .failure(let error):
             if (error as? ASAuthorizationError)?.code != .canceled {
-                errorMessage = "Inloggningen med Apple misslyckades. Försök igen."
+                errorMessage = L("Inloggningen med Apple misslyckades. Försök igen.")
             }
             return false
         }
@@ -197,7 +199,7 @@ final class AppModel {
             do {
                 try await league.leave()
             } catch {
-                errorMessage = "Din ligadata kunde inte raderas just nu. Kontrollera internet och försök igen."
+                errorMessage = L("Din ligadata kunde inte raderas just nu. Kontrollera internet och försök igen.")
                 return
             }
         }
@@ -351,7 +353,7 @@ final class AppModel {
                 && selection.webDomainTokens.isSubset(of: newSelection.webDomainTokens)
         )
         if removesBlockedApps {
-            penalize(.escapedBlock, because: "Du tog bort appar som var blockerade.")
+            penalize(.escapedBlock, because: L("Du tog bort appar som var blockerade."))
         }
         selection = newSelection
         SharedStore.selection = newSelection
@@ -383,7 +385,7 @@ final class AppModel {
         }
         refreshShield()
         if wasShielding, !engine.shouldShield(at: .now) {
-            penalize(.escapedBlock, because: "Du stängde av en blockering medan den pågick.")
+            penalize(.escapedBlock, because: L("Du stängde av en blockering medan den pågick."))
         }
     }
 
@@ -403,11 +405,22 @@ final class AppModel {
             if case .xpLost(let amount) = reward { return total + amount }
             return total
         }
-        lossMessage = lost > 0 ? "\(reason) Det kostade \(lost) XP, veckopoäng och lite av Pips hälsa." : "\(reason) Det kostade veckopoäng och lite av Pips hälsa."
+        lossMessage = lost > 0 ? L("\(reason) Det kostade \(lost) XP, veckopoäng och lite av Pips hälsa.") : L("\(reason) Det kostade veckopoäng och lite av Pips hälsa.")
         Task { await refreshCoach() }
     }
 
     // MARK: Settings
+
+    func setLanguage(_ newLanguage: Language) {
+        Language.chosen = newLanguage
+        language = newLanguage
+        // Apple's own screens, such as the purchase sheet, follow this from the next launch.
+        UserDefaults.standard.set([newLanguage.rawValue], forKey: "AppleLanguages")
+        coachKey = ""
+        refreshShield()
+        scheduleReminder()
+        Task { await refreshCoach() }
+    }
 
     func updateNotificationSettings(_ change: (inout NotificationSettings) -> Void) {
         change(&notificationSettings)
@@ -440,7 +453,7 @@ final class AppModel {
         do {
             try ActivityScheduler.startVacation(until: end)
         } catch {
-            errorMessage = "Semesterläget kunde inte startas (\(error.localizedDescription))."
+            errorMessage = L("Semesterläget kunde inte startas (\(error.localizedDescription)).")
             return
         }
         updateRules { $0.vacationUntil = end }
@@ -464,7 +477,7 @@ final class AppModel {
         do {
             try await AppStore.sync()
         } catch {
-            errorMessage = "Köpen kunde inte återställas just nu. Försök igen."
+            errorMessage = L("Köpen kunde inte återställas just nu. Försök igen.")
         }
         await store.refresh()
     }
@@ -506,7 +519,7 @@ final class AppModel {
         do {
             try ActivityScheduler.startFocus(until: end)
         } catch {
-            errorMessage = "Fokuspasset kunde inte startas (\(error.localizedDescription))."
+            errorMessage = L("Fokuspasset kunde inte startas (\(error.localizedDescription)).")
             return
         }
         updateRuntime {
@@ -530,7 +543,7 @@ final class AppModel {
         ActivityScheduler.stopFocus()
         Notifier.cancel([Notifier.ID.focusDone])
         refreshShield()
-        penalize(.abandonedFocus, because: "Du avbröt fokuspasset innan det var klart.")
+        penalize(.abandonedFocus, because: L("Du avbröt fokuspasset innan det var klart."))
     }
 
     func takePause() {
@@ -541,7 +554,7 @@ final class AppModel {
         do {
             try ActivityScheduler.startPause(until: end)
         } catch {
-            errorMessage = "Pausen kunde inte startas (\(error.localizedDescription))."
+            errorMessage = L("Pausen kunde inte startas (\(error.localizedDescription)).")
             return
         }
         updateRuntime { $0.startPause(at: now, until: end, calendar: .current) }
@@ -567,7 +580,7 @@ final class AppModel {
         do {
             try ActivityScheduler.sync()
         } catch {
-            errorMessage = "Scheman och daglig gräns kunde inte startas (\(error.localizedDescription))."
+            errorMessage = L("Scheman och daglig gräns kunde inte startas (\(error.localizedDescription)).")
         }
     }
 }

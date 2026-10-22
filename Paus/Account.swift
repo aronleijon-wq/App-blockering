@@ -21,7 +21,7 @@ struct PausAccount: Codable, Equatable {
 
     var displayName: String {
         if let givenName, !givenName.isEmpty { return givenName }
-        return email ?? "Apple-konto"
+        return email ?? L("Apple-konto")
     }
 }
 

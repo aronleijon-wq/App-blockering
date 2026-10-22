@@ -6,6 +6,16 @@ final class PausStatusTests: XCTestCase {
     private let monday10 = TestCalendar.date(2026, 10, 19, 10, 0)
     private let school = BlockSchedule(name: "Skola", weekdays: TestCalendar.weekdays, startMinute: 8 * 60, endMinute: 15 * 60)
 
+    override func setUp() {
+        super.setUp()
+        Language.override = .sv
+    }
+
+    override func tearDown() {
+        Language.override = nil
+        super.tearDown()
+    }
+
     func testFreeWithoutRules() {
         XCTAssertEqual(PausStatus.at(monday10, rules: PausRules(), runtime: PausRuntime(), calendar: calendar), .free)
     }

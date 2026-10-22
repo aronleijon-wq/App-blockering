@@ -4,5 +4,9 @@
 <dict>
 	<key>com.apple.developer.family-controls</key>
 	<true/>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.$(PAUS_BUNDLE_PREFIX)</string>
+	</array>
 </dict>
 </plist>

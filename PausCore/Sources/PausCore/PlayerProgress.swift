@@ -425,10 +425,10 @@ struct PlayerProgress: Codable, Equatable {
 }
 
 enum Level {
-    static let titles = [
-        "Scrollzombie", "Uppvaknad", "Nyfiken", "Fokusfrö", "Skärmtämjare",
-        "Flowjägare", "Zen-ninja", "Dopamindetektiv", "Tidsmästare", "Legend",
-    ]
+    static var titles: [String] { [
+        L("Scrollzombie"), L("Uppvaknad"), L("Nyfiken"), L("Fokusfrö"), L("Skärmtämjare"),
+        L("Flowjägare"), L("Zen-ninja"), L("Dopamindetektiv"), L("Tidsmästare"), "Legend",
+    ] }
 
     /// Total XP needed to reach `level`: 0, 100, 300, 600, 1000, …
     static func xpRequired(for level: Int) -> Int {
@@ -475,13 +475,13 @@ struct Quest: Identifiable {
         }
     }
 
-    static let pool: [Quest] = [
-        Quest(id: "focus-1", title: "Klara ett fokuspass", symbol: "scope", metric: .focusSessions, target: 1, xp: 40),
-        Quest(id: "focus-50", title: "Fokusera 50 minuter", symbol: "timer", metric: .focusMinutes, target: 50, xp: 60),
-        Quest(id: "close-3", title: "Stäng en blockerad app 3 gånger", symbol: "hand.raised.fill", metric: .closes, target: 3, xp: 30),
-        Quest(id: "decline-1", title: "Tacka nej till en paus", symbol: "wind", metric: .declines, target: 1, xp: 25),
-        Quest(id: "focus-2", title: "Klara två fokuspass", symbol: "bolt.fill", metric: .focusSessions, target: 2, xp: 70),
-    ]
+    static var pool: [Quest] { [
+        Quest(id: "focus-1", title: L("Klara ett fokuspass"), symbol: "scope", metric: .focusSessions, target: 1, xp: 40),
+        Quest(id: "focus-50", title: L("Fokusera 50 minuter"), symbol: "timer", metric: .focusMinutes, target: 50, xp: 60),
+        Quest(id: "close-3", title: L("Stäng en blockerad app 3 gånger"), symbol: "hand.raised.fill", metric: .closes, target: 3, xp: 30),
+        Quest(id: "decline-1", title: L("Tacka nej till en paus"), symbol: "wind", metric: .declines, target: 1, xp: 25),
+        Quest(id: "focus-2", title: L("Klara två fokuspass"), symbol: "bolt.fill", metric: .focusSessions, target: 2, xp: 70),
+    ] }
 
     /// Three quests for `day`, the same on every device and process.
     static func daily(for day: String) -> [Quest] {
@@ -502,19 +502,19 @@ struct Achievement: Identifiable {
     let symbol: String
     let isEarned: (PlayerProgress) -> Bool
 
-    static let all: [Achievement] = [
-        Achievement(id: "first-focus", title: "Första fokuset", detail: "Klara ett fokuspass", symbol: "scope") { $0.focusSessions >= 1 },
-        Achievement(id: "focus-10", title: "Fokusmaskin", detail: "Klara 10 fokuspass", symbol: "bolt.fill") { $0.focusSessions >= 10 },
-        Achievement(id: "hours-10", title: "Tio timmar", detail: "Fokusera 10 timmar totalt", symbol: "hourglass") { $0.focusMinutes >= 600 },
-        Achievement(id: "streak-3", title: "Tre i rad", detail: "Håll igång en streak i 3 dagar", symbol: "flame") { $0.bestStreak >= 3 },
-        Achievement(id: "streak-7", title: "En hel vecka", detail: "Håll igång en streak i 7 dagar", symbol: "flame.fill") { $0.bestStreak >= 7 },
-        Achievement(id: "streak-30", title: "Månadens legend", detail: "Håll igång en streak i 30 dagar", symbol: "calendar") { $0.bestStreak >= 30 },
-        Achievement(id: "close-10", title: "Nej tack, TikTok", detail: "Stäng en blockerad app 10 gånger", symbol: "hand.raised.fill") { $0.closes >= 10 },
-        Achievement(id: "close-100", title: "Järnvilja", detail: "Stäng en blockerad app 100 gånger", symbol: "shield.fill") { $0.closes >= 100 },
-        Achievement(id: "decline-5", title: "Andades och avstod", detail: "Tacka nej till en paus 5 gånger", symbol: "wind") { $0.declines >= 5 },
-        Achievement(id: "level-5", title: "Skärmtämjare", detail: "Nå nivå 5", symbol: "star.fill") { $0.level >= 5 },
-        Achievement(id: "level-10", title: "Legend", detail: "Nå nivå 10", symbol: "crown.fill") { $0.level >= 10 },
-    ]
+    static var all: [Achievement] { [
+        Achievement(id: "first-focus", title: L("Första fokuset"), detail: L("Klara ett fokuspass"), symbol: "scope") { $0.focusSessions >= 1 },
+        Achievement(id: "focus-10", title: L("Fokusmaskin"), detail: L("Klara 10 fokuspass"), symbol: "bolt.fill") { $0.focusSessions >= 10 },
+        Achievement(id: "hours-10", title: L("Tio timmar"), detail: L("Fokusera 10 timmar totalt"), symbol: "hourglass") { $0.focusMinutes >= 600 },
+        Achievement(id: "streak-3", title: L("Tre i rad"), detail: L("Håll igång en streak i 3 dagar"), symbol: "flame") { $0.bestStreak >= 3 },
+        Achievement(id: "streak-7", title: L("En hel vecka"), detail: L("Håll igång en streak i 7 dagar"), symbol: "flame.fill") { $0.bestStreak >= 7 },
+        Achievement(id: "streak-30", title: L("Månadens legend"), detail: L("Håll igång en streak i 30 dagar"), symbol: "calendar") { $0.bestStreak >= 30 },
+        Achievement(id: "close-10", title: L("Nej tack, TikTok"), detail: L("Stäng en blockerad app 10 gånger"), symbol: "hand.raised.fill") { $0.closes >= 10 },
+        Achievement(id: "close-100", title: L("Järnvilja"), detail: L("Stäng en blockerad app 100 gånger"), symbol: "shield.fill") { $0.closes >= 100 },
+        Achievement(id: "decline-5", title: L("Andades och avstod"), detail: L("Tacka nej till en paus 5 gånger"), symbol: "wind") { $0.declines >= 5 },
+        Achievement(id: "level-5", title: L("Skärmtämjare"), detail: L("Nå nivå 5"), symbol: "star.fill") { $0.level >= 5 },
+        Achievement(id: "level-10", title: "Legend", detail: L("Nå nivå 10"), symbol: "crown.fill") { $0.level >= 10 },
+    ] }
 
     static func with(id: String) -> Achievement? {
         all.first { $0.id == id }

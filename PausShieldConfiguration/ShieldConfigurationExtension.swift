@@ -31,14 +31,14 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         let pink = UIColor(red: 1.0, green: 0.31, blue: 0.64, alpha: 1)
         let background = UIColor(red: 0.055, green: 0.043, blue: 0.122, alpha: 1)
 
-        let title = name.map { "Pip säger nej till \($0)" } ?? "Pip säger nej"
-        var subtitle = engine.reason(at: now).map { Format.reason($0) + "." } ?? "Den här appen är blockerad just nu."
+        let title = name.map { L("Pip säger nej till \($0)") } ?? L("Pip säger nej")
+        var subtitle = engine.reason(at: now).map { Format.reason($0) + "." } ?? L("Den här appen är blockerad just nu.")
         if earnsXP {
-            subtitle += " Stäng nu och få +\(PlayerProgress.XP.close) XP."
+            subtitle += L(" Stäng nu och få +\(PlayerProgress.XP.close) XP.")
         }
         let stage = progress.healthStage
         if stage <= .down {
-            subtitle += "\n\nPip mår \(stage == .wrecked ? "jättedåligt" : stage == .sick ? "dåligt" : "lite sådär") (\(progress.health) %). En paus gör Pip ledsnare."
+            subtitle += L("\n\nPip mår \(stage == .wrecked ? L("jättedåligt") : stage == .sick ? L("dåligt") : L("lite sådär")) (\(progress.health) %). En paus gör Pip ledsnare.")
         }
 
         return ShieldConfiguration(
@@ -47,10 +47,10 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             icon: UIImage(systemName: "face.smiling.inverse")?.withTintColor(pink, renderingMode: .alwaysOriginal),
             title: ShieldConfiguration.Label(text: title, color: .white),
             subtitle: ShieldConfiguration.Label(text: subtitle, color: UIColor.white.withAlphaComponent(0.75)),
-            primaryButtonLabel: ShieldConfiguration.Label(text: earnsXP ? "Stäng (+\(PlayerProgress.XP.close) XP)" : "Stäng", color: .white),
+            primaryButtonLabel: ShieldConfiguration.Label(text: earnsXP ? L("Stäng (+\(PlayerProgress.XP.close) XP)") : L("Stäng"), color: .white),
             primaryButtonBackgroundColor: pink,
             secondaryButtonLabel: canPause
-                ? ShieldConfiguration.Label(text: penalty == 0 ? "Ta en paus (gratis)" : "Ta en paus (−\(penalty) XP)", color: pink)
+                ? ShieldConfiguration.Label(text: penalty == 0 ? L("Ta en paus (gratis)") : L("Ta en paus (−\(penalty) XP)"), color: pink)
                 : nil
         )
     }

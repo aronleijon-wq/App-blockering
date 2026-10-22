@@ -19,10 +19,10 @@ enum Reminders {
         let fireDate = !rewardClaimedToday && todayAtTime > now ? todayAtTime : tomorrowAtTime
 
         let content = UNMutableNotificationContent()
-        content.title = "Pip väntar på dig"
+        content.title = L("Pip väntar på dig")
         content.body = streak > 1
-            ? "Hämta dagens belöning och håll din streak på \(streak) dagar vid liv."
-            : "Dagens belöning är redo. Starta en ny streak idag!"
+            ? L("Hämta dagens belöning och håll din streak på \(streak) dagar vid liv.")
+            : L("Dagens belöning är redo. Starta en ny streak idag!")
         content.sound = .default
 
         let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
@@ -39,8 +39,8 @@ enum Reminders {
         else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "\(daysBefore) dagar kvar av din gratisvecka ⏳"
-        content.body = "Paus Pro börjar kosta pengar \(trialEnd.formatted(.dateTime.day().month(.wide))). Vill du sluta, säg upp före dess under Inställningar > [ditt namn] > Prenumerationer."
+        content.title = L("\(daysBefore) dagar kvar av din gratisvecka ⏳")
+        content.body = L("Paus Pro börjar kosta pengar \(trialEnd.formatted(.dateTime.day().month(.wide).locale(Language.current.locale))). Vill du sluta, säg upp före dess under Inställningar > [ditt namn] > Prenumerationer.")
         content.sound = .default
 
         let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)

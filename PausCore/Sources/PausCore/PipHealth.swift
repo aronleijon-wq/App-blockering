@@ -54,11 +54,11 @@ enum PipHealth {
 
         var label: String {
             switch self {
-            case .wrecked: return "Scrollsjuk"
-            case .sick: return "Mår dåligt"
-            case .down: return "Lite nere"
-            case .okay: return "Mår okej"
-            case .great: return "Pigg och glad"
+            case .wrecked: return L("Scrollsjuk")
+            case .sick: return L("Mår dåligt")
+            case .down: return L("Lite nere")
+            case .okay: return L("Mår okej")
+            case .great: return L("Pigg och glad")
             }
         }
 

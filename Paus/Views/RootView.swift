@@ -11,19 +11,19 @@ struct RootView: View {
             if model.isAuthorized {
                 TabView(selection: $model.selectedTab) {
                     HomeView()
-                        .tabItem { Label("Hem", systemImage: "house.fill") }
+                        .tabItem { Label(L("Hem"), systemImage: "house.fill") }
                         .tag(AppModel.Tab.home)
                     LeagueView()
-                        .tabItem { Label("Liga", systemImage: "flag.checkered") }
+                        .tabItem { Label(L("Liga"), systemImage: "flag.checkered") }
                         .tag(AppModel.Tab.league)
                     TrophiesView()
-                        .tabItem { Label("Troféer", systemImage: "trophy.fill") }
+                        .tabItem { Label(L("Troféer"), systemImage: "trophy.fill") }
                         .tag(AppModel.Tab.trophies)
                     SelectionView()
-                        .tabItem { Label("Appar", systemImage: "square.grid.2x2.fill") }
+                        .tabItem { Label(L("Appar"), systemImage: "square.grid.2x2.fill") }
                         .tag(AppModel.Tab.apps)
                     RulesView()
-                        .tabItem { Label("Regler", systemImage: "slider.horizontal.3") }
+                        .tabItem { Label(L("Regler"), systemImage: "slider.horizontal.3") }
                         .tag(AppModel.Tab.rules)
                 }
             } else if model.hasFinishedIntro {
@@ -32,6 +32,9 @@ struct RootView: View {
                 IntroView()
             }
         }
+        // A new identity redraws every screen in the newly chosen language.
+        .id(model.language)
+        .environment(\.locale, model.language.locale)
         .tint(Theme.pink)
         .fontDesign(.rounded)
         .preferredColorScheme(.dark)
@@ -54,23 +57,23 @@ struct RootView: View {
             CelebrationView(rewards: model.celebration)
         }
         .alert(
-            "Pip blev ledsen 😢",
+            L("Pip blev ledsen 😢"),
             isPresented: Binding(
                 get: { model.lossMessage != nil },
                 set: { if !$0 { model.lossMessage = nil } }
             )
         ) {
-            Button("Okej", role: .cancel) {}
+            Button(L("Okej"), role: .cancel) {}
         } message: {
             Text(model.lossMessage ?? "")
         }
-        .alert("Pip märkte att du stängde av Paus", isPresented: $model.isProtectionWarningPresented) {
-            Button("Okej", role: .cancel) {}
+        .alert(L("Pip märkte att du stängde av Paus"), isPresented: $model.isProtectionWarningPresented) {
+            Button(L("Okej"), role: .cancel) {}
         } message: {
-            Text("Din streak nollställdes, du förlorade upp till \(PlayerProgress.XP.disabledProtection) XP och \(League.Points.disabledProtectionPenalty) veckopoäng, och Pip tappade \(PipHealth.disabledProtection) i hälsa. Slå på Paus igen för att fortsätta blockera.")
+            Text(L("Din streak nollställdes, du förlorade upp till \(PlayerProgress.XP.disabledProtection) XP och \(League.Points.disabledProtectionPenalty) veckopoäng, och Pip tappade \(PipHealth.disabledProtection) i hälsa. Slå på Paus igen för att fortsätta blockera."))
         }
         .alert(
-            "Något gick fel",
+            L("Något gick fel"),
             isPresented: Binding(
                 get: { model.errorMessage != nil },
                 set: { if !$0 { model.errorMessage = nil } }

@@ -13,7 +13,7 @@ struct PaywallView: View {
                 Text("Paus Pro")
                     .font(.system(size: 36, weight: .heavy, design: .rounded))
                     .foregroundStyle(Theme.brand)
-                Text("Ta tillbaka din tid på riktigt.")
+                Text(L("Ta tillbaka din tid på riktigt."))
                     .font(.title3.weight(.semibold))
                 if let perMonth = model.store.yearlyPerMonth {
                     Text(yearlyDeal(perMonth: perMonth))
@@ -23,10 +23,10 @@ struct PaywallView: View {
                         .background(Theme.glow, in: Capsule())
                 }
                 VStack(alignment: .leading, spacing: 12) {
-                    Benefit(symbol: "calendar", text: "Obegränsat antal scheman")
-                    Benefit(symbol: "hourglass", text: "Daglig gräns för scrollandet")
-                    Benefit(symbol: "lock.fill", text: "Strikt fokus som inte går att fuska bort")
-                    Benefit(symbol: "sparkles", text: "Pip pratar personligt med dig med AI")
+                    Benefit(symbol: "calendar", text: L("Obegränsat antal scheman"))
+                    Benefit(symbol: "hourglass", text: L("Daglig gräns för scrollandet"))
+                    Benefit(symbol: "lock.fill", text: L("Strikt fokus som inte går att fuska bort"))
+                    Benefit(symbol: "sparkles", text: L("Pip pratar personligt med dig med AI"))
                 }
                 .padding(.top, 4)
             }
@@ -56,9 +56,9 @@ struct PaywallView: View {
 
     private func yearlyDeal(perMonth: String) -> String {
         guard let savings = model.store.yearlySavingsPercent, savings > 0 else {
-            return "Årspris: bara \(perMonth)/mån"
+            return L("Årspris: bara \(perMonth)/mån")
         }
-        return "Årspris: bara \(perMonth)/mån · spara \(savings) %"
+        return L("Årspris: bara \(perMonth)/mån · spara \(savings) %")
     }
 }
 

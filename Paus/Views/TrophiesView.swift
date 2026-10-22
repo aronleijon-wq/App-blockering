@@ -18,24 +18,24 @@ struct TrophiesView: View {
                 .padding(.bottom, 24)
             }
             .screenBackground()
-            .navigationTitle("Troféer")
+            .navigationTitle(L("Troféer"))
         }
     }
 
     private func statsCard(_ progress: PlayerProgress) -> some View {
         HStack(spacing: 0) {
-            Stat(value: "\(progress.bestStreak)", label: "Bästa streak", symbol: "flame.fill", tint: Theme.flame)
-            Stat(value: Format.minutes(progress.focusMinutes), label: "Fokus totalt", symbol: "scope", tint: Theme.violet)
-            Stat(value: "\(progress.closes)", label: "Stängda appar", symbol: "hand.raised.fill", tint: Theme.pink)
+            Stat(value: "\(progress.bestStreak)", label: L("Bästa streak"), symbol: "flame.fill", tint: Theme.flame)
+            Stat(value: Format.minutes(progress.focusMinutes), label: L("Fokus totalt"), symbol: "scope", tint: Theme.violet)
+            Stat(value: "\(progress.closes)", label: L("Stängda appar"), symbol: "hand.raised.fill", tint: Theme.pink)
         }
         .card()
     }
 
     private func levelsCard(_ progress: PlayerProgress) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Nivåer")
+            Text(L("Nivåer"))
                 .font(.title3.bold())
-            Text("Pip får nya prylar på nivå 3, 6 och 8.")
+            Text(L("Pip får nya prylar på nivå 3, 6 och 8."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             ForEach(1...Level.titles.count, id: \.self) { level in
@@ -54,7 +54,7 @@ struct TrophiesView: View {
                     }
                     Spacer()
                     if level == progress.level {
-                        Text("DU")
+                        Text(L("DU"))
                             .font(.caption2.weight(.heavy))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -63,7 +63,7 @@ struct TrophiesView: View {
                     } else if !reached {
                         Image(systemName: "lock.fill")
                             .foregroundStyle(.secondary)
-                            .accessibilityLabel("Låst")
+                            .accessibilityLabel(L("Låst"))
                     }
                 }
                 .opacity(reached ? 1 : 0.55)
@@ -76,7 +76,7 @@ struct TrophiesView: View {
     private func achievementsCard(_ progress: PlayerProgress) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("Troféer")
+                Text(L("Troféer"))
                     .font(.title3.bold())
                 Spacer()
                 Text("\(progress.unlocked.count)/\(Achievement.all.count)")
@@ -145,6 +145,6 @@ struct AchievementBadge: View {
         }
         .frame(maxWidth: .infinity, alignment: .top)
         .accessibilityElement(children: .combine)
-        .accessibilityValue(isUnlocked ? "Upplåst" : "Låst")
+        .accessibilityValue(isUnlocked ? L("Upplåst") : L("Låst"))
     }
 }

@@ -10,26 +10,26 @@ struct ScheduleEditorView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Namn", text: $schedule.name)
-                    Toggle("Aktivt", isOn: $schedule.isEnabled)
+                    TextField(L("Namn"), text: $schedule.name)
+                    Toggle(L("Aktivt"), isOn: $schedule.isEnabled)
                 }
 
-                Section("Dagar") {
+                Section(L("Dagar")) {
                     WeekdayPicker(selection: $schedule.weekdays)
                 }
 
                 Section {
-                    DatePicker("Från", selection: time(\.startMinute), displayedComponents: .hourAndMinute)
-                    DatePicker("Till", selection: time(\.endMinute), displayedComponents: .hourAndMinute)
+                    DatePicker(L("Från"), selection: time(\.startMinute), displayedComponents: .hourAndMinute)
+                    DatePicker(L("Till"), selection: time(\.endMinute), displayedComponents: .hourAndMinute)
                 } header: {
-                    Text("Tid")
+                    Text(L("Tid"))
                 } footer: {
                     Text(timeFooter)
                 }
 
                 if !isNew {
                     Section {
-                        Button("Ta bort schemat", role: .destructive) {
+                        Button(L("Ta bort schemat"), role: .destructive) {
                             model.deleteSchedule(id: schedule.id)
                             dismiss()
                         }
@@ -38,14 +38,14 @@ struct ScheduleEditorView: View {
             }
             .scrollContentBackground(.hidden)
             .screenBackground()
-            .navigationTitle(isNew ? "Nytt schema" : "Ändra schema")
+            .navigationTitle(isNew ? L("Nytt schema") : L("Ändra schema"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Avbryt") { dismiss() }
+                    Button(L("Avbryt")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Spara") {
+                    Button(L("Spara")) {
                         schedule.name = schedule.name.trimmingCharacters(in: .whitespacesAndNewlines)
                         model.saveSchedule(schedule)
                         dismiss()
@@ -69,12 +69,12 @@ struct ScheduleEditorView: View {
 
     private var timeFooter: String {
         if !hasValidLength {
-            return "Ett schema måste vara minst 15 minuter och sluta en annan tid än det börjar."
+            return L("Ett schema måste vara minst 15 minuter och sluta en annan tid än det börjar.")
         }
         if schedule.crossesMidnight {
-            return "Schemat fortsätter över midnatt och slutar \(Format.clock(minute: schedule.endMinute)) dagen efter."
+            return L("Schemat fortsätter över midnatt och slutar \(Format.clock(minute: schedule.endMinute)) dagen efter.")
         }
-        return "Blockerar i \(Format.minutes(schedule.durationMinutes))."
+        return L("Blockerar i \(Format.minutes(schedule.durationMinutes)).")
     }
 
     private func time(_ keyPath: WritableKeyPath<BlockSchedule, Int>) -> Binding<Date> {

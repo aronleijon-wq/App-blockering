@@ -32,14 +32,14 @@ struct ScreenTimeReportView: View {
     private var compact: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
-                Label("Skärmtid i dag", systemImage: "hourglass")
+                Label(L("Skärmtid i dag"), systemImage: "hourglass")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
                 Label("\(summary.pickupsToday)", systemImage: "iphone.radiowaves.left.and.right")
                     .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.secondary)
-                    .accessibilityLabel("\(summary.pickupsToday) upplockningar i dag")
+                    .accessibilityLabel(L("\(summary.pickupsToday) upplockningar i dag"))
             }
             Text(ReportFormat.duration(summary.today))
                 .font(.system(size: 34, weight: .heavy, design: .rounded))
@@ -59,7 +59,7 @@ struct ScreenTimeReportView: View {
     private var full: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("I dag")
+                Text(L("I dag"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Text(ReportFormat.duration(summary.today))
@@ -70,11 +70,11 @@ struct ScreenTimeReportView: View {
             .reportCard()
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("Senaste veckan")
+                Text(L("Senaste veckan"))
                     .font(.headline)
                 weekChart(height: 180, showsAxis: true)
                 if let average = summary.weekAverage {
-                    Text("Streckad linje: snittet \(ReportFormat.duration(average)) per dag.")
+                    Text(L("Streckad linje: snittet \(ReportFormat.duration(average)) per dag."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -82,15 +82,15 @@ struct ScreenTimeReportView: View {
             .reportCard()
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                ReportStat(symbol: "chart.bar.fill", value: summary.weekAverage.map(ReportFormat.duration) ?? "–", label: "Snitt per dag")
-                ReportStat(symbol: "iphone.radiowaves.left.and.right", value: "\(summary.pickupsToday)", label: "Upplockningar i dag")
-                ReportStat(symbol: "sunrise.fill", value: summary.firstPickupToday.map(ReportFormat.time) ?? "–", label: "Första upplockningen")
-                ReportStat(symbol: "calendar", value: summary.daysPerYear.map { "\($0) dygn" } ?? "–", label: "Per år i den takten")
+                ReportStat(symbol: "chart.bar.fill", value: summary.weekAverage.map(ReportFormat.duration) ?? "–", label: L("Snitt per dag"))
+                ReportStat(symbol: "iphone.radiowaves.left.and.right", value: "\(summary.pickupsToday)", label: L("Upplockningar i dag"))
+                ReportStat(symbol: "sunrise.fill", value: summary.firstPickupToday.map(ReportFormat.time) ?? "–", label: L("Första upplockningen"))
+                ReportStat(symbol: "calendar", value: summary.daysPerYear.map { L("\($0) dygn") } ?? "–", label: L("Per år i den takten"))
             }
 
             if !summary.topApps.isEmpty {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Mest använt i dag")
+                    Text(L("Mest använt i dag"))
                         .font(.headline)
                     let longest = summary.topApps.first?.duration ?? 1
                     ForEach(summary.topApps) { app in
@@ -101,7 +101,7 @@ struct ScreenTimeReportView: View {
             }
 
             if let days = summary.daysPerYear, days > 0 {
-                Text("Med \(ReportFormat.duration(summary.weekAverage ?? 0)) om dagen blir det \(days) hela dygn framför skärmen på ett år. Varje fokuspass gör den siffran mindre.")
+                Text(L("Med \(ReportFormat.duration(summary.weekAverage ?? 0)) om dagen blir det \(days) hela dygn framför skärmen på ett år. Varje fokuspass gör den siffran mindre."))
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -118,13 +118,15 @@ struct ScreenTimeReportView: View {
             let change = average - previous
             let isLess = change <= 0
             Label(
-                "Snitt \(ReportFormat.duration(average))/dag, \(ReportFormat.duration(abs(change))) \(isLess ? "mindre" : "mer") än veckan innan",
+                isLess
+                    ? L("Snitt \(ReportFormat.duration(average))/dag, \(ReportFormat.duration(abs(change))) mindre än veckan innan")
+                    : L("Snitt \(ReportFormat.duration(average))/dag, \(ReportFormat.duration(abs(change))) mer än veckan innan"),
                 systemImage: isLess ? "arrow.down.right" : "arrow.up.right"
             )
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(isLess ? ReportPalette.mint : ReportPalette.orange)
         } else if let average = summary.weekAverage {
-            Text("Snitt \(ReportFormat.duration(average)) per dag senaste veckan")
+            Text(L("Snitt \(ReportFormat.duration(average)) per dag senaste veckan"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
         }
@@ -135,14 +137,14 @@ struct ScreenTimeReportView: View {
         return Chart {
             ForEach(summary.chartDays) { day in
                 BarMark(
-                    x: .value("Dag", day.start, unit: .day),
-                    y: .value("Timmar", day.duration / 3600)
+                    x: .value(L("Dag"), day.start, unit: .day),
+                    y: .value(L("Timmar"), day.duration / 3600)
                 )
                 .foregroundStyle(day.start == today ? ReportPalette.pink : ReportPalette.violet.opacity(0.75))
                 .cornerRadius(5)
             }
             if showsAxis, let average = summary.weekAverage {
-                RuleMark(y: .value("Snitt", average / 3600))
+                RuleMark(y: .value(L("Snitt"), average / 3600))
                     .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
                     .foregroundStyle(.white.opacity(0.6))
             }
@@ -166,7 +168,7 @@ struct ScreenTimeReportView: View {
         .chartYAxis(showsAxis ? .visible : .hidden)
         .frame(height: height)
         .accessibilityElement()
-        .accessibilityLabel("Skärmtid per dag senaste veckan")
+        .accessibilityLabel(L("Skärmtid per dag senaste veckan"))
         .accessibilityValue(summary.chartDays.map { ReportFormat.duration($0.duration) }.joined(separator: ", "))
     }
 }
@@ -219,7 +221,7 @@ private struct ReportAppRow: View {
                     }
                 }
                 .frame(height: 6)
-                Text("\(app.pickups) upplockningar")
+                Text(L("\(app.pickups) upplockningar"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

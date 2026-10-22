@@ -43,7 +43,7 @@ struct MascotView: View {
             .offset(y: CGFloat(sin(time * bobSpeed)) * size * 0.025)
         }
         .accessibilityElement()
-        .accessibilityLabel("Pip, nivå \(level), \(mood.label)")
+        .accessibilityLabel(L("Pip, nivå \(level), \(mood.label)"))
     }
 
     private var saturation: Double {
@@ -225,14 +225,14 @@ struct MascotView: View {
 extension MascotMood {
     var label: String {
         switch self {
-        case .happy: return "glad"
-        case .zen: return "i fokus"
-        case .sleepy: return "sömnig"
-        case .sad: return "lite ledsen"
-        case .crying: return "ledsen och mår dåligt"
-        case .wrecked: return "scrollsjuk"
-        case .proud: return "stolt"
-        case .hyped: return "peppad"
+        case .happy: return L("glad")
+        case .zen: return L("i fokus")
+        case .sleepy: return L("sömnig")
+        case .sad: return L("lite ledsen")
+        case .crying: return L("ledsen och mår dåligt")
+        case .wrecked: return L("scrollsjuk")
+        case .proud: return L("stolt")
+        case .hyped: return L("peppad")
         }
     }
 }
@@ -334,7 +334,7 @@ struct HalfCircle: Shape {
     .screenBackground()
 }
 
-#Preview("Nivåer") {
+#Preview(L("Nivåer")) {
     HStack {
         ForEach([1, 3, 6, 10], id: \.self) { level in
             MascotView(mood: .happy, level: level, size: 80)

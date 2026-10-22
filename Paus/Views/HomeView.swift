@@ -36,7 +36,7 @@ struct HomeView: View {
                 }
             }
             .screenBackground()
-            .navigationTitle(model.firstName.map { "Hej \($0)!" } ?? "Paus")
+            .navigationTitle(model.firstName.map { L("Hej \($0)!") } ?? "Paus")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -46,7 +46,7 @@ struct HomeView: View {
                             .font(.title2)
                             .foregroundStyle(.white.opacity(0.85))
                     }
-                    .accessibilityLabel("Konto och inställningar")
+                    .accessibilityLabel(L("Konto och inställningar"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     StreakPill(streak: model.progress.currentStreak(at: .now, calendar: .current))
@@ -103,7 +103,7 @@ struct HomeView: View {
 
             VStack(spacing: 8) {
                 HStack {
-                    Text("Nivå \(level)")
+                    Text(L("Nivå \(level)"))
                         .font(.headline)
                     Text(Level.title(for: level))
                         .font(.headline)
@@ -114,7 +114,7 @@ struct HomeView: View {
                         .foregroundStyle(.secondary)
                 }
                 GradientBar(fraction: Level.fraction(forXP: progress.xp), height: 12)
-                    .accessibilityLabel("\(progress.xp - levelStart) av \(levelEnd - levelStart) XP till nästa nivå")
+                    .accessibilityLabel(L("\(progress.xp - levelStart) av \(levelEnd - levelStart) XP till nästa nivå"))
             }
         }
         .card(highlighted: true)
@@ -122,11 +122,11 @@ struct HomeView: View {
 
     private var setupCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Välj vad Pip ska vakta", systemImage: "square.grid.2x2.fill")
+            Label(L("Välj vad Pip ska vakta"), systemImage: "square.grid.2x2.fill")
                 .font(.headline)
-            Text("Börja med apparna som tar mest av din tid, till exempel TikTok, Instagram och YouTube.")
+            Text(L("Börja med apparna som tar mest av din tid, till exempel TikTok, Instagram och YouTube."))
                 .foregroundStyle(.secondary)
-            Button("Välj appar") { model.selectedTab = .apps }
+            Button(L("Välj appar")) { model.selectedTab = .apps }
                 .buttonStyle(GlowButtonStyle())
                 .padding(.top, 4)
         }
@@ -147,9 +147,9 @@ struct HomeView: View {
                         .font(.title)
                         .symbolEffect(.pulse)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Öppna dagens belöning")
+                        Text(L("Öppna dagens belöning"))
                             .font(.headline)
-                        Text("+\(progress.dailyRewardXP(at: date, calendar: .current)) XP och din streak fortsätter")
+                        Text(L("+\(progress.dailyRewardXP(at: date, calendar: .current)) XP och din streak fortsätter"))
                             .font(.subheadline)
                             .opacity(0.85)
                     }
@@ -168,9 +168,9 @@ struct HomeView: View {
                     .font(.title)
                     .foregroundStyle(Theme.mint)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Dagens belöning är hämtad")
+                    Text(L("Dagens belöning är hämtad"))
                         .font(.headline)
-                    Text("Nästa om \(Format.countdown(to: Calendar.current.startOfDay(for: date).addingTimeInterval(86_400), from: date))")
+                    Text(L("Nästa om \(Format.countdown(to: Calendar.current.startOfDay(for: date).addingTimeInterval(86_400), from: date))"))
                         .font(.subheadline.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
@@ -191,20 +191,20 @@ struct HomeView: View {
             }()
             VStack(alignment: .leading, spacing: 12) {
                 if engine.shouldShield(at: date) {
-                    StatusRow(symbol: "lock.fill", tint: Theme.pink, title: "Blockerat just nu", detail: Format.reason(reason))
+                    StatusRow(symbol: "lock.fill", tint: Theme.pink, title: L("Blockerat just nu"), detail: Format.reason(reason))
                     if model.rules.pause.isEnabled && !isStrictFocus {
                         Button {
                             model.isPauseSheetPresented = true
                         } label: {
                             let penalty = model.progress.nextPausePenalty(at: date, calendar: .current)
                             Label(
-                                penalty == 0 ? "Ta en paus på \(model.rules.pause.minutes) min (gratis)" : "Ta en paus (−\(penalty) XP och poäng)",
+                                penalty == 0 ? L("Ta en paus på \(model.rules.pause.minutes) min (gratis)") : L("Ta en paus (−\(penalty) XP och poäng)"),
                                 systemImage: "cup.and.saucer.fill"
                             )
                         }
                         .buttonStyle(ChipButtonStyle())
                         .disabled(!engine.canPause(at: date))
-                        Text("\(engine.pausesLeft(at: date)) av \(model.rules.pause.maxPerDay) pauser kvar idag")
+                        Text(L("\(engine.pausesLeft(at: date)) av \(model.rules.pause.maxPerDay) pauser kvar idag"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -212,10 +212,10 @@ struct HomeView: View {
                     StatusRow(
                         symbol: "cup.and.saucer.fill",
                         tint: Theme.orange,
-                        title: "Paus – \(Format.countdown(to: pausedUntil, from: date)) kvar",
-                        detail: "Sedan blockeras apparna igen."
+                        title: L("Paus – \(Format.countdown(to: pausedUntil, from: date)) kvar"),
+                        detail: L("Sedan blockeras apparna igen.")
                     )
-                    Button("Avsluta pausen nu") { model.endPause() }
+                    Button(L("Avsluta pausen nu")) { model.endPause() }
                         .buttonStyle(ChipButtonStyle())
                 }
             }
@@ -242,32 +242,32 @@ struct HomeView: View {
                     }
                     .frame(width: 96, height: 96)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Fokus pågår")
+                        Text(L("Fokus pågår"))
                             .font(.title3.bold())
-                        Text("Klart \(Format.time(end)). Du får \(Int((total / 60).rounded()) + PlayerProgress.XP.focusBonus) XP.")
+                        Text(L("Klart \(Format.time(end)). Du får \(Int((total / 60).rounded()) + PlayerProgress.XP.focusBonus) XP."))
                             .foregroundStyle(.secondary)
                         if model.isStrictFocusActive {
-                            Label("Strikt fokus", systemImage: "lock.fill")
+                            Label(L("Strikt fokus"), systemImage: "lock.fill")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(Theme.pink)
                         } else {
-                            Button("Avbryt (−\(PlayerProgress.XP.abandonedFocus) XP)", role: .destructive) {
+                            Button(L("Avbryt (−\(PlayerProgress.XP.abandonedFocus) XP)"), role: .destructive) {
                                 isStopFocusConfirming = true
                             }
                             .font(.subheadline)
-                            .confirmationDialog("Avbryta fokuspasset?", isPresented: $isStopFocusConfirming, titleVisibility: .visible) {
-                                Button("Avbryt ändå (−\(PlayerProgress.XP.abandonedFocus) XP)", role: .destructive) { model.stopFocus() }
-                                Button("Fortsätt fokusera", role: .cancel) {}
+                            .confirmationDialog(L("Avbryta fokuspasset?"), isPresented: $isStopFocusConfirming, titleVisibility: .visible) {
+                                Button(L("Avbryt ändå (−\(PlayerProgress.XP.abandonedFocus) XP)"), role: .destructive) { model.stopFocus() }
+                                Button(L("Fortsätt fokusera"), role: .cancel) {}
                             } message: {
-                                Text("Du förlorar \(PlayerProgress.XP.abandonedFocus) XP, \(League.Points.abandonedFocus) veckopoäng och Pip blir ledsen. Du är så nära!")
+                                Text(L("Du förlorar \(PlayerProgress.XP.abandonedFocus) XP, \(League.Points.abandonedFocus) veckopoäng och Pip blir ledsen. Du är så nära!"))
                             }
                         }
                     }
                 }
             } else {
-                Text("Fokuspass")
+                Text(L("Fokuspass"))
                     .font(.title3.bold())
-                Text("Blockera apparna direkt. 1 XP per minut + \(PlayerProgress.XP.focusBonus) i bonus.")
+                Text(L("Blockera apparna direkt. 1 XP per minut + \(PlayerProgress.XP.focusBonus) i bonus."))
                     .foregroundStyle(.secondary)
                 HStack(spacing: 10) {
                     ForEach(focusLengths, id: \.self) { minutes in
@@ -277,7 +277,7 @@ struct HomeView: View {
                             Text(Format.minutes(minutes))
                         }
                         .buttonStyle(ChipButtonStyle())
-                        .accessibilityLabel("Starta fokus i \(Format.minutes(minutes))")
+                        .accessibilityLabel(L("Starta fokus i \(Format.minutes(minutes))"))
                     }
                 }
             }
@@ -291,7 +291,7 @@ struct HomeView: View {
         let counts = model.progress.counts(at: date, calendar: .current)
         return VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("Dagens uppdrag")
+                Text(L("Dagens uppdrag"))
                     .font(.title3.bold())
                 Spacer()
                 Text("\(counts.completedQuests.count)/3")
@@ -331,7 +331,7 @@ private struct QuestRow: View {
                 .foregroundStyle(isDone ? Theme.mint : .secondary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityValue(isDone ? "Klart" : "\(min(progress, quest.target)) av \(quest.target)")
+        .accessibilityValue(isDone ? L("Klart") : L("\(min(progress, quest.target)) av \(quest.target)"))
     }
 }
 
@@ -375,6 +375,6 @@ struct StreakPill: View {
         .padding(.vertical, 6)
         .background(Theme.cardRaised, in: Capsule())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Streak: \(streak) dagar")
+        .accessibilityLabel(L("Streak: \(streak) dagar"))
     }
 }

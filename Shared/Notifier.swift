@@ -34,27 +34,27 @@ enum Notifier {
 
     static func scheduleFocusDone(at end: Date, xp: Int) {
         guard settings.focusAndPauses else { return }
-        schedule(ID.focusDone, at: end, title: "Fokuspasset är klart! 🎉", body: "Snyggt jobbat. Öppna Paus och hämta dina \(xp) XP.")
+        schedule(ID.focusDone, at: end, title: L("Fokuspasset är klart! 🎉"), body: L("Snyggt jobbat. Öppna Paus och hämta dina \(xp) XP."))
     }
 
     static func schedulePauseEnd(at end: Date) {
         guard settings.focusAndPauses else { return }
-        schedule(ID.pauseEnding, at: end.addingTimeInterval(-60), title: "1 minut kvar av pausen ⏳", body: "Avsluta det du gör. Snart blockerar Pip apparna igen.")
-        schedule(ID.pauseOver, at: end, title: "Pausen är slut", body: "Apparna är blockerade igen. Bra att du höll tiden!")
+        schedule(ID.pauseEnding, at: end.addingTimeInterval(-60), title: L("1 minut kvar av pausen ⏳"), body: L("Avsluta det du gör. Snart blockerar Pip apparna igen."))
+        schedule(ID.pauseOver, at: end, title: L("Pausen är slut"), body: L("Apparna är blockerade igen. Bra att du höll tiden!"))
     }
 
     static func limitReached(minutes: Int) {
         guard settings.focusAndPauses else { return }
-        post(ID.limitReached, title: "Dagens tid är slut ⏰", body: "Du har använt dina \(Format.minutes(minutes)). Pip har låst apparna till midnatt.")
+        post(ID.limitReached, title: L("Dagens tid är slut ⏰"), body: L("Du har använt dina \(Format.minutes(minutes)). Pip har låst apparna till midnatt."))
     }
 
     static func scheduleStarted(name: String, until end: Date) {
         guard settings.schedules else { return }
-        post(ID.scheduleStarted, title: "\(name) har börjat 🔒", body: "Pip blockerar apparna till \(Format.time(end)).")
+        post(ID.scheduleStarted, title: L("\(name) har börjat 🔒"), body: L("Pip blockerar apparna till \(Format.time(end))."))
     }
 
     static func scheduleVacationOver(at end: Date) {
-        schedule(ID.vacationOver, at: end, title: "Välkommen tillbaka! 👋", body: "Semesterläget är slut och dina regler gäller igen.")
+        schedule(ID.vacationOver, at: end, title: L("Välkommen tillbaka! 👋"), body: L("Semesterläget är slut och dina regler gäller igen."))
     }
 
     // MARK: Pip
@@ -63,13 +63,13 @@ enum Notifier {
         guard settings.pipHealth else { return }
         let title: String
         switch stage {
-        case .wrecked: title = "Pip är scrollsjuk 🤢"
-        case .sick: title = "Pip mår dåligt 😢"
-        case .down: title = "Pip blev lite ledsen 😕"
+        case .wrecked: title = L("Pip är scrollsjuk 🤢")
+        case .sick: title = L("Pip mår dåligt 😢")
+        case .down: title = L("Pip blev lite ledsen 😕")
         case .okay, .great: return
         }
-        let cause = scrolledMinutes.map { "Du har scrollat \(Format.minutes($0)) i dag." } ?? "Du har slut på dagens tid."
-        post(ID.health, title: title, body: "\(cause) Pips hälsa är nere på \(health) %. Ett fokuspass piggar upp Pip.")
+        let cause = scrolledMinutes.map { L("Du har scrollat \(Format.minutes($0)) i dag.") } ?? L("Du har slut på dagens tid.")
+        post(ID.health, title: title, body: L("\(cause) Pips hälsa är nere på \(health) %. Ett fokuspass piggar upp Pip."))
     }
 
     // MARK: Plumbing

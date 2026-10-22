@@ -46,20 +46,20 @@ private extension PausStatus {
 
     var subtitle: String {
         switch kind {
-        case .focus: return "Fokus pågår"
-        case .pause: return "Sedan blockeras apparna igen"
-        case .schedule: return "Blockerat enligt schema"
-        case .limit: return "Spärrat till midnatt"
-        case .free: return "Pip vaktar när du vill"
+        case .focus: return L("Fokus pågår")
+        case .pause: return L("Sedan blockeras apparna igen")
+        case .schedule: return L("Blockerat enligt schema")
+        case .limit: return L("Spärrat till midnatt")
+        case .free: return L("Pip vaktar när du vill")
         }
     }
 
     /// What to say once the countdown has run out but the app hasn't updated yet.
     var finishedText: String {
         switch kind {
-        case .focus: return "Fokuspasset är klart! Öppna Paus och hämta din XP."
-        case .pause: return "Pausen är slut. Apparna är blockerade igen."
-        case .schedule, .limit, .free: return "Blockeringen är slut."
+        case .focus: return L("Fokuspasset är klart! Öppna Paus och hämta din XP.")
+        case .pause: return L("Pausen är slut. Apparna är blockerade igen.")
+        case .schedule, .limit, .free: return L("Blockeringen är slut.")
         }
     }
 
@@ -81,7 +81,7 @@ struct StatusEntry: TimelineEntry {
 
 struct StatusProvider: TimelineProvider {
     func placeholder(in context: Context) -> StatusEntry {
-        StatusEntry(date: .now, status: PausStatus(kind: .schedule, title: "Skola", start: nil, end: .now.addingTimeInterval(5400)), health: 80, streak: 4)
+        StatusEntry(date: .now, status: PausStatus(kind: .schedule, title: L("Skola"), start: nil, end: .now.addingTimeInterval(5400)), health: 80, streak: 4)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (StatusEntry) -> Void) {
@@ -116,7 +116,7 @@ struct StatusWidget: Widget {
             StatusWidgetView(entry: entry)
         }
         .configurationDisplayName("Paus")
-        .description("Vad som är blockerat, hur länge till och hur Pip mår.")
+        .description(L("Vad som är blockerat, hur länge till och hur Pip mår."))
         .supportedFamilies([.systemSmall, .accessoryRectangular, .accessoryCircular, .accessoryInline])
     }
 }
@@ -152,7 +152,7 @@ private struct StatusWidgetView: View {
                 Image(systemName: status.symbol)
             }
         } else {
-            Label("Pip mår \(entry.health) %", systemImage: "heart.fill")
+            Label(L("Pip mår \(entry.health) %"), systemImage: "heart.fill")
         }
     }
 
@@ -191,7 +191,7 @@ private struct StatusWidgetView: View {
                 Text(status.subtitle)
                     .font(.caption)
             }
-            Text("Pip \(entry.health) % · 🔥 \(entry.streak)")
+            Text(L("Pip \(entry.health) % · 🔥 \(entry.streak)"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -226,7 +226,7 @@ private struct StatusWidgetView: View {
             HStack(spacing: 4) {
                 Image(systemName: entry.health >= 60 ? "heart.fill" : "heart.slash.fill")
                     .foregroundStyle(Palette.pink)
-                Text("Pip \(entry.health) %")
+                Text(L("Pip \(entry.health) %"))
             }
             .font(.caption.weight(.semibold))
         }

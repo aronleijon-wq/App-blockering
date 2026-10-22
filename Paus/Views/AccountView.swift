@@ -13,20 +13,20 @@ struct AccountView: View {
             VStack(spacing: 24) {
                 VStack(spacing: 6) {
                     MascotView(mood: model.mood, level: model.progress.level, size: 100)
-                    Text(model.firstName ?? "Ditt konto")
+                    Text(model.firstName ?? L("Ditt konto"))
                         .font(.title2.bold())
-                    Text("Nivå \(model.progress.level) · \(Level.title(for: model.progress.level))")
+                    Text(L("Nivå \(model.progress.level) · \(Level.title(for: model.progress.level))"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
 
-                SettingsGroup(title: "Om dig") {
+                SettingsGroup(title: L("Om dig")) {
                     HStack(spacing: 14) {
                         Image(systemName: "person.fill")
                             .font(.title3)
                             .frame(width: 30)
                             .accessibilityHidden(true)
-                        TextField("Ditt förnamn", text: $name)
+                        TextField(L("Ditt förnamn"), text: $name)
                             .font(.body.weight(.semibold))
                             .textContentType(.givenName)
                             .submitLabel(.done)
@@ -39,8 +39,8 @@ struct AccountView: View {
                     } label: {
                         SettingsRow(
                             symbol: "at",
-                            title: "Smeknamn",
-                            detail: model.league.nickname ?? "Inte med i ligan än",
+                            title: L("Smeknamn"),
+                            detail: model.league.nickname ?? L("Inte med i ligan än"),
                             accessory: .chevron
                         )
                     }
@@ -51,7 +51,7 @@ struct AccountView: View {
                     )) {
                         ForEach(AgeGroup.allCases) { Text($0.label).tag($0) }
                     } label: {
-                        SettingsRow(symbol: "birthday.cake.fill", title: "Ålder")
+                        SettingsRow(symbol: "birthday.cake.fill", title: L("Ålder"))
                     }
                     .tint(.secondary)
                     SettingsDivider()
@@ -63,23 +63,23 @@ struct AccountView: View {
                             Text(IntroView.hours(hours)).tag(hours)
                         }
                     } label: {
-                        SettingsRow(symbol: "hourglass", title: "Skärmtid innan Paus", detail: "Per dag, som du uppgav")
+                        SettingsRow(symbol: "hourglass", title: L("Skärmtid innan Paus"), detail: L("Per dag, som du uppgav"))
                     }
                     .tint(.secondary)
                 }
 
-                SettingsGroup(title: "Apple-konto") {
+                SettingsGroup(title: L("Apple-konto")) {
                     if let account = model.account {
-                        SettingsRow(symbol: "apple.logo", title: "Inloggad", detail: account.email ?? account.displayName)
+                        SettingsRow(symbol: "apple.logo", title: L("Inloggad"), detail: account.email ?? account.displayName)
                         SettingsDivider()
                         Button(role: .destructive) {
                             model.signOut()
                         } label: {
-                            SettingsRow(symbol: "rectangle.portrait.and.arrow.right", title: "Logga ut")
+                            SettingsRow(symbol: "rectangle.portrait.and.arrow.right", title: L("Logga ut"))
                         }
                     } else {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Skapa ett konto så kommer Pip ihåg dig. Allt fungerar även utan.")
+                            Text(L("Skapa ett konto så kommer Pip ihåg dig. Allt fungerar även utan."))
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                             SignInWithAppleButton(.signIn) { request in
@@ -98,7 +98,7 @@ struct AccountView: View {
                 Button {
                     isDeletePresented = true
                 } label: {
-                    Label("Radera konto och all data", systemImage: "trash.fill")
+                    Label(L("Radera konto och all data"), systemImage: "trash.fill")
                         .font(.headline)
                         .foregroundStyle(Theme.pink)
                         .frame(maxWidth: .infinity)
@@ -108,7 +108,7 @@ struct AccountView: View {
                 .disabled(model.isStrictFocusActive)
 
                 if model.isStrictFocusActive {
-                    Text("Kontot kan inte raderas under strikt fokus.")
+                    Text(L("Kontot kan inte raderas under strikt fokus."))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -116,7 +116,7 @@ struct AccountView: View {
             .padding(20)
         }
         .screenBackground()
-        .navigationTitle("Mitt konto")
+        .navigationTitle(L("Mitt konto"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { name = model.firstName ?? "" }
         .onDisappear(perform: saveName)
@@ -151,9 +151,9 @@ private struct DeleteAccountSheet: View {
                 .frame(width: 84, height: 84)
                 .overlay(Circle().strokeBorder(Theme.pink.opacity(0.4), lineWidth: 1.5))
                 .padding(.top, 28)
-            Text("Radera kontot?")
+            Text(L("Radera kontot?"))
                 .font(.title2.bold())
-            Text("XP, nivå, streak, troféer, regler, dina svar, ditt konto och ditt ligakonto raderas, och alla blockeringar tas bort. Det går inte att ångra. En prenumeration sägs upp separat i Inställningar.")
+            Text(L("XP, nivå, streak, troféer, regler, dina svar, ditt konto och ditt ligakonto raderas, och alla blockeringar tas bort. Det går inte att ångra. En prenumeration sägs upp separat i Inställningar."))
                 .font(.subheadline)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
@@ -166,7 +166,7 @@ private struct DeleteAccountSheet: View {
                     dismiss()
                 }
             } label: {
-                Label("Radera allt", systemImage: "checkmark")
+                Label(L("Radera allt"), systemImage: "checkmark")
                     .font(.headline)
                     .foregroundStyle(Theme.background)
                     .frame(maxWidth: .infinity)
@@ -174,7 +174,7 @@ private struct DeleteAccountSheet: View {
                     .background(.white, in: Capsule())
             }
             .disabled(isDeleting)
-            Button("Avbryt") { dismiss() }
+            Button(L("Avbryt")) { dismiss() }
                 .font(.headline)
                 .foregroundStyle(.white)
                 .padding(.bottom, 8)

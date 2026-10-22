@@ -26,7 +26,7 @@ struct HealthBar: View {
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("Pips hälsa")
+                    Text(L("Pips hälsa"))
                         .font(.subheadline.weight(.semibold))
                     Text(stage.label)
                         .font(.subheadline.weight(.semibold))
@@ -52,8 +52,8 @@ struct HealthBar: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Pips hälsa: \(health) procent, \(stage.label.lowercased())")
-        .accessibilityHint("Visar vad som gör Pip gladare och ledsnare")
+        .accessibilityLabel(L("Pips hälsa: \(health) procent, \(stage.label.lowercased())"))
+        .accessibilityHint(L("Visar vad som gör Pip gladare och ledsnare"))
     }
 }
 
@@ -70,34 +70,34 @@ struct PipHealthSheet: View {
                     HealthBar(health: model.progress.health)
                         .card()
 
-                    Text("Pip mår som du scrollar. Ju mer tid i Pips appar och ju fler pauser, desto ledsnare blir Pip. Hälsan påverkar inte din XP eller nivå, bara hur Pip mår.")
+                    Text(L("Pip mår som du scrollar. Ju mer tid i Pips appar och ju fler pauser, desto ledsnare blir Pip. Hälsan påverkar inte din XP eller nivå, bara hur Pip mår."))
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    HealthList(title: "Gör Pip ledsen", tint: Theme.pink, rows: [
-                        ("iphone.gen3", "Varje halvtimme i Pips appar", "−\(PipHealth.perScrollStep)"),
-                        ("cup.and.saucer.fill", "En paus (växer under dagen)", "−\(PipHealth.pauseCost(forPause: 1)) till −\(PipHealth.pauseCost(forPause: 4))"),
-                        ("hourglass", "Dagens tid tar slut", "−\(PipHealth.reachedDailyLimit)"),
-                        ("power", "Stänga av Paus i Skärmtid", "−\(PipHealth.disabledProtection)"),
+                    HealthList(title: L("Gör Pip ledsen"), tint: Theme.pink, rows: [
+                        ("iphone.gen3", L("Varje halvtimme i Pips appar"), "−\(PipHealth.perScrollStep)"),
+                        ("cup.and.saucer.fill", L("En paus (växer under dagen)"), L("−\(PipHealth.pauseCost(forPause: 1)) till −\(PipHealth.pauseCost(forPause: 4))")),
+                        ("hourglass", L("Dagens tid tar slut"), "−\(PipHealth.reachedDailyLimit)"),
+                        ("power", L("Stänga av Paus i Skärmtid"), "−\(PipHealth.disabledProtection)"),
                     ])
 
-                    HealthList(title: "Gör Pip glad", tint: Theme.mint, rows: [
-                        ("moon.stars.fill", "En natts sömn", "+\(PipHealth.overnight)"),
-                        ("scope", "Fokuspass", "+1 per \(PipHealth.focusMinutesPerPoint) min"),
-                        ("wind", "Tacka nej till en paus", "+\(PipHealth.declinedPause)"),
-                        ("hand.raised.fill", "Stänga en blockerad app", "+\(PipHealth.closedBlockedApp)"),
-                        ("gift.fill", "Dagens belöning", "+\(PipHealth.dailyReward)"),
-                        ("checkmark.seal.fill", "En hel dag under gränsen", "+\(PipHealth.dayUnderLimit)"),
+                    HealthList(title: L("Gör Pip glad"), tint: Theme.mint, rows: [
+                        ("moon.stars.fill", L("En natts sömn"), "+\(PipHealth.overnight)"),
+                        ("scope", L("Fokuspass"), L("+1 per \(PipHealth.focusMinutesPerPoint) min")),
+                        ("wind", L("Tacka nej till en paus"), "+\(PipHealth.declinedPause)"),
+                        ("hand.raised.fill", L("Stänga en blockerad app"), "+\(PipHealth.closedBlockedApp)"),
+                        ("gift.fill", L("Dagens belöning"), "+\(PipHealth.dailyReward)"),
+                        ("checkmark.seal.fill", L("En hel dag under gränsen"), "+\(PipHealth.dayUnderLimit)"),
                     ])
                 }
                 .padding(20)
             }
             .screenBackground()
-            .navigationTitle("Pips hälsa")
+            .navigationTitle(L("Pips hälsa"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Klar") { dismiss() }
+                    Button(L("Klar")) { dismiss() }
                 }
             }
         }

@@ -28,6 +28,9 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Check that every text has an English translation
+        run: python3 scripts/check_translations.py
+
       - name: Test blocking and progress logic
         working-directory: PausCore
         run: swift test

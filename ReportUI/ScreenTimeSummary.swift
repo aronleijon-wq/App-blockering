@@ -103,7 +103,7 @@ enum ReportFormat {
     }
 
     static func time(_ date: Date) -> String {
-        date.formatted(date: .omitted, time: .shortened)
+        date.formatted(Date.FormatStyle(date: .omitted, time: .shortened, locale: Language.current.locale))
     }
 }
 

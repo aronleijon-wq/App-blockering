@@ -3,7 +3,7 @@ import Foundation
 /// Swedish display text shared by the app and the shield.
 enum Format {
     static func time(_ date: Date) -> String {
-        date.formatted(date: .omitted, time: .shortened)
+        date.formatted(Date.FormatStyle(date: .omitted, time: .shortened, locale: Language.current.locale))
     }
 
     /// "4:05" or "1:02:03" until `end`.
@@ -33,19 +33,19 @@ enum Format {
     static func reason(_ reason: BlockReason) -> String {
         switch reason {
         case .focus(let until):
-            return "Fokuspass till \(time(until))"
+            return L("Fokuspass till \(time(until))")
         case .schedule(let name, let until):
-            return "Schemat ”\(name)” gäller till \(time(until))"
+            return L("Schemat ”\(name)” gäller till \(time(until))")
         case .dailyLimit(let minutes):
-            return "Du har använt dina \(Format.minutes(minutes)) för idag"
+            return L("Du har använt dina \(Format.minutes(minutes)) för idag")
         }
     }
 
     static func weekdays(_ days: Set<Int>) -> String {
         switch days {
-        case Set(1...7): return "Varje dag"
-        case [2, 3, 4, 5, 6]: return "Vardagar"
-        case [1, 7]: return "Helger"
+        case Set(1...7): return L("Varje dag")
+        case [2, 3, 4, 5, 6]: return L("Vardagar")
+        case [1, 7]: return L("Helger")
         default: return Weekday.mondayFirst.filter { days.contains($0.number) }.map(\.short).joined(separator: ", ")
         }
     }
@@ -58,13 +58,17 @@ struct Weekday {
     let short: String
     let name: String
 
-    static let mondayFirst: [Weekday] = [
-        Weekday(number: 2, letter: "M", short: "mån", name: "måndag"),
-        Weekday(number: 3, letter: "T", short: "tis", name: "tisdag"),
-        Weekday(number: 4, letter: "O", short: "ons", name: "onsdag"),
-        Weekday(number: 5, letter: "T", short: "tor", name: "torsdag"),
-        Weekday(number: 6, letter: "F", short: "fre", name: "fredag"),
-        Weekday(number: 7, letter: "L", short: "lör", name: "lördag"),
-        Weekday(number: 1, letter: "S", short: "sön", name: "söndag"),
-    ]
+    /// Monday to Sunday, named in the app's language.
+    static var mondayFirst: [Weekday] {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Language.current.locale
+        return [2, 3, 4, 5, 6, 7, 1].map { number in
+            Weekday(
+                number: number,
+                letter: calendar.veryShortStandaloneWeekdaySymbols[number - 1],
+                short: calendar.shortStandaloneWeekdaySymbols[number - 1],
+                name: calendar.standaloneWeekdaySymbols[number - 1]
+            )
+        }
+    }
 }

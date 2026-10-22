@@ -33,8 +33,8 @@ final class ShieldActionExtension: ShieldActionDelegate {
 
     private func postPauseNotification(completion: @escaping () -> Void) {
         let content = UNMutableNotificationContent()
-        content.title = "Pip väntar på dig"
-        content.body = "Tryck här för att andas en stund och ta en kort paus."
+        content.title = L("Pip väntar på dig")
+        content.body = L("Tryck här för att andas en stund och ta en kort paus.")
         let request = UNNotificationRequest(identifier: "paus.pause-request", content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request) { _ in completion() }
     }

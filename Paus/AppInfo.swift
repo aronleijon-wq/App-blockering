@@ -16,8 +16,8 @@ enum AppInfo {
 
     /// The text that goes with an invite, naming the player so friends can find them in the league.
     static func inviteMessage(nickname: String?) -> String {
-        let name = nickname.map { " Mitt smeknamn är \($0)." } ?? ""
-        return "Jag kör Paus för att scrolla mindre 📵 Utmana mig i ligan – den som scrollar minst vinner veckan!\(name)"
+        let name = nickname.map { L(" Mitt smeknamn är \($0).") } ?? ""
+        return L("Jag kör Paus för att scrolla mindre 📵 Utmana mig i ligan – den som scrollar minst vinner veckan!\(name)")
     }
 
     /// "0.1.0 (1)", from the bundle.

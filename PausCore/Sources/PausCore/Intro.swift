@@ -8,7 +8,7 @@ enum AgeGroup: String, Codable, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .under18: return "Under 18"
+        case .under18: return L("Under 18")
         case .from18: return "18–24"
         case .from25: return "25–34"
         case .from35: return "35–44"

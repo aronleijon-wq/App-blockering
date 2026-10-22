@@ -23,9 +23,9 @@ final class LeagueService {
 
         var title: String {
             switch self {
-            case .group: return "Min grupp"
-            case .sweden: return "Sverige"
-            case .world: return "Världen"
+            case .group: return L("Min grupp")
+            case .sweden: return L("Sverige")
+            case .world: return L("Världen")
             }
         }
     }

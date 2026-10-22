@@ -42,7 +42,7 @@ struct ScreenTimeScene: DeviceActivityReportScene {
                     for await activity in category.applications {
                         let application = activity.application
                         pickups += activity.numberOfPickups
-                        let name = application.localizedDisplayName ?? application.bundleIdentifier ?? "Okänd app"
+                        let name = application.localizedDisplayName ?? application.bundleIdentifier ?? L("Okänd app")
                         let key = application.bundleIdentifier ?? name
                         let earlier = apps[key]
                         apps[key] = ScreenTimeSummary.AppUsage(

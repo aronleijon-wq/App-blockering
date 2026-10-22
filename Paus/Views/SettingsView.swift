@@ -15,43 +15,57 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 26) {
                     planCard
 
-                    SettingsGroup(title: "Konto") {
+                    SettingsGroup(title: L("Konto")) {
                         NavigationLink {
                             AccountView()
                         } label: {
                             SettingsRow(
                                 symbol: "person.crop.circle.fill",
-                                title: model.firstName ?? "Mitt konto",
-                                detail: model.account == nil ? "Skapa konto eller logga in" : "Inloggad med Apple",
+                                title: model.firstName ?? L("Mitt konto"),
+                                detail: model.account == nil ? L("Skapa konto eller logga in") : L("Inloggad med Apple"),
                                 accessory: .chevron
                             )
                         }
                     }
 
-                    SettingsGroup(title: "Notiser") {
+                    SettingsGroup(title: L("Språk")) {
+                        Picker(selection: Binding(
+                            get: { model.language },
+                            set: { model.setLanguage($0) }
+                        )) {
+                            ForEach(Language.allCases) { language in
+                                Text("\(language.flag) \(language.nativeName)").tag(language)
+                            }
+                        } label: {
+                            SettingsRow(symbol: "globe", title: "Språk · Language")
+                        }
+                        .tint(.secondary)
+                    }
+
+                    SettingsGroup(title: L("Notiser")) {
                         if !model.notificationsAllowed {
                             Button {
                                 Task { await model.enableNotifications() }
                             } label: {
                                 SettingsRow(
                                     symbol: "bell.slash.fill",
-                                    title: "Notiser är avstängda",
-                                    detail: "Slå på dem så att Pip kan säga till när pausen tar slut och fokuspasset är klart.",
+                                    title: L("Notiser är avstängda"),
+                                    detail: L("Slå på dem så att Pip kan säga till när pausen tar slut och fokuspasset är klart."),
                                     accessory: .chevron
                                 )
                             }
                             SettingsDivider()
                         }
-                        notificationToggle(\.focusAndPauses, symbol: "timer", title: "Fokus och pauser", detail: "När ett fokuspass är klart, en minut innan pausen tar slut och när dagens tid är slut.")
+                        notificationToggle(\.focusAndPauses, symbol: "timer", title: L("Fokus och pauser"), detail: L("När ett fokuspass är klart, en minut innan pausen tar slut och när dagens tid är slut."))
                         SettingsDivider()
-                        notificationToggle(\.schedules, symbol: "calendar", title: "Scheman", detail: "När ett schema börjar blockera.")
+                        notificationToggle(\.schedules, symbol: "calendar", title: L("Scheman"), detail: L("När ett schema börjar blockera."))
                         SettingsDivider()
-                        notificationToggle(\.pipHealth, symbol: "heart.fill", title: "Pips mående", detail: "När Pip mår sämre av scrollandet.")
+                        notificationToggle(\.pipHealth, symbol: "heart.fill", title: L("Pips mående"), detail: L("När Pip mår sämre av scrollandet."))
                         SettingsDivider()
-                        notificationToggle(\.dailyReminder, symbol: "flame.fill", title: "Daglig påminnelse", detail: "Kl. 18.30 om dagens belöning och streaken.")
+                        notificationToggle(\.dailyReminder, symbol: "flame.fill", title: L("Daglig påminnelse"), detail: L("Kl. 18.30 om dagens belöning och streaken."))
                     }
 
-                    SettingsGroup(title: "Skydd") {
+                    SettingsGroup(title: L("Skydd")) {
                         Toggle(isOn: Binding(
                             get: { model.effectiveRules.preventUninstall },
                             set: { newValue in
@@ -64,8 +78,8 @@ struct SettingsView: View {
                         )) {
                             SettingsRow(
                                 symbol: "lock.shield.fill",
-                                title: "Avinstallationsskydd",
-                                detail: "Appar, även Paus, går inte att radera medan något är blockerat.",
+                                title: L("Avinstallationsskydd"),
+                                detail: L("Appar, även Paus, går inte att radera medan något är blockerat."),
                                 badge: model.isPro ? nil : "PRO"
                             )
                         }
@@ -77,8 +91,8 @@ struct SettingsView: View {
                         )) {
                             SettingsRow(
                                 symbol: "18.circle.fill",
-                                title: "Vuxenfilter",
-                                detail: "Apples filter mot vuxensajter i Safari, alltid på."
+                                title: L("Vuxenfilter"),
+                                detail: L("Apples filter mot vuxensajter i Safari, alltid på.")
                             )
                         }
                         SettingsDivider()
@@ -87,7 +101,7 @@ struct SettingsView: View {
                         } label: {
                             SettingsRow(
                                 symbol: "beach.umbrella.fill",
-                                title: "Semesterläge",
+                                title: L("Semesterläge"),
                                 detail: vacationDetail,
                                 accessory: .chevron
                             )
@@ -97,12 +111,12 @@ struct SettingsView: View {
                     SettingsGroup(title: "Support") {
                         if let mail = AppInfo.supportMailURL {
                             Link(destination: mail) {
-                                SettingsRow(symbol: "bubble.left.and.bubble.right.fill", title: "Kontakta support", accessory: .external)
+                                SettingsRow(symbol: "bubble.left.and.bubble.right.fill", title: L("Kontakta support"), accessory: .external)
                             }
                             SettingsDivider()
                         }
                         Link(destination: AppInfo.helpURL) {
-                            SettingsRow(symbol: "book.fill", title: "Hjälpcenter", accessory: .external)
+                            SettingsRow(symbol: "book.fill", title: L("Hjälpcenter"), accessory: .external)
                         }
                         SettingsDivider()
                         Button {
@@ -111,38 +125,38 @@ struct SettingsView: View {
                         } label: {
                             SettingsRow(
                                 symbol: "arrow.clockwise",
-                                title: "Ladda om Paus",
-                                detail: didReload ? "Klart! Regler och blockeringar är på plats igen." : "Lägger på dina regler och blockeringar igen om något inte fungerar."
+                                title: L("Ladda om Paus"),
+                                detail: didReload ? L("Klart! Regler och blockeringar är på plats igen.") : L("Lägger på dina regler och blockeringar igen om något inte fungerar.")
                             )
                         }
                         .sensoryFeedback(.success, trigger: didReload)
                     }
 
-                    SettingsGroup(title: "Dela") {
+                    SettingsGroup(title: L("Dela")) {
                         ShareLink(
                             item: AppInfo.inviteURL,
-                            subject: Text("Utmana mig i Paus"),
+                            subject: Text(L("Utmana mig i Paus")),
                             message: Text(AppInfo.inviteMessage(nickname: model.league.nickname))
                         ) {
-                            SettingsRow(symbol: "square.and.arrow.up", title: "Dela Paus med en vän", accessory: .chevron)
+                            SettingsRow(symbol: "square.and.arrow.up", title: L("Dela Paus med en vän"), accessory: .chevron)
                         }
                     }
 
-                    SettingsGroup(title: "Övrigt") {
+                    SettingsGroup(title: L("Övrigt")) {
                         Button {
                             Task { await model.restorePurchases() }
                         } label: {
-                            SettingsRow(symbol: "arrow.uturn.backward.circle.fill", title: "Återställ köp")
+                            SettingsRow(symbol: "arrow.uturn.backward.circle.fill", title: L("Återställ köp"))
                         }
                         SettingsDivider()
                         NavigationLink {
                             PrivacyPolicyView()
                         } label: {
-                            SettingsRow(symbol: "hand.raised.fill", title: "Integritetspolicy", accessory: .chevron)
+                            SettingsRow(symbol: "hand.raised.fill", title: L("Integritetspolicy"), accessory: .chevron)
                         }
                         SettingsDivider()
                         Link(destination: AppInfo.termsURL) {
-                            SettingsRow(symbol: "doc.text.fill", title: "Användarvillkor", accessory: .external)
+                            SettingsRow(symbol: "doc.text.fill", title: L("Användarvillkor"), accessory: .external)
                         }
                     }
 
@@ -154,7 +168,7 @@ struct SettingsView: View {
                 .padding(20)
             }
             .screenBackground()
-            .navigationTitle("Inställningar")
+            .navigationTitle(L("Inställningar"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -167,7 +181,7 @@ struct SettingsView: View {
                             .frame(width: 34, height: 34)
                             .background(Theme.mint, in: Circle())
                     }
-                    .accessibilityLabel("Klar")
+                    .accessibilityLabel(L("Klar"))
                 }
             }
             .task { await model.refreshNotificationPermission() }
@@ -190,37 +204,37 @@ struct SettingsView: View {
     }
 
     private var vacationDetail: String {
-        guard let end = model.rules.vacationUntil, end > .now else { return "Vila scheman och daglig gräns när du är ledig." }
-        return "På till \(end.formatted(.dateTime.day().month(.wide)))"
+        guard let end = model.rules.vacationUntil, end > .now else { return L("Vila scheman och daglig gräns när du är ledig.") }
+        return L("På till \(end.formatted(.dateTime.day().month(.wide).locale(Language.current.locale)))")
     }
 
     @ViewBuilder
     private var planCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             if model.isPro {
-                Label("Du har Paus Pro", systemImage: "checkmark.seal.fill")
+                Label(L("Du har Paus Pro"), systemImage: "checkmark.seal.fill")
                     .font(.title3.bold())
                     .foregroundStyle(Theme.mint)
-                Button("Hantera prenumeration") { isManagingSubscription = true }
+                Button(L("Hantera prenumeration")) { isManagingSubscription = true }
                     .buttonStyle(ChipButtonStyle())
             } else {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Du har gratisversionen")
+                    Text(L("Du har gratisversionen"))
                         .font(.title3.bold())
                     HStack(spacing: 4) {
-                        Text("Fokusera ännu bättre med")
+                        Text(L("Fokusera ännu bättre med"))
                         Text("Paus Pro").foregroundStyle(Theme.brand).bold()
                     }
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 }
                 VStack(alignment: .leading, spacing: 10) {
-                    ProPerk(symbol: "lock.fill", text: "Strikt fokus och avinstallationsskydd")
-                    ProPerk(symbol: "calendar", text: "Obegränsat antal scheman")
-                    ProPerk(symbol: "hourglass", text: "Daglig gräns")
-                    ProPerk(symbol: "sparkles", text: "Pip pratar personligt med dig")
+                    ProPerk(symbol: "lock.fill", text: L("Strikt fokus och avinstallationsskydd"))
+                    ProPerk(symbol: "calendar", text: L("Obegränsat antal scheman"))
+                    ProPerk(symbol: "hourglass", text: L("Daglig gräns"))
+                    ProPerk(symbol: "sparkles", text: L("Pip pratar personligt med dig"))
                 }
-                Button(model.store.yearlyPerMonth.map { "Prova gratis, sedan \($0)/mån" } ?? "Prova gratis i 7 dagar") {
+                Button(model.store.yearlyPerMonth.map { L("Prova gratis, sedan \($0)/mån") } ?? L("Prova gratis i 7 dagar")) {
                     isPaywallPresented = true
                 }
                 .buttonStyle(GlowButtonStyle())
@@ -356,21 +370,21 @@ private struct VacationView: View {
                     .symbolEffect(.bounce, value: model.rules.vacationUntil)
                     .padding(.top, 20)
                 if let end = model.rules.vacationUntil, end > .now {
-                    Text("Semesterläget är på")
+                    Text(L("Semesterläget är på"))
                         .font(.title2.bold())
-                    Text("Scheman och daglig gräns vilar till \(end.formatted(date: .complete, time: .shortened)). Fokuspass fungerar som vanligt, och Pip bryr sig inte om scrollandet.")
+                    Text(L("Scheman och daglig gräns vilar till \(end.formatted(Date.FormatStyle(date: .complete, time: .shortened, locale: Language.current.locale))). Fokuspass fungerar som vanligt, och Pip bryr sig inte om scrollandet."))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
-                    Button("Avsluta semestern nu") { model.endVacation() }
+                    Button(L("Avsluta semestern nu")) { model.endVacation() }
                         .buttonStyle(GlowButtonStyle())
                 } else {
-                    Text("Ta ledigt från reglerna")
+                    Text(L("Ta ledigt från reglerna"))
                         .font(.title2.bold())
-                    Text("Scheman och daglig gräns vilar medan du är borta. Fokuspass fungerar som vanligt, och allt slås på igen av sig självt. Startar du mitt i en blockering kostar det \(PlayerProgress.XP.escapedBlock) XP.")
+                    Text(L("Scheman och daglig gräns vilar medan du är borta. Fokuspass fungerar som vanligt, och allt slås på igen av sig självt. Startar du mitt i en blockering kostar det \(PlayerProgress.XP.escapedBlock) XP."))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
                     ForEach(lengths, id: \.self) { days in
-                        Button(days == 1 ? "1 dag" : "\(days) dagar") { model.startVacation(days: days) }
+                        Button(days == 1 ? L("1 dag") : L("\(days) dagar")) { model.startVacation(days: days) }
                             .buttonStyle(ChipButtonStyle())
                     }
                 }
@@ -378,7 +392,7 @@ private struct VacationView: View {
             .padding(20)
         }
         .screenBackground()
-        .navigationTitle("Semesterläge")
+        .navigationTitle(L("Semesterläge"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }

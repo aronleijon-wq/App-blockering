@@ -7,7 +7,7 @@ import UserNotifications
 /// The cross at the top skips everything that is left, without an account.
 struct IntroView: View {
     @Environment(AppModel.self) private var model
-    @State private var step: Step = .hello
+    @State private var step: Step = Language.chosen == nil ? .language : .hello
     @State private var answers = IntroAnswers()
     @State private var nickname = ""
     @State private var suggestions = Nickname.suggestions(count: 3, seed: Int.random(in: 0..<1_000_000))
@@ -15,11 +15,11 @@ struct IntroView: View {
     @State private var isPaywallPresented = false
 
     enum Step: Int, CaseIterable {
-        case hello, name, age, hours, apps, goals, calculating, reveal, plan, account, tour, nickname, friends, trial
+        case language, hello, name, age, hours, apps, goals, calculating, reveal, plan, account, tour, nickname, friends, trial
     }
 
-    private let appChoices = ["TikTok", "Instagram", "YouTube", "Snapchat", "X", "Reddit", "Netflix", "Spel", "Nyheter"]
-    private let goalChoices = ["Plugga", "Träna", "Sova mer", "Umgås med vänner", "Familjen", "Skapa något", "Läsa", "Jobba på en idé"]
+    private let appChoices = ["TikTok", "Instagram", "YouTube", "Snapchat", "X", "Reddit", "Netflix", L("Spel"), L("Nyheter")]
+    private let goalChoices = [L("Plugga"), L("Träna"), L("Sova mer"), L("Umgås med vänner"), L("Familjen"), L("Skapa något"), L("Läsa"), L("Jobba på en idé")]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -48,7 +48,7 @@ struct IntroView: View {
                     .frame(width: 36, height: 36)
                     .background(Theme.cardRaised, in: Circle())
             }
-            .accessibilityLabel("Hoppa över introduktionen")
+            .accessibilityLabel(L("Hoppa över introduktionen"))
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
@@ -57,19 +57,25 @@ struct IntroView: View {
     @ViewBuilder
     private var content: some View {
         switch step {
+        case .language:
+            LanguageStep { language in
+                model.setLanguage(language)
+                step = .hello
+            }
+
         case .hello:
             ChatStep(mood: .happy, lines: [
-                "Hej! Jag är **Pip** 👋",
-                "Jag hjälper dig att ta tillbaka tiden som mobilen äter upp.",
-                "Får jag ställa några snabba frågor först?",
+                L("Hej! Jag är **Pip** 👋"),
+                L("Jag hjälper dig att ta tillbaka tiden som mobilen äter upp."),
+                L("Får jag ställa några snabba frågor först?"),
             ]) {
-                Button("Kör!") { step = .name }
+                Button(L("Kör!")) { step = .name }
                     .buttonStyle(GlowButtonStyle())
             }
 
         case .name:
-            ChatStep(mood: .happy, lines: ["Vad heter du?"]) {
-                TextField("Ditt förnamn", text: $answers.name)
+            ChatStep(mood: .happy, lines: [L("Vad heter du?")]) {
+                TextField(L("Ditt förnamn"), text: $answers.name)
                     .font(.title2.weight(.semibold))
                     .textContentType(.givenName)
                     .submitLabel(.next)
@@ -78,16 +84,16 @@ struct IntroView: View {
                     .background(Theme.cardRaised, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .onSubmit { submitName() }
                     .onAppear { isTyping = true }
-                Text("Bara jag använder det. Det syns aldrig för någon annan.")
+                Text(L("Bara jag använder det. Det syns aldrig för någon annan."))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                Button("Fortsätt") { submitName() }
+                Button(L("Fortsätt")) { submitName() }
                     .buttonStyle(GlowButtonStyle())
                     .disabled(trimmedName.isEmpty)
             }
 
         case .age:
-            ChatStep(mood: .hyped, lines: ["Kul att träffas, \(trimmedName)! 🎉", "Hur gammal är du?"]) {
+            ChatStep(mood: .hyped, lines: [L("Kul att träffas, \(trimmedName)! 🎉"), L("Hur gammal är du?")]) {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                     ForEach(AgeGroup.allCases) { group in
                         ChoiceChip(title: group.label, isSelected: answers.ageGroup == group) {
@@ -100,8 +106,8 @@ struct IntroView: View {
 
         case .hours:
             ChatStep(mood: .happy, lines: [
-                "Hur länge är du på mobilen en vanlig dag?",
-                "Gissa på ett ungefär. Det exakta svaret finns under **Inställningar → Skärmtid**.",
+                L("Hur länge är du på mobilen en vanlig dag?"),
+                L("Gissa på ett ungefär. Det exakta svaret finns under **Inställningar → Skärmtid**."),
             ]) {
                 VStack(spacing: 16) {
                     Text(Self.hours(answers.hoursPerDay))
@@ -113,27 +119,27 @@ struct IntroView: View {
                     Slider(value: $answers.hoursPerDay, in: 0.5...12, step: 0.5)
                         .tint(Theme.pink)
                         .sensoryFeedback(.selection, trigger: answers.hoursPerDay)
-                        .accessibilityLabel("Timmar per dag")
+                        .accessibilityLabel(L("Timmar per dag"))
                         .accessibilityValue(Self.hours(answers.hoursPerDay))
-                    Button("Fortsätt") { step = .apps }
+                    Button(L("Fortsätt")) { step = .apps }
                         .buttonStyle(GlowButtonStyle())
                 }
             }
 
         case .apps:
-            ChatStep(mood: .happy, lines: ["Vilka appar tar mest tid?", "Välj så många du vill."]) {
+            ChatStep(mood: .happy, lines: [L("Vilka appar tar mest tid?"), L("Välj så många du vill.")]) {
                 VStack(spacing: 16) {
                     ChoiceGrid(choices: appChoices, selected: $answers.apps)
-                    Button("Fortsätt") { step = .goals }
+                    Button(L("Fortsätt")) { step = .goals }
                         .buttonStyle(GlowButtonStyle())
                 }
             }
 
         case .goals:
-            ChatStep(mood: .happy, lines: ["Och om du fick tillbaka tiden…", "Vad skulle du hellre göra?"]) {
+            ChatStep(mood: .happy, lines: [L("Och om du fick tillbaka tiden…"), L("Vad skulle du hellre göra?")]) {
                 VStack(spacing: 16) {
                     ChoiceGrid(choices: goalChoices, selected: $answers.goals)
-                    Button("Fortsätt") { step = .calculating }
+                    Button(L("Fortsätt")) { step = .calculating }
                         .buttonStyle(GlowButtonStyle())
                 }
             }
@@ -143,11 +149,11 @@ struct IntroView: View {
 
         case .reveal:
             ChatStep(mood: .sad, lines: [
-                "Okej… jag har räknat.",
-                "Med **\(Self.hours(answers.hoursPerDay)) om dagen** lägger du resten av livet…",
+                L("Okej… jag har räknat."),
+                L("Med **\(Self.hours(answers.hoursPerDay)) om dagen** lägger du resten av livet…"),
             ]) {
                 RevealCard(answers: answers)
-                Button("Det vill jag ändra") { step = .plan }
+                Button(L("Det vill jag ändra")) { step = .plan }
                     .buttonStyle(GlowButtonStyle())
             }
 
@@ -156,8 +162,8 @@ struct IntroView: View {
 
         case .account:
             ChatStep(mood: .happy, lines: [
-                "Bra, \(trimmedName). Då kör vi!",
-                "Skapa ett konto så kommer jag ihåg dig och vad du vill uppnå.",
+                L("Bra, \(trimmedName). Då kör vi!"),
+                L("Skapa ett konto så kommer jag ihåg dig och vad du vill uppnå."),
             ]) {
                 SignInWithAppleButton(.signUp) { request in
                     request.requestedScopes = [.fullName, .email]
@@ -169,30 +175,30 @@ struct IntroView: View {
                 .signInWithAppleButtonStyle(.white)
                 .frame(height: 54)
                 .clipShape(Capsule())
-                Button("Inte nu") { step = .tour }
+                Button(L("Inte nu")) { step = .tour }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
 
         case .tour:
-            ChatStep(mood: .hyped, lines: ["Så här hjälper jag dig att klara det:"]) {
+            ChatStep(mood: .hyped, lines: [L("Så här hjälper jag dig att klara det:")]) {
                 TourList(items: [
-                    TourItem(symbol: "shield.lefthalf.filled", title: "Jag vaktar dina appar", text: "Jag säger nej till \(appText) när du har bestämt det."),
-                    TourItem(symbol: "scope", title: "Fokuspass", text: "Blockera allt med ett tryck och få XP för varje minut."),
-                    TourItem(symbol: "heart.fill", title: "Jag mår som du scrollar", text: "Pauser och scroll gör mig ledsen. Fokus gör mig glad."),
-                    TourItem(symbol: "chart.bar.fill", title: "Din skärmtid", text: "Se dagen och veckan, och hur mycket du vinner tillbaka."),
-                    TourItem(symbol: "flag.checkered", title: "Ligor varje vecka", text: "Tävla mot andra som också vill scrolla mindre."),
+                    TourItem(symbol: "shield.lefthalf.filled", title: L("Jag vaktar dina appar"), text: L("Jag säger nej till \(appText) när du har bestämt det.")),
+                    TourItem(symbol: "scope", title: L("Fokuspass"), text: L("Blockera allt med ett tryck och få XP för varje minut.")),
+                    TourItem(symbol: "heart.fill", title: L("Jag mår som du scrollar"), text: L("Pauser och scroll gör mig ledsen. Fokus gör mig glad.")),
+                    TourItem(symbol: "chart.bar.fill", title: L("Din skärmtid"), text: L("Se dagen och veckan, och hur mycket du vinner tillbaka.")),
+                    TourItem(symbol: "flag.checkered", title: L("Ligor varje vecka"), text: L("Tävla mot andra som också vill scrolla mindre.")),
                 ])
-                Button("Låter bra!") { step = .nickname }
+                Button(L("Låter bra!")) { step = .nickname }
                     .buttonStyle(GlowButtonStyle())
             }
 
         case .nickname:
             ChatStep(mood: .happy, lines: [
-                "Sist: välj ett smeknamn för ligan.",
-                "Det syns för andra, så använd inte ditt riktiga namn.",
+                L("Sist: välj ett smeknamn för ligan."),
+                L("Det syns för andra, så använd inte ditt riktiga namn."),
             ]) {
-                TextField("Smeknamn", text: $nickname)
+                TextField(L("Smeknamn"), text: $nickname)
                     .font(.title2.weight(.semibold))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -220,36 +226,36 @@ struct IntroView: View {
                             .background(Theme.cardRaised, in: Circle())
                             .foregroundStyle(.white)
                     }
-                    .accessibilityLabel("Nya förslag")
+                    .accessibilityLabel(L("Nya förslag"))
                 }
                 if let problem = Nickname.problem(with: nickname), !nickname.isEmpty {
                     Text(NicknameSheet.message(for: problem))
                         .font(.footnote)
                         .foregroundStyle(Theme.pink)
                 }
-                Button("Klar!") { submitNickname() }
+                Button(L("Klar!")) { submitNickname() }
                     .buttonStyle(GlowButtonStyle())
                     .disabled(Nickname.problem(with: nickname) != nil)
-                Button("Hoppa över ligan") { step = .friends }
+                Button(L("Hoppa över ligan")) { step = .friends }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
 
         case .friends:
             ChatStep(mood: .hyped, lines: [
-                "Allt är roligare tillsammans! 🏆",
-                "Utmana dina vänner. Den som scrollar minst vinner veckan.",
+                L("Allt är roligare tillsammans! 🏆"),
+                L("Utmana dina vänner. Den som scrollar minst vinner veckan."),
             ]) {
                 InviteCard(nickname: model.league.nickname)
                 ShareLink(
                     item: AppInfo.inviteURL,
-                    subject: Text("Utmana mig i Paus"),
+                    subject: Text(L("Utmana mig i Paus")),
                     message: Text(AppInfo.inviteMessage(nickname: model.league.nickname))
                 ) {
-                    Label("Bjud in vänner", systemImage: "square.and.arrow.up")
+                    Label(L("Bjud in vänner"), systemImage: "square.and.arrow.up")
                 }
                 .buttonStyle(GlowButtonStyle())
-                Button("Fortsätt") { goToTrial() }
+                Button(L("Fortsätt")) { goToTrial() }
                     .buttonStyle(ChipButtonStyle())
             }
 
@@ -295,26 +301,76 @@ struct IntroView: View {
     }
 
     private var goalText: String {
-        guard !answers.goals.isEmpty else { return "leva livet" }
+        guard !answers.goals.isEmpty else { return L("leva livet") }
         return Self.list(answers.goals.map { $0.lowercased() })
     }
 
     private var appText: String {
-        answers.apps.isEmpty ? "apparna som stjäl din tid" : Self.list(answers.apps)
+        answers.apps.isEmpty ? L("apparna som stjäl din tid") : Self.list(answers.apps)
     }
 
     /// "a", "a och b", "a, b och c".
     static func list(_ items: [String]) -> String {
         guard items.count > 1, let last = items.last else { return items.first ?? "" }
-        return items.dropLast().joined(separator: ", ") + " och " + last
+        return items.dropLast().joined(separator: ", ") + L(" och ") + last
     }
 
     static func hours(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(0...1))) + " h"
+        value.formatted(.number.precision(.fractionLength(0...1)).locale(Language.current.locale)) + " h"
     }
 
     static func years(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(1))) + " år"
+        value.formatted(.number.precision(.fractionLength(1)).locale(Language.current.locale)) + L(" år")
+    }
+}
+
+// MARK: - Language
+
+/// The very first question, asked in both languages.
+private struct LanguageStep: View {
+    let onChoose: (Language) -> Void
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            MascotView(mood: .happy, level: 1, size: 140)
+            VStack(spacing: 6) {
+                Text("Välj språk")
+                Text("Choose your language")
+                    .foregroundStyle(.secondary)
+            }
+            .font(.title2.bold())
+            .multilineTextAlignment(.center)
+            VStack(spacing: 12) {
+                // The phone's language first.
+                ForEach([Language.system] + Language.allCases.filter { $0 != Language.system }) { language in
+                    Button {
+                        onChoose(language)
+                    } label: {
+                        HStack(spacing: 14) {
+                            Text(language.flag)
+                                .font(.largeTitle)
+                            Text(language.nativeName)
+                                .font(.title3.bold())
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.secondary)
+                        }
+                        .foregroundStyle(.white)
+                        .padding(18)
+                        .background(Theme.cardRaised, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .strokeBorder(language == Language.system ? AnyShapeStyle(Theme.glow) : AnyShapeStyle(Color.white.opacity(0.1)), lineWidth: 1.5)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            Spacer()
+            Spacer()
+        }
+        .padding(.horizontal, 20)
     }
 }
 
@@ -374,11 +430,16 @@ private struct ChatStep<Actions: View>: View {
     }
 }
 
+/// Text with **bold** parts, as the translations write them.
+func markdown(_ text: String) -> AttributedString {
+    (try? AttributedString(markdown: text)) ?? AttributedString(text)
+}
+
 private struct ChatBubble: View {
     let text: String
 
     var body: some View {
-        Text((try? AttributedString(markdown: text)) ?? AttributedString(text))
+        Text(markdown(text))
             .font(.title3.weight(.medium))
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -405,7 +466,7 @@ private struct TypingBubble: View {
             .padding(.vertical, 16)
             .background(Theme.cardRaised, in: Capsule())
         }
-        .accessibilityLabel("Pip skriver")
+        .accessibilityLabel(L("Pip skriver"))
     }
 }
 
@@ -465,7 +526,7 @@ private struct CalculatingStep: View {
 
     @State private var progress = 0.0
     @State private var message = 0
-    private let messages = ["Räknar dina timmar…", "Lägger ihop resten av livet…", "Jämför med dina vakna år…"]
+    private let messages = [L("Räknar dina timmar…"), L("Lägger ihop resten av livet…"), L("Jämför med dina vakna år…")]
 
     var body: some View {
         VStack(spacing: 28) {
@@ -513,13 +574,13 @@ private struct RevealCard: View {
                 .font(.system(size: 64, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(Theme.brand)
-            Text("av ditt vakna liv på mobilen.")
+            Text(L("av ditt vakna liv på mobilen."))
                 .font(.title3.weight(.semibold))
             HStack(spacing: 10) {
-                RevealStat(value: "\(LifeMath.hoursPerYear(hoursPerDay: answers.hoursPerDay)) h", label: "varje år")
-                RevealStat(value: "\(Int((LifeMath.shareOfWakingTime(hoursPerDay: answers.hoursPerDay) * 100).rounded())) %", label: "av varje vaken dag")
+                RevealStat(value: "\(LifeMath.hoursPerYear(hoursPerDay: answers.hoursPerDay)) h", label: L("varje år"))
+                RevealStat(value: "\(Int((LifeMath.shareOfWakingTime(hoursPerDay: answers.hoursPerDay) * 100).rounded())) %", label: L("av varje vaken dag"))
             }
-            Text("Räknat på 16 vakna timmar om dagen fram till 80 års ålder.")
+            Text(L("Räknat på 16 vakna timmar om dagen fram till 80 års ålder."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -633,7 +694,7 @@ private struct InviteCard: View {
                 podium(height: 76, mood: .hyped, place: "1")
                 podium(height: 38, mood: .sleepy, place: "3")
             }
-            Text(nickname.map { "Dina vänner hittar dig som **\($0)**." } ?? "Dina vänner kan gå med i samma liga.")
+            Text(markdown(nickname.map { L("Dina vänner hittar dig som **\($0)**.") } ?? L("Dina vänner kan gå med i samma liga.")))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -681,11 +742,11 @@ private struct PlanStep: View {
                         if !answers.name.isEmpty {
                             Text("\(answers.name),")
                         }
-                        Text("Paus ger dig tillbaka")
+                        Text(L("Paus ger dig tillbaka"))
                         HStack(spacing: 8) {
                             CountingYears(value: shownYears)
                                 .foregroundStyle(Theme.brand)
-                            Text("av ditt liv")
+                            Text(L("av ditt liv"))
                         }
                     }
                     .font(.system(size: 32, weight: .heavy, design: .rounded))
@@ -696,20 +757,20 @@ private struct PlanStep: View {
                     VStack(alignment: .leading, spacing: 22) {
                         PlanRow(
                             symbol: "lock.shield.fill",
-                            title: "30 % mindre skärmtid",
-                            text: "Från \(IntroView.hours(answers.hoursPerDay)) till **\(IntroView.hours(Plan.targetHours(from: answers.hoursPerDay)))** om dagen."
+                            title: L("30 % mindre skärmtid"),
+                            text: L("Från \(IntroView.hours(answers.hoursPerDay)) till **\(IntroView.hours(Plan.targetHours(from: answers.hoursPerDay)))** om dagen.")
                         )
                         .planReveal(index: 0, shown: shownRows)
                         PlanRow(
                             symbol: "tree.fill",
-                            title: "Mer tid utanför skärmen",
-                            text: "**\(Int((Plan.offlineIncrease(hoursPerDay: answers.hoursPerDay) * 100).rounded())) %** mer vaken tid offline, till att \(goalText)."
+                            title: L("Mer tid utanför skärmen"),
+                            text: L("**\(Int((Plan.offlineIncrease(hoursPerDay: answers.hoursPerDay) * 100).rounded())) %** mer vaken tid offline, till att \(goalText).")
                         )
                         .planReveal(index: 1, shown: shownRows)
                         PlanRow(
                             symbol: "calendar.badge.clock",
-                            title: "\(Plan.daysBackPerYear(hoursPerDay: answers.hoursPerDay)) dygn tillbaka i år",
-                            text: "Med fokuspass, scheman och Pip som vaktar."
+                            title: L("\(Plan.daysBackPerYear(hoursPerDay: answers.hoursPerDay)) dygn tillbaka i år"),
+                            text: L("Med fokuspass, scheman och Pip som vaktar.")
                         )
                         .planReveal(index: 2, shown: shownRows)
                     }
@@ -719,7 +780,7 @@ private struct PlanStep: View {
             }
 
             VStack(spacing: 12) {
-                Text("Vi skakar hand på det")
+                Text(L("Vi skakar hand på det"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Button {
@@ -734,7 +795,7 @@ private struct PlanStep: View {
                             .font(.title)
                             .scaleEffect(isBumping ? 1.6 : 1)
                             .rotationEffect(.degrees(isBumping ? -20 : 0))
-                        Text("Nu kör vi!")
+                        Text(L("Nu kör vi!"))
                     }
                 }
                 .buttonStyle(GlowButtonStyle())
@@ -801,7 +862,7 @@ private struct TrialStep: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("När ska Pip påminna dig innan gratisveckan tar slut?")
+            Text(L("När ska Pip påminna dig innan gratisveckan tar slut?"))
                 .font(.title2.bold())
                 .multilineTextAlignment(.center)
                 .padding(.top, 16)
@@ -817,9 +878,9 @@ private struct TrialStep: View {
                     } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("\(days) dagar innan")
+                                Text(L("\(days) dagar innan"))
                                     .font(.headline)
-                                Text(reminderDate(days).formatted(.dateTime.weekday(.wide).day().month(.wide)))
+                                Text(reminderDate(days).formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Language.current.locale)))
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
@@ -840,7 +901,7 @@ private struct TrialStep: View {
             }
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
 
-            Button("Fortsätt") {
+            Button(L("Fortsätt")) {
                 IntroStore.trialReminderDays = daysBefore
                 Task {
                     // The reminder is a notification, so ask now, while it is clear why.
@@ -849,7 +910,7 @@ private struct TrialStep: View {
                 }
             }
             .buttonStyle(GlowButtonStyle())
-            Text("Slå på notiser för att få påminnelsen. Ingen bindningstid, du säger upp när du vill.")
+            Text(L("Slå på notiser för att få påminnelsen. Ingen bindningstid, du säger upp när du vill."))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -870,7 +931,7 @@ private struct NotificationPreview: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
+            Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Language.current.locale)))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.7))
             Text("9:41")
@@ -885,14 +946,14 @@ private struct NotificationPreview: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
-                        Text("\(daysBefore) dagar kvar av din gratisvecka ⏳")
+                        Text(L("\(daysBefore) dagar kvar av din gratisvecka ⏳"))
                             .font(.subheadline.bold())
                         Spacer()
                         Text("nu")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Text("Säg upp före \(trialEnd.formatted(.dateTime.day().month(.wide))) om du vill sluta.")
+                    Text(L("Säg upp före \(trialEnd.formatted(.dateTime.day().month(.wide).locale(Language.current.locale))) om du vill sluta."))
                         .font(.subheadline)
                 }
                 .contentTransition(.numericText())

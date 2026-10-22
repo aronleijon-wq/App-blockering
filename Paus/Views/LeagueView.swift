@@ -16,8 +16,8 @@ struct LeagueView: View {
                     if league.accountState == .unavailable {
                         notice(
                             symbol: "icloud.slash",
-                            title: "Logga in på iCloud",
-                            text: "Ligan använder iCloud. Logga in under Inställningar > [ditt namn] för att tävla."
+                            title: L("Logga in på iCloud"),
+                            text: L("Ligan använder iCloud. Logga in under Inställningar > [ditt namn] för att tävla.")
                         )
                     } else if league.nickname == nil {
                         joinCard
@@ -31,7 +31,7 @@ struct LeagueView: View {
                 .padding(.bottom, 24)
             }
             .screenBackground()
-            .navigationTitle("Liga")
+            .navigationTitle(L("Liga"))
             .toolbar {
                 if league.nickname != nil {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -40,7 +40,7 @@ struct LeagueView: View {
                         } label: {
                             Image(systemName: "person.crop.circle")
                         }
-                        .accessibilityLabel("Ändra smeknamn")
+                        .accessibilityLabel(L("Ändra smeknamn"))
                     }
                 }
             }
@@ -57,18 +57,18 @@ struct LeagueView: View {
                 NicknameSheet()
             }
             .confirmationDialog(
-                "Anmäl \(reporting?.nickname ?? "")?",
+                L("Anmäl \(reporting?.nickname ?? "")?"),
                 isPresented: Binding(get: { reporting != nil }, set: { if !$0 { reporting = nil } }),
                 titleVisibility: .visible
             ) {
-                Button("Anmäl olämpligt namn", role: .destructive) {
+                Button(L("Anmäl olämpligt namn"), role: .destructive) {
                     if let entry = reporting {
                         Task { await league.report(entry) }
                     }
                 }
-                Button("Avbryt", role: .cancel) {}
+                Button(L("Avbryt"), role: .cancel) {}
             } message: {
-                Text("Spelaren döljs för dig och namnet granskas.")
+                Text(L("Spelaren döljs för dig och namnet granskas."))
             }
         }
     }
@@ -80,21 +80,21 @@ struct LeagueView: View {
         let now = Date.now
         return VStack(spacing: 14) {
             DivisionBadge(division: progress.division, size: 84)
-            Text("\(progress.division.title)-ligan")
+            Text(L("\(progress.division.title)-ligan"))
                 .font(.system(size: 28, weight: .heavy, design: .rounded))
                 .foregroundStyle(Theme.brand)
             HStack(spacing: 24) {
                 VStack(spacing: 2) {
                     Text("\(progress.pointsThisWeek(at: now, calendar: .current))")
                         .font(.title2.bold().monospacedDigit())
-                    Text("poäng den här veckan")
+                    Text(L("poäng den här veckan"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 VStack(spacing: 2) {
                     Text(timeLeft(now: now))
                         .font(.title2.bold().monospacedDigit())
-                    Text("kvar av veckan")
+                    Text(L("kvar av veckan"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -112,17 +112,17 @@ struct LeagueView: View {
         let seconds = Int(League.weekEnd(for: now, calendar: .current).timeIntervalSince(now))
         let days = seconds / 86_400
         let hours = (seconds % 86_400) / 3600
-        return days > 0 ? "\(days) d \(hours) h" : "\(hours) h \((seconds % 3600) / 60) min"
+        return days > 0 ? L("\(days) d \(hours) h") : "\(hours) h \((seconds % 3600) / 60) min"
     }
 
     private func rulesText(for division: Division) -> String {
         switch division {
         case .brons:
-            return "De bästa i din grupp går upp till \(division.higher.title) på söndag kväll."
+            return L("De bästa i din grupp går upp till \(division.higher.title) på söndag kväll.")
         case .legend:
-            return "Du är i toppen! De sämsta i gruppen åker ner till \(division.lower.title)."
+            return L("Du är i toppen! De sämsta i gruppen åker ner till \(division.lower.title).")
         default:
-            return "De bästa går upp till \(division.higher.title), de sämsta åker ner till \(division.lower.title)."
+            return L("De bästa går upp till \(division.higher.title), de sämsta åker ner till \(division.lower.title).")
         }
     }
 
@@ -130,7 +130,7 @@ struct LeagueView: View {
 
     private var leaderboard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker("Topplista", selection: $scope) {
+            Picker(L("Topplista"), selection: $scope) {
                 ForEach(LeagueService.Scope.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
@@ -151,8 +151,8 @@ struct LeagueView: View {
                     LeaderboardRow(rank: index + 1, entry: entry, movesUp: scope == .group && index < movingCount(rows.count))
                         .contextMenu {
                             if !entry.isMe {
-                                Button("Anmäl", systemImage: "exclamationmark.bubble") { reporting = entry }
-                                Button("Blockera", systemImage: "hand.raised") { league.block(entry) }
+                                Button(L("Anmäl"), systemImage: "exclamationmark.bubble") { reporting = entry }
+                                Button(L("Blockera"), systemImage: "hand.raised") { league.block(entry) }
                             }
                         }
                 }
@@ -168,16 +168,16 @@ struct LeagueView: View {
     private var emptyText: String {
         switch scope {
         case .group:
-            return "Du hamnar i en grupp när du har fått dina första poäng den här veckan. Hämta dagens belöning eller kör ett fokuspass!"
+            return L("Du hamnar i en grupp när du har fått dina första poäng den här veckan. Hämta dagens belöning eller kör ett fokuspass!")
         case .sweden, .world:
-            return "Ingen har fått poäng den här veckan än. Bli först!"
+            return L("Ingen har fått poäng den här veckan än. Bli först!")
         }
     }
 
     private var inviteCard: some View {
         ShareLink(
             item: AppInfo.inviteURL,
-            subject: Text("Utmana mig i Paus"),
+            subject: Text(L("Utmana mig i Paus")),
             message: Text(AppInfo.inviteMessage(nickname: league.nickname))
         ) {
             HStack(spacing: 14) {
@@ -187,9 +187,9 @@ struct LeagueView: View {
                     .frame(width: 44, height: 44)
                     .background(Theme.glow, in: Circle())
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Utmana dina vänner")
+                    Text(L("Utmana dina vänner"))
                         .font(.headline)
-                    Text("Skicka en länk. Den som scrollar minst vinner veckan.")
+                    Text(L("Skicka en länk. Den som scrollar minst vinner veckan."))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -208,12 +208,12 @@ struct LeagueView: View {
             Image(systemName: "flag.checkered")
                 .font(.system(size: 40))
                 .foregroundStyle(Theme.brand)
-            Text("Tävla mot andra")
+            Text(L("Tävla mot andra"))
                 .font(.title3.bold())
-            Text("Varje vecka hamnar du i en grupp med upp till \(League.groupSize) andra i din division. De bästa går upp, de sämsta åker ner.")
+            Text(L("Varje vecka hamnar du i en grupp med upp till \(League.groupSize) andra i din division. De bästa går upp, de sämsta åker ner."))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-            Button("Välj smeknamn") { isNicknamePresented = true }
+            Button(L("Välj smeknamn")) { isNicknamePresented = true }
                 .buttonStyle(GlowButtonStyle())
         }
         .frame(maxWidth: .infinity)
@@ -236,13 +236,13 @@ struct LeagueView: View {
 
     private var pointsCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Så får du poäng")
+            Text(L("Så får du poäng"))
                 .font(.headline)
-            PointRow(symbol: "scope", text: "Fokuspass", value: "1 / min, max \(League.Points.focusDailyCap) per dag")
-            PointRow(symbol: "checkmark.shield", text: "Dag under din gräns", value: "+\(League.Points.dayUnderLimit)")
-            PointRow(symbol: "hand.raised.fill", text: "Stänga en blockerad app", value: "+\(League.Points.close)")
-            PointRow(symbol: "wind", text: "Tacka nej till en paus", value: "+\(League.Points.decline)")
-            PointRow(symbol: "gift.fill", text: "Dagens belöning", value: "+\(League.Points.dailyReward)")
+            PointRow(symbol: "scope", text: L("Fokuspass"), value: L("1 / min, max \(League.Points.focusDailyCap) per dag"))
+            PointRow(symbol: "checkmark.shield", text: L("Dag under din gräns"), value: "+\(League.Points.dayUnderLimit)")
+            PointRow(symbol: "hand.raised.fill", text: L("Stänga en blockerad app"), value: "+\(League.Points.close)")
+            PointRow(symbol: "wind", text: L("Tacka nej till en paus"), value: "+\(League.Points.decline)")
+            PointRow(symbol: "gift.fill", text: L("Dagens belöning"), value: "+\(League.Points.dailyReward)")
         }
         .card()
     }
@@ -265,7 +265,7 @@ private struct LeaderboardRow: View {
                 Text(entry.isMe ? "\(entry.nickname) (du)" : entry.nickname)
                     .font(.subheadline.weight(entry.isMe ? .bold : .semibold))
                     .lineLimit(1)
-                Text("Nivå \(entry.level)")
+                Text(L("Nivå \(entry.level)"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -273,7 +273,7 @@ private struct LeaderboardRow: View {
             if movesUp {
                 Image(systemName: "arrow.up.circle.fill")
                     .foregroundStyle(Theme.mint)
-                    .accessibilityLabel("Går upp")
+                    .accessibilityLabel(L("Går upp"))
             }
             Text("\(entry.points)")
                 .font(.headline.monospacedDigit())
@@ -352,7 +352,7 @@ struct DivisionBadge: View {
         }
         .frame(width: size, height: size)
         .accessibilityElement()
-        .accessibilityLabel("\(division.title)-ligan")
+        .accessibilityLabel(L("\(division.title)-ligan"))
     }
 
     private var colors: [Color] {

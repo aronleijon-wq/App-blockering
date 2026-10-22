@@ -3,11 +3,17 @@ import FamilyControls
 import SwiftUI
 
 /// Which screen time the report counts.
-enum ScreenTimeScope: String, CaseIterable, Identifiable {
-    case everything = "Hela telefonen"
-    case guarded = "Pips appar"
+enum ScreenTimeScope: CaseIterable, Identifiable {
+    case everything, guarded
 
     var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .everything: return L("Hela telefonen")
+        case .guarded: return L("Pips appar")
+        }
+    }
 }
 
 /// Shows the report extension's view, or sample data in the Simulator, where Screen Time has none.
@@ -53,7 +59,7 @@ struct ScreenTimeCard: View {
             NavigationLink {
                 ScreenTimeView()
             } label: {
-                Label("Se hela veckan", systemImage: "chart.bar.xaxis")
+                Label(L("Se hela veckan"), systemImage: "chart.bar.xaxis")
             }
             .buttonStyle(ChipButtonStyle())
         }
@@ -68,9 +74,9 @@ struct ScreenTimeView: View {
     var body: some View {
         VStack(spacing: 12) {
             if model.hasSelection {
-                Picker("Visa", selection: $scope) {
+                Picker(L("Visa"), selection: $scope) {
                     ForEach(ScreenTimeScope.allCases) { scope in
-                        Text(scope.rawValue).tag(scope)
+                        Text(scope.title).tag(scope)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -81,7 +87,7 @@ struct ScreenTimeView: View {
         }
         .padding(.top, 8)
         .background(ReportPalette.background.ignoresSafeArea())
-        .navigationTitle("Skärmtid")
+        .navigationTitle(L("Skärmtid"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }

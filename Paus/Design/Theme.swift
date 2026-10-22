@@ -117,6 +117,6 @@ struct ProBadge: View {
             .padding(.horizontal, 7)
             .padding(.vertical, 3)
             .background(Theme.glow, in: Capsule())
-            .accessibilityLabel("Kräver Pro")
+            .accessibilityLabel(L("Kräver Pro"))
     }
 }

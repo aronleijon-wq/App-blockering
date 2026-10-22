@@ -11,7 +11,7 @@ struct PausStatus: Codable, Hashable {
     var start: Date?
     var end: Date?
 
-    static let free = PausStatus(kind: .free, title: "Inget blockeras")
+    static var free: PausStatus { PausStatus(kind: .free, title: L("Inget blockeras")) }
 
     /// The status at `date`. A pause wins over the block it lifts, except strict focus, which can't be paused.
     static func at(_ date: Date, rules: PausRules, runtime: PausRuntime, calendar: Calendar) -> PausStatus {
@@ -23,12 +23,12 @@ struct PausStatus: Codable, Hashable {
         }
         switch reason {
         case .focus(let until):
-            return PausStatus(kind: .focus, title: "Fokuspass", start: runtime.focusStartedAt, end: until)
+            return PausStatus(kind: .focus, title: L("Fokuspass"), start: runtime.focusStartedAt, end: until)
         case .schedule(let name, let until):
             return PausStatus(kind: .schedule, title: name, start: nil, end: until)
         case .dailyLimit:
             let midnight = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: date))
-            return PausStatus(kind: .limit, title: "Dagens tid är slut", start: nil, end: midnight)
+            return PausStatus(kind: .limit, title: L("Dagens tid är slut"), start: nil, end: midnight)
         }
     }
 

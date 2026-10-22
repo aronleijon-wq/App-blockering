@@ -5,6 +5,16 @@ final class PlayerProgressTests: XCTestCase {
     private let calendar = TestCalendar.stockholm
     private let monday = TestCalendar.date(2026, 10, 19, 10, 0)
 
+    override func setUp() {
+        super.setUp()
+        Language.override = .sv
+    }
+
+    override func tearDown() {
+        Language.override = nil
+        super.tearDown()
+    }
+
     private func day(_ offset: Int, from date: Date) -> Date {
         calendar.date(byAdding: .day, value: offset, to: date)!
     }

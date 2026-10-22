@@ -18,21 +18,21 @@ enum Coach {
         let options: [String]
         switch mood {
         case .zen:
-            options = ["Andas. Du är i flow just nu.", "Telefonen kan vänta. Det här kan inte.", "Fokusläge på. Jag håller koll åt dig."]
+            options = [L("Andas. Du är i flow just nu."), L("Telefonen kan vänta. Det här kan inte."), L("Fokusläge på. Jag håller koll åt dig.")]
         case .sleepy:
-            options = ["Det är sent… sociala medier sover också.", "Lägg undan mobilen, så ses vi i morgon.", "Zzz… din hjärna tackar dig för sömnen."]
+            options = [L("Det är sent… sociala medier sover också."), L("Lägg undan mobilen, så ses vi i morgon."), L("Zzz… din hjärna tackar dig för sömnen.")]
         case .sad:
-            options = ["Det är okej. I morgon är en ny dag.", "Alla behöver en paus ibland. Vi kör igen snart.", "Jag tror på dig, även idag."]
+            options = [L("Det är okej. I morgon är en ny dag."), L("Alla behöver en paus ibland. Vi kör igen snart."), L("Jag tror på dig, även idag.")]
         case .crying:
-            options = ["Jag mår inte så bra… kan vi köra ett fokuspass ihop?", "Allt scrollande gör mig ledsen. Hjälp mig att må bättre?", "Säg nej till nästa paus, så piggnar jag till."]
+            options = [L("Jag mår inte så bra… kan vi köra ett fokuspass ihop?"), L("Allt scrollande gör mig ledsen. Hjälp mig att må bättre?"), L("Säg nej till nästa paus, så piggnar jag till.")]
         case .wrecked:
-            options = ["Jag är helt scrollsjuk. Snälla, lägg undan mobilen en stund.", "Mitt huvud snurrar av alla klipp… ett fokuspass skulle rädda mig.", "Jag behöver dig nu. Varje nej gör mig lite friskare."]
+            options = [L("Jag är helt scrollsjuk. Snälla, lägg undan mobilen en stund."), L("Mitt huvud snurrar av alla klipp… ett fokuspass skulle rädda mig."), L("Jag behöver dig nu. Varje nej gör mig lite friskare.")]
         case .proud:
-            options = ["Alla uppdrag klara! Du är grym.", "Full pott idag. Kolla på dig!", "Det här är din bästa version."]
+            options = [L("Alla uppdrag klara! Du är grym."), L("Full pott idag. Kolla på dig!"), L("Det här är din bästa version.")]
         case .hyped:
-            options = ["\(streak) dagar i rad! Bryt inte kedjan nu.", "Du är on fire. \(streak) dagar och räknar.", "Streak på \(streak) dagar – jag växer av det här!"]
+            options = [L("\(streak) dagar i rad! Bryt inte kedjan nu."), L("Du är on fire. \(streak) dagar och räknar."), L("Streak på \(streak) dagar – jag växer av det här!")]
         case .happy:
-            options = ["Redo att ta tillbaka lite tid idag?", "Ett fokuspass om dagen håller scrollet borta.", "Jag blir starkare varje gång du stänger TikTok."]
+            options = [L("Redo att ta tillbaka lite tid idag?"), L("Ett fokuspass om dagen håller scrollet borta."), L("Jag blir starkare varje gång du stänger TikTok.")]
         }
         let day = Calendar.current.ordinality(of: .day, in: .era, for: date) ?? 0
         return options[day % options.count]
@@ -45,7 +45,8 @@ enum Coach {
             let counts = progress.counts(at: date, calendar: .current)
             let session = LanguageModelSession(instructions: """
                 Du är Pip, en gullig och peppig maskot i en app som hjälper unga att scrolla mindre på sociala medier. \
-                Svara alltid på svenska med en enda kort mening, högst 14 ord. Inga emojis och inga citattecken.
+                Svara alltid på \(Language.current == .sv ? "svenska" : "engelska") med en enda kort mening, högst 14 ord. \
+                Inga emojis och inga citattecken.
                 """)
             let prompt = """
                 Skriv ett personligt peppmeddelande till användaren. Ditt humör: \(mood.label). \
