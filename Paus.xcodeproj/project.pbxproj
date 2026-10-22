@@ -70,8 +70,8 @@
 		D2B000F249FF4F227CF0CAD3 /* Embed ExtensionKit Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
-			dstSubfolderSpec = 16;
+			dstPath = Extensions;
+			dstSubfolderSpec = 1;
 			files = (
 				7D495D3C538261D2DB516B33 /* PausReport.appex in Embed ExtensionKit Extensions */,
 			);

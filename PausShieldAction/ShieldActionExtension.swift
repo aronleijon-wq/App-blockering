@@ -18,15 +18,15 @@ final class ShieldActionExtension: ShieldActionDelegate {
     }
 
     private func handle(_ action: ShieldAction, completionHandler: @escaping (ShieldActionResponse) -> Void) {
-        switch action {
-        case .primaryButtonPressed:
+        // An if chain rather than a switch, since newer SDKs import ShieldAction as a non-frozen type.
+        if action == .primaryButtonPressed {
             SharedStore.updateRuntime { $0.recordClose(at: .now, calendar: .current) }
             ProgressRecorder.record(.closedBlockedApp)
             completionHandler(.close)
-        case .secondaryButtonPressed:
+        } else if action == .secondaryButtonPressed {
             SharedStore.updateRuntime { $0.pauseRequestedAt = .now }
             postPauseNotification { completionHandler(.close) }
-        @unknown default:
+        } else {
             completionHandler(.close)
         }
     }
