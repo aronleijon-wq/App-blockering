@@ -3,11 +3,15 @@
 Run from the repository root: python3 Brand/make_screenshots.py
 Uses the drawing helpers and palette from make_brand.py.
 """
+import os
+
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 from make_brand import (BG, BLACK, BOLD, CARD, MINT, ORANGE, PINK, SEMI, VIOLET, WHITE, app_icon, dark_backdrop, font, pip,
                         rounded, save)
+
+HERE = os.path.dirname(os.path.abspath(__file__))
 
 # iPhone 6.9" display, the size App Store Connect asks for first.
 W, H = 1290, 2796
@@ -17,6 +21,7 @@ DIM = (150, 145, 185)
 HEADLINES = {
     "notification": {"sv": "Pip hejar på dig\nvarje dag", "en": "Pip cheers you on\nevery day"},
     "levels": {"sv": "Från Scrollzombie\ntill Legend", "en": "From Scroll Zombie\nto Legend"},
+    "math": {"en": "See what scrolling\nreally costs you"},
     "live": {"sv": "Fokuspasset syns\npå låsskärmen", "en": "Your focus, right on\nyour Lock Screen"},
 }
 DATE = {"sv": "torsdag 23 oktober", "en": "Thursday, October 23"}
@@ -363,6 +368,31 @@ def levels_shot(lang):
     return img.convert("RGB")
 
 
+def framed_shot(name, lang, source):
+    """A real screenshot from the app inside the phone frame, under a headline."""
+    img = backdrop()
+    d = ImageDraw.Draw(img)
+    centered_lines(d, HEADLINES[name][lang], 200, font(BLACK, 108), WHITE, 128)
+    shot = Image.open(source).convert("RGBA")
+    sw = 940
+    sh = round(shot.height * sw / shot.width)
+    shot = shot.resize((sw, sh), Image.LANCZOS)
+    x0, y0 = (W - sw) // 2, 560
+    pad, radius = 22, 110
+    # Glow behind the phone, then the gradient frame, then the screen.
+    glow = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(glow).rounded_rectangle([x0 - 60, y0 - 60, x0 + sw + 60, y0 + sh + 60], radius, fill=(*PINK, 90))
+    img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(90)))
+    body = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(body).rounded_rectangle([x0 - pad, y0 - pad, x0 + sw + pad, y0 + sh + pad], radius + pad, fill=WHITE)
+    gradient_fill(img, body, [VIOLET, PINK, ORANGE])
+    mask = Image.new("L", (sw, sh), 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, sw - 1, sh - 1], radius, fill=255)
+    shot.putalpha(mask)
+    img.alpha_composite(shot, (x0, y0))
+    return img.convert("RGB")
+
+
 # Other display sizes App Store Connect asks for, made by scaling the 6.9" screenshot and trimming the sides.
 SIZES = [(1290, 2796), (1206, 2622)]
 
@@ -376,6 +406,9 @@ def fit(img, size):
 
 
 def main():
+    shot = framed_shot("math", "en", os.path.join(HERE, "source", "intro-life-math-en.jpg"))
+    for w, h in SIZES:
+        save(fit(shot, (w, h)), "appstore", "en", f"screenshot-life-math-{w}x{h}.png")
     for lang in ("sv", "en"):
         for name, shot in (("notification", notification_shot(lang)), ("lock-screen", live_shot(lang)),
                            ("levels", levels_shot(lang))):
