@@ -6,7 +6,7 @@ Uses the drawing helpers and palette from make_brand.py.
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
-from make_brand import (BG, BLACK, BOLD, CARD, MINT, PINK, SEMI, VIOLET, WHITE, app_icon, dark_backdrop, font, pip,
+from make_brand import (BG, BLACK, BOLD, CARD, MINT, ORANGE, PINK, SEMI, VIOLET, WHITE, app_icon, dark_backdrop, font, pip,
                         rounded, save)
 
 # iPhone 6.9" display, the size App Store Connect asks for first.
@@ -16,6 +16,7 @@ DIM = (150, 145, 185)
 
 HEADLINES = {
     "notification": {"sv": "Pip hejar på dig\nvarje dag", "en": "Pip cheers you on\nevery day"},
+    "levels": {"sv": "Från Scrollzombie\ntill Legend", "en": "From Scroll Zombie\nto Legend"},
     "live": {"sv": "Fokuspasset syns\npå låsskärmen", "en": "Your focus, right on\nyour Lock Screen"},
 }
 DATE = {"sv": "torsdag 23 oktober", "en": "Thursday, October 23"}
@@ -28,6 +29,14 @@ WIDGETS = {
     "sv": [("7", "dagars svit"), ("85 %", "hälsa"), ("4", "nivå")],
     "en": [("7", "day streak"), ("85%", "health"), ("4", "level")],
 }
+# PlayerProgress.titles; level n needs 50·(n−1)·n XP.
+TITLES = {
+    "sv": ["Scrollzombie", "Uppvaknad", "Nyfiken", "Fokusfrö", "Skärmtämjare",
+           "Flowjägare", "Zen-ninja", "Dopamindetektiv", "Tidsmästare", "Legend"],
+    "en": ["Scroll Zombie", "Awakened", "Curious", "Focus Seed", "Screen Tamer",
+           "Flow Hunter", "Zen Ninja", "Dopamine Detective", "Time Master", "Legend"],
+}
+YOU = {"sv": "DU", "en": "YOU"}
 LIVE = {
     "sv": ("Fokuspass", "Pip vaktar dina appar", "24:13", "kvar", "Pips hälsa 85 %"),
     "en": ("Focus session", "Pip is guarding your apps", "24:13", "left", "Pip's health 85%"),
@@ -216,6 +225,144 @@ def live_shot(lang):
     return img.convert("RGB")
 
 
+def gradient_fill(img, shape_layer, colors, vertical=True):
+    """Fills the opaque parts of `shape_layer` with a gradient through `colors`."""
+    alpha = np.array(shape_layer)[..., 3]
+    h, w = alpha.shape
+    t = np.linspace(0, 1, h if vertical else w)
+    t = t[:, None] if vertical else t[None, :]
+    grad = np.zeros((h, w, 4), np.float32)
+    stops = np.linspace(0, 1, len(colors))
+    for (t0, c0), (t1, c1) in zip(zip(stops, colors), zip(stops[1:], colors[1:])):
+        k = np.clip((t - t0) / (t1 - t0), 0, 1)
+        inside = (t >= t0) & (t <= t1)
+        for i in range(3):
+            grad[..., i] = np.where(inside, c0[i] + (c1[i] - c0[i]) * k, grad[..., i])
+    grad[..., 3] = alpha
+    img.alpha_composite(Image.fromarray(grad.astype(np.uint8), "RGBA"))
+
+
+def trophy(img, cx, cy, size):
+    """A gold cup with handles, drawn from simple shapes."""
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    s = size
+    d.pieslice([cx - s * 0.42, cy - s * 0.75, cx + s * 0.42, cy + s * 0.15], 0, 180, fill=WHITE)
+    d.rectangle([cx - s * 0.42, cy - s * 0.5, cx + s * 0.42, cy - s * 0.3], fill=WHITE)
+    for sx in (-1, 1):
+        hx = cx + sx * s * 0.42
+        d.arc([hx - s * 0.2, cy - s * 0.48, hx + s * 0.2, cy - s * 0.08], -90 if sx > 0 else 90, 90 if sx > 0 else 270,
+              fill=WHITE, width=int(s * 0.07))
+    d.rectangle([cx - s * 0.07, cy + s * 0.1, cx + s * 0.07, cy + s * 0.32], fill=WHITE)
+    d.rounded_rectangle([cx - s * 0.3, cy + s * 0.3, cx + s * 0.3, cy + s * 0.45], int(s * 0.05), fill=WHITE)
+    gradient_fill(img, layer, [(255, 226, 120), ORANGE, (240, 130, 40)])
+    d = ImageDraw.Draw(img)
+    # A star on the cup.
+    r = s * 0.13
+    pts = []
+    for k in range(10):
+        a = -np.pi / 2 + k * np.pi / 5
+        rr = r if k % 2 == 0 else r * 0.45
+        pts.append((cx + rr * np.cos(a), cy - s * 0.28 + rr * np.sin(a)))
+    d.polygon(pts, fill=(255, 255, 255, 230))
+
+
+def pill(img, xy, label, colors):
+    f = font(BLACK, 46)
+    d = ImageDraw.Draw(img)
+    w = d.textlength(label, font=f) + 70
+    x, y = xy
+    shadow = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle([x, y + 14, x + w, y + 94], 40, fill=(0, 0, 0, 150))
+    img.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(20)))
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(layer).rounded_rectangle([x, y, x + w, y + 80], 40, fill=WHITE)
+    gradient_fill(img, layer, colors, vertical=False)
+    text(ImageDraw.Draw(img), (x + w / 2, y + 40), label, f, WHITE, "mm")
+
+
+def levels_shot(lang):
+    img = backdrop()
+    d = ImageDraw.Draw(img)
+    centered_lines(d, HEADLINES["levels"][lang], 200, font(BLACK, 108), WHITE, 128)
+    current = 5
+    count = 10
+    top_y, bottom_y = 820, 2600
+    nodes = []
+    for i in range(count):
+        y = bottom_y - (bottom_y - top_y) * i / (count - 1)
+        x = W / 2 + 300 * np.sin(i * 0.95 + 0.4)
+        nodes.append((x, y))
+    # The road: a glowing gradient up to the current level, a faint line after it.
+    road = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    dim = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    steps = 40
+    for i in range(count - 1):
+        (x0, y0), (x1, y1) = nodes[i], nodes[i + 1]
+        target = road if i < current - 1 else dim
+        pts = []
+        for k in range(steps + 1):
+            t = k / steps
+            # Ease between the nodes so the road curves.
+            e = t * t * (3 - 2 * t)
+            pts.append((x0 + (x1 - x0) * e, y0 + (y1 - y0) * t))
+        ImageDraw.Draw(target).line(pts, fill=WHITE if target is road else (255, 255, 255, 50), width=34, joint="curve")
+    img.alpha_composite(dim)
+    glow = road.filter(ImageFilter.GaussianBlur(40))
+    gradient_fill(img, glow, [ORANGE, PINK, VIOLET])
+    gradient_fill(img, road, [ORANGE, PINK, VIOLET])
+    titles = TITLES[lang]
+    title_font, xp_font = font(BOLD, 52), font(SEMI, 38)
+    for i, (x, y) in enumerate(nodes):
+        level = i + 1
+        xp = 50 * i * level
+        xp_text = (f"{xp:,}".replace(",", " " if lang == "sv" else ",")) + " XP"
+        done = level < current
+        d = ImageDraw.Draw(img)
+        if level == count:
+            halo = Image.new("RGBA", img.size, (0, 0, 0, 0))
+            ImageDraw.Draw(halo).ellipse([x - 190, y - 190, x + 190, y + 190], fill=(*ORANGE, 110))
+            img.alpha_composite(halo.filter(ImageFilter.GaussianBlur(60)))
+            trophy(img, x, y + 20, 230)
+        elif level == current:
+            halo = Image.new("RGBA", img.size, (0, 0, 0, 0))
+            ImageDraw.Draw(halo).ellipse([x - 200, y - 200, x + 200, y + 200], fill=(*MINT, 100))
+            img.alpha_composite(halo.filter(ImageFilter.GaussianBlur(60)))
+            p = pip(250)
+            img.alpha_composite(p, (int(x - 125), int(y - 125)))
+        else:
+            r = 66
+            if done:
+                disc = Image.new("RGBA", img.size, (0, 0, 0, 0))
+                ImageDraw.Draw(disc).ellipse([x - r, y - r, x + r, y + r], fill=WHITE)
+                gradient_fill(img, disc, [VIOLET, PINK])
+            else:
+                translucent(img, lambda dr: dr.ellipse([x - r, y - r, x + r, y + r], fill=(*CARD, 255),
+                                                       outline=(255, 255, 255, 60), width=4))
+            d = ImageDraw.Draw(img)
+            text(d, (x, y), str(level), font(BLACK, 62), WHITE if done else (150, 145, 185), "mm")
+        # Label on the roomier side of the road.
+        d = ImageDraw.Draw(img)
+        right = x < W / 2
+        gap = 165 if level in (current, count) else 100
+        lx = x + gap if right else x - gap
+        anchor_t = "ls" if right else "rs"
+        color = WHITE if level <= current or level == count else (170, 165, 205)
+        text(d, (lx, y + 2), titles[i], title_font, color, anchor_t)
+        text(d, (lx, y + 52), xp_text, xp_font, ORANGE if level == count else (150, 145, 185), anchor_t)
+        if level == current:
+            chip_f = font(BLACK, 36)
+            label_w = d.textlength(titles[i], font=title_font)
+            cw = d.textlength(YOU[lang], font=chip_f) + 44
+            cx0 = lx + label_w + 24 if right else lx - label_w - 24 - cw
+            d.rounded_rectangle([cx0, y - 50, cx0 + cw, y + 4], 27, fill=(20, 70, 60))
+            text(d, (cx0 + cw / 2, y - 23), YOU[lang], chip_f, MINT, "mm")
+    # XP that just came in.
+    pill(img, (nodes[1][0] + 90, nodes[1][1] - 150), "+25 XP", [VIOLET, PINK])
+    pill(img, (nodes[3][0] - 330, nodes[3][1] + 70), "+50 XP", [PINK, ORANGE])
+    return img.convert("RGB")
+
+
 # Other display sizes App Store Connect asks for, made by scaling the 6.9" screenshot and trimming the sides.
 SIZES = [(1290, 2796), (1206, 2622)]
 
@@ -230,7 +377,8 @@ def fit(img, size):
 
 def main():
     for lang in ("sv", "en"):
-        for name, shot in (("notification", notification_shot(lang)), ("lock-screen", live_shot(lang))):
+        for name, shot in (("notification", notification_shot(lang)), ("lock-screen", live_shot(lang)),
+                           ("levels", levels_shot(lang))):
             for w, h in SIZES:
                 save(fit(shot, (w, h)), "appstore", lang, f"screenshot-{name}-{w}x{h}.png")
 
