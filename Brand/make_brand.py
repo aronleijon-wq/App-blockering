@@ -26,7 +26,7 @@ INK = (20, 16, 40)
 WHITE = (255, 255, 255)
 
 TAGLINE = {"sv": "Ta tillbaka din tid.", "en": "Take back your time."}
-SUBLINE = {"sv": "Pip blockerar TikTok, Instagram och YouTube åt dig.", "en": "Pip blocks TikTok, Instagram and YouTube for you."}
+SUBLINE = {"sv": "Scrolla mindre och fokusera mer, med Pip vid din sida.", "en": "Scroll less and focus more, with Pip by your side."}
 SOON = {"sv": "Snart i App Store", "en": "Coming soon to the App Store"}
 
 

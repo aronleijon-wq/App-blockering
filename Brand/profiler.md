@@ -31,12 +31,12 @@ Loggan för ljusa bakgrunder, till exempel dokument och presentationer, heter `l
 
 **Svenska**
 > Pip hjälper dig scrolla mindre 📵
-> Blockera TikTok & Instagram, samla XP, tävla med vänner 🏆
+> Blockera det som stjäl din tid, samla XP, tävla med vänner 🏆
 > Snart i App Store 👇
 
 **English**
 > Pip helps you scroll less 📵
-> Block TikTok & Instagram, earn XP, compete with friends 🏆
+> Block what steals your time, earn XP, compete with friends 🏆
 > Coming soon to the App Store 👇
 
 Länk i profilen: `https://pausewebb.lovable.app`
@@ -58,12 +58,12 @@ Länk i profilen: `https://pausewebb.lovable.app`
 ## YouTube (kanalbeskrivning)
 
 **Svenska**
-> Snittet är 6 timmar om dagen i mobilen, vilket blir nästan 25 år av ditt vakna liv. Paus är appen som hjälper dig ta tillbaka den tiden. Pip blockerar TikTok, Instagram och YouTube när du har bestämt det, ger XP för varje fokuspass och låter dig tävla mot vänner i veckoligor.
+> Snittet är 6 timmar om dagen i mobilen, vilket blir nästan 25 år av ditt vakna liv. Paus är appen som hjälper dig ta tillbaka den tiden. Pip blockerar apparna som stjäl din tid när du har bestämt det, ger XP för varje fokuspass och låter dig tävla mot vänner i veckoligor.
 >
 > Här lägger vi upp tips för att scrolla mindre, nyheter om appen och utmaningar. Prenumerera och häng med!
 
 **English**
-> The average is 6 hours a day on our phones – almost 25 years of your waking life. Paus is the app that helps you take that time back. Pip blocks TikTok, Instagram and YouTube when you've decided to, gives XP for every focus session and lets you compete with friends in weekly leagues.
+> The average is 6 hours a day on our phones – almost 25 years of your waking life. Paus is the app that helps you take that time back. Pip blocks the apps that steal your time when you've decided to, gives XP for every focus session and lets you compete with friends in weekly leagues.
 >
 > We post tips for scrolling less, app news and challenges. Subscribe and join in!
 
