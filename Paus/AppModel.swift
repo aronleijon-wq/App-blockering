@@ -20,7 +20,14 @@ final class AppModel {
     private(set) var selection: FamilyActivitySelection = SharedStore.selection
     private(set) var rules: PausRules = SharedStore.rules
     private(set) var runtime: PausRuntime = SharedStore.runtime
-    private(set) var progress: PlayerProgress = SharedStore.progress
+    private(set) var progress: PlayerProgress = SharedStore.progress {
+        didSet {
+            // Publish to the league as soon as anything others can see changes, not on the next launch.
+            if progress.weeklyPoints != oldValue.weeklyPoints || progress.level != oldValue.level || progress.division != oldValue.division {
+                scheduleLeagueSync()
+            }
+        }
+    }
     private(set) var coachMessage = ""
     var isPauseSheetPresented = false
     var isPaywallPresented = false
@@ -43,6 +50,7 @@ final class AppModel {
     let store = Store()
     let league = LeagueService()
     @ObservationIgnored private var lastLeagueSync: Date?
+    @ObservationIgnored private var pendingLeagueSync: Task<Void, Never>?
     /// Screen Time can't be authorized in the Simulator, so there the app skips onboarding to let the design be tried out.
     /// Blocking itself only works on a real iPhone.
     private(set) var isSimulatorPreview = false
@@ -221,6 +229,16 @@ final class AppModel {
     // MARK: League
 
     /// Settles a finished week, joins this week's group once the player has points and publishes the score.
+    /// Uploads to the league shortly after a change, so a burst of changes becomes one upload.
+    private func scheduleLeagueSync() {
+        pendingLeagueSync?.cancel()
+        pendingLeagueSync = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            await self?.syncLeague(force: true)
+        }
+    }
+
     func syncLeague(force: Bool) async {
         if !force, let lastLeagueSync, Date.now.timeIntervalSince(lastLeagueSync) < 60 { return }
         lastLeagueSync = .now
