@@ -216,10 +216,23 @@ def live_shot(lang):
     return img.convert("RGB")
 
 
+# Other display sizes App Store Connect asks for, made by scaling the 6.9" screenshot and trimming the sides.
+SIZES = [(1290, 2796), (1206, 2622)]
+
+
+def fit(img, size):
+    w, h = size
+    scale = max(w / img.width, h / img.height)
+    scaled = img.resize((round(img.width * scale), round(img.height * scale)), Image.LANCZOS)
+    left, top = (scaled.width - w) // 2, (scaled.height - h) // 2
+    return scaled.crop((left, top, left + w, top + h))
+
+
 def main():
     for lang in ("sv", "en"):
-        save(notification_shot(lang), "appstore", lang, "screenshot-notification-1290x2796.png")
-        save(live_shot(lang), "appstore", lang, "screenshot-lock-screen-1290x2796.png")
+        for name, shot in (("notification", notification_shot(lang)), ("lock-screen", live_shot(lang))):
+            for w, h in SIZES:
+                save(fit(shot, (w, h)), "appstore", lang, f"screenshot-{name}-{w}x{h}.png")
 
 
 if __name__ == "__main__":
