@@ -283,6 +283,8 @@ def main():
         # App Store product page headers; the store crops the edges on smaller screens, so the content stays central.
         save(banner(3840, 1646, lang, safe=(2600, 1100)), "appstore", lang, "appstore-header-3840x1646.png")
         save(banner(5244, 2950, lang, safe=(3500, 1500)), "appstore", lang, "appstore-header-5244x2950.png")
+        # Search results are shown small, so Pip and the text fill more of the frame.
+        save(banner(3840, 2560, lang, safe=(3200, 1350)), "appstore", lang, "appstore-search-results-3840x2560.png")
     save(brand_sheet(), "paus-brand-sheet.png")
 
 
