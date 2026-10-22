@@ -32,7 +32,7 @@ Appen använder Apples Skärmtid-ramverk (FamilyControls, ManagedSettings och De
    `https://github.com/aronleijon-wq/App-blockering.git`
 2. Öppna `Paus.xcodeproj`.
 3. Välj projektet **Paus** i listan till vänster. Gå till *Build Settings* och sök på `PAUS_BUNDLE_PREFIX`. Byt `se.aronleijon.paus` till ett eget id om Xcode säger att det är upptaget. App Group och alla bundle-id:n byggs från det värdet.
-4. För var och en av de sex targets (**Paus**, **PausMonitor**, **PausShieldConfiguration**, **PausShieldAction**, **PausReport** och **PausWidgets**) går du till *Signing & Capabilities* och väljer ditt Team.
+4. Teamet (`63CNAWCYZQ`, Aron Leijon) är redan inställt för alla sex targets (**Paus**, **PausMonitor**, **PausShieldConfiguration**, **PausShieldAction**, **PausReport** och **PausWidgets**). Byter du team ändrar du `DEVELOPMENT_TEAM` under projektets *Build Settings*.
 5. Anslut din iPhone, välj den som mål och tryck på ▶︎.
 6. Testa prenumerationen utan riktiga pengar: gå till *Product → Scheme → Edit Scheme… → Run → Options* och välj `Paus.storekit` under *StoreKit Configuration*.
 
