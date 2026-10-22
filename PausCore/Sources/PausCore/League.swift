@@ -130,6 +130,19 @@ enum Nickname {
         return nil
     }
 
+    static let suggestionWords = ["Fokus", "Lugn", "Snabb", "Modig", "Klok", "Stark", "Glad", "Cool"]
+    static let suggestionAnimals = ["Räv", "Uggla", "Tiger", "Panda", "Varg", "Lo", "Örn", "Delfin"]
+
+    /// Fun nicknames such as "ModigRäv27". Every one passes `problem(with:)`.
+    static func suggestions(count: Int, seed: Int) -> [String] {
+        (0..<count).map { index in
+            let value = abs(seed &+ index &* 7919)
+            let word = suggestionWords[value % suggestionWords.count]
+            let animal = suggestionAnimals[(value / suggestionWords.count + index) % suggestionAnimals.count]
+            return "\(word)\(animal)\(10 + value % 90)"
+        }
+    }
+
     /// Lowercases and undoes common letter swaps such as "h0r4" so they can't slip past the filter.
     static func normalize(_ name: String) -> String {
         let swaps: [Character: Character] = ["0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s"]

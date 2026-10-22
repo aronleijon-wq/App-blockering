@@ -63,6 +63,7 @@ final class LeagueService {
     @ObservationIgnored private var playerRecordName: String?
     @ObservationIgnored private var uploadedSignature: String?
     @ObservationIgnored private var uploadedGroupID: String?
+    @ObservationIgnored private var uploadedNickname: String?
 
     private var database: CKDatabase { container.publicCloudDatabase }
 
@@ -92,6 +93,7 @@ final class LeagueService {
         UserDefaults.standard.removeObject(forKey: Keys.nickname)
         uploadedSignature = nil
         uploadedGroupID = nil
+        uploadedNickname = nil
         entries = [:]
     }
 
@@ -120,7 +122,13 @@ final class LeagueService {
 
     /// Publishes the player's week. Skips the upload when nothing visible changed.
     func upload(_ progress: PlayerProgress) async throws {
-        guard let nickname, let weekKey = progress.weekKey, let groupID = progress.leagueGroupID else { return }
+        guard let nickname else { return }
+        guard let weekKey = progress.weekKey, let groupID = progress.leagueGroupID else {
+            // Not in a group yet, but a record from earlier this week, or from another device on the
+            // same iCloud account, may still show the old name.
+            try await uploadNickname(nickname)
+            return
+        }
         let signature = "\(nickname)|\(weekKey)|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)|\(groupID)"
         guard signature != uploadedSignature else { return }
 
@@ -140,6 +148,16 @@ final class LeagueService {
         if case .failure(let error) = results[record.recordID] { throw error }
         uploadedSignature = signature
         uploadedGroupID = groupID
+        uploadedNickname = nickname
+    }
+
+    private func uploadNickname(_ nickname: String) async throws {
+        guard nickname != uploadedNickname else { return }
+        let record = CKRecord(recordType: Field.type, recordID: try await myRecordID())
+        record[Field.nickname] = nickname
+        let (results, _) = try await database.modifyRecords(saving: [record], deleting: [], savePolicy: .changedKeys, atomically: false)
+        if case .failure(let error) = results[record.recordID] { throw error }
+        uploadedNickname = nickname
     }
 
     func load(_ scope: Scope, progress: PlayerProgress) async {
@@ -162,17 +180,21 @@ final class LeagueService {
         do {
             let records = try await query(predicate, limit: scope == .group ? League.groupSize + 10 : 100)
             let me = try? await myRecordID().recordName
-            entries[scope] = records.compactMap { record in
+            entries[scope] = records.compactMap { record -> LeaderboardEntry? in
                 guard !blockedIDs.contains(record.recordID.recordName) else { return nil }
+                let isMe = record.recordID.recordName == me
+                // CloudKit can take a while to return a record that was just saved, so the player's own
+                // row always shows what this phone knows.
                 return LeaderboardEntry(
                     id: record.recordID.recordName,
-                    nickname: record[Field.nickname] as? String ?? "?",
-                    points: record[Field.weeklyPoints] as? Int ?? 0,
-                    level: record[Field.level] as? Int ?? 1,
-                    division: Division(rawValue: record[Field.division] as? Int ?? 0) ?? .brons,
-                    isMe: record.recordID.recordName == me
+                    nickname: isMe ? nickname ?? "?" : record[Field.nickname] as? String ?? "?",
+                    points: isMe ? progress.weeklyPoints : record[Field.weeklyPoints] as? Int ?? 0,
+                    level: isMe ? progress.level : record[Field.level] as? Int ?? 1,
+                    division: isMe ? progress.division : Division(rawValue: record[Field.division] as? Int ?? 0) ?? .brons,
+                    isMe: isMe
                 )
             }
+            .sorted { $0.points > $1.points }
         } catch {
             // A brand-new league has no Player records yet, which CloudKit reports as an error.
             entries[scope] = []

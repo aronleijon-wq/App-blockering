@@ -6,6 +6,7 @@ struct NicknameSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var isLeaving = false
+    @State private var suggestions = Nickname.suggestions(count: 3, seed: Int.random(in: 0..<1_000_000))
 
     private var problem: Nickname.Problem? { Nickname.problem(with: name) }
 
@@ -19,6 +20,17 @@ struct NicknameSheet: View {
                 } footer: {
                     Text(footer)
                         .foregroundStyle(problem == nil || name.isEmpty ? Color.secondary : Theme.pink)
+                }
+
+                Section("Förslag") {
+                    ForEach(suggestions, id: \.self) { suggestion in
+                        Button(suggestion) { name = suggestion }
+                    }
+                    Button {
+                        suggestions = Nickname.suggestions(count: 3, seed: Int.random(in: 0..<1_000_000))
+                    } label: {
+                        Label("Nya förslag", systemImage: "shuffle")
+                    }
                 }
 
                 Section {
@@ -72,8 +84,13 @@ struct NicknameSheet: View {
     }
 
     private var footer: String {
+        guard let problem, !name.isEmpty else { return "Syns för alla i ligan. Använd inte ditt riktiga namn." }
+        return Self.message(for: problem)
+    }
+
+    static func message(for problem: Nickname.Problem) -> String {
         switch problem {
-        case .tooShort where !name.isEmpty:
+        case .tooShort:
             return "Minst \(Nickname.minLength) tecken."
         case .tooLong:
             return "Högst \(Nickname.maxLength) tecken."
@@ -81,8 +98,6 @@ struct NicknameSheet: View {
             return "Använd bara bokstäver, siffror, punkt, bindestreck och understreck."
         case .notAllowed:
             return "Det namnet är inte tillåtet. Välj ett annat."
-        default:
-            return "Syns för alla i ligan. Använd inte ditt riktiga namn."
         }
     }
 }

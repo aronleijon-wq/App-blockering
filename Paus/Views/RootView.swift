@@ -26,8 +26,10 @@ struct RootView: View {
                         .tabItem { Label("Regler", systemImage: "slider.horizontal.3") }
                         .tag(AppModel.Tab.rules)
                 }
-            } else {
+            } else if model.hasFinishedIntro {
                 OnboardingView()
+            } else {
+                IntroView()
             }
         }
         .tint(Theme.pink)

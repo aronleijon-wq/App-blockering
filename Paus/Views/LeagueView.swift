@@ -47,7 +47,8 @@ struct LeagueView: View {
                 await model.syncLeague(force: true)
                 await league.load(scope, progress: model.progress)
             }
-            .task(id: scope) {
+            // Runs again after a new nickname, so the list never shows the old one.
+            .task(id: "\(scope.rawValue)|\(league.nickname ?? "")") {
                 await model.syncLeague(force: false)
                 await league.load(scope, progress: model.progress)
             }

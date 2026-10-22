@@ -144,3 +144,23 @@ final class PausePenaltyTests: XCTestCase {
         XCTAssertEqual(ReflectionQuestions.question(at: 0, offset: ReflectionQuestions.all.count), ReflectionQuestions.question(at: 0, offset: 0))
     }
 }
+
+final class NicknameSuggestionTests: XCTestCase {
+    func testEverySuggestionIsAllowed() {
+        for word in Nickname.suggestionWords {
+            for animal in Nickname.suggestionAnimals {
+                for number in 10...99 {
+                    let name = "\(word)\(animal)\(number)"
+                    XCTAssertNil(Nickname.problem(with: name), name)
+                }
+            }
+        }
+    }
+
+    func testSuggestionsVary() {
+        let names = Nickname.suggestions(count: 3, seed: 12345)
+        XCTAssertEqual(names.count, 3)
+        XCTAssertEqual(Set(names).count, 3)
+        XCTAssertEqual(Nickname.suggestions(count: 3, seed: 12345), names, "the same seed gives the same names")
+    }
+}

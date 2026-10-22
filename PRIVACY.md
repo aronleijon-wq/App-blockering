@@ -1,6 +1,6 @@
 # Integritetspolicy för Paus
 
-*Senast uppdaterad 20 oktober 2026*
+*Senast uppdaterad 22 oktober 2026*
 
 ## Kort sagt
 
@@ -12,7 +12,11 @@ Aron Leijon. Kontakt: aronleijon@icloud.com.
 
 ## Det som bara finns på din telefon
 
-Dina regler, scheman, fokuspass, XP, nivå, streak, troféer och skälen du anger när du tar en paus sparas bara lokalt på telefonen. Vilka appar du blockerar och hur länge du använder dem hanteras av Apples Skärmtid. Paus ser bara anonyma symboler för apparna, och den informationen lämnar aldrig telefonen.
+Dina regler, scheman, fokuspass, XP, nivå, streak, troféer, Pips hälsa, skälen du anger när du tar en paus och dina svar i introduktionen (förnamn, åldersgrupp, ungefärlig skärmtid, appar och mål) sparas bara lokalt på telefonen. Vilka appar du blockerar och hur länge du använder dem hanteras av Apples Skärmtid. Paus ser bara anonyma symboler för apparna, och den informationen lämnar aldrig telefonen. Skärmtidsrapporten räknas ut i ett tillägg som iOS stänger in, så siffrorna kan bara visas för dig och sparas eller skickas aldrig.
+
+## Konto
+
+Du kan skapa ett konto med Logga in med Apple, men allt fungerar även utan. Apple ger då Paus en anonym identifierare och, om du väljer det, ditt namn och din e-post (som kan vara en dold vidarebefordringsadress). Paus har ingen server, så kontot sparas bara på din telefon och används för att Pip ska kunna hälsa på dig. Du loggar ut under Regler > Konto, och Radera all min data tar bort kontot. Du kan också sluta använda Logga in med Apple för Paus under Inställningar > [ditt namn] > Logga in med Apple.
 
 ## Ligan
 

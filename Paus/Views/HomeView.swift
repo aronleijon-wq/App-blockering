@@ -34,7 +34,7 @@ struct HomeView: View {
                 }
             }
             .screenBackground()
-            .navigationTitle("Paus")
+            .navigationTitle(model.firstName.map { "Hej \($0)!" } ?? "Paus")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     StreakPill(streak: model.progress.currentStreak(at: .now, calendar: .current))

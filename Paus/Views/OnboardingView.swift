@@ -11,10 +11,12 @@ struct OnboardingView: View {
                     .padding(.top, 24)
 
                 VStack(spacing: 10) {
-                    Text("Hej! Jag är Pip.")
+                    Text(model.firstName.map { "Sista steget, \($0)!" } ?? "Hej! Jag är Pip.")
                         .font(.system(size: 34, weight: .heavy, design: .rounded))
                         .foregroundStyle(Theme.brand)
-                    Text("Tillsammans tar vi tillbaka din tid från scrollandet. Varje gång du väljer bort TikTok blir jag lite starkare.")
+                    Text(model.hasFinishedIntro
+                        ? "Ge mig tillgång till Skärmtid, så kan jag börja vakta dina appar."
+                        : "Tillsammans tar vi tillbaka din tid från scrollandet. Varje gång du väljer bort TikTok blir jag lite starkare.")
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
                 }

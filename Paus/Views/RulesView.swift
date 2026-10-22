@@ -1,3 +1,4 @@
+import AuthenticationServices
 import SwiftUI
 
 struct RulesView: View {
@@ -93,6 +94,8 @@ struct RulesView: View {
                     Text("En paus öppnar de blockerade apparna en kort stund. Först svarar du varför och andas en stund. Dagens första paus är gratis, sedan kostar de \(League.pausePenalty(forPause: 2)), \(League.pausePenalty(forPause: 3)) och \(League.pausePenalty(forPause: 4)) veckopoäng. Tackar du nej får du \(PlayerProgress.XP.decline) XP.")
                 }
 
+                accountSection
+
                 Section {
                     NavigationLink("Integritetspolicy") { PrivacyPolicyView() }
                     Link("Användarvillkor", destination: AppInfo.termsURL)
@@ -118,7 +121,7 @@ struct RulesView: View {
                 }
                 Button("Avbryt", role: .cancel) {}
             } message: {
-                Text("XP, nivå, streak, troféer, regler och ditt ligakonto raderas och alla blockeringar tas bort. Det går inte att ångra. En prenumeration sägs upp separat i Inställningar.")
+                Text("XP, nivå, streak, troféer, regler, dina svar från introduktionen, ditt konto och ditt ligakonto raderas och alla blockeringar tas bort. Det går inte att ångra. En prenumeration sägs upp separat i Inställningar.")
             }
             .sheet(item: $editing) { schedule in
                 ScheduleEditorView(
@@ -126,6 +129,27 @@ struct RulesView: View {
                     isNew: !model.rules.schedules.contains { $0.id == schedule.id }
                 )
             }
+        }
+    }
+
+    private var accountSection: some View {
+        Section {
+            if let account = model.account {
+                Label("Inloggad som \(account.displayName)", systemImage: "person.crop.circle.badge.checkmark")
+                Button("Logga ut", role: .destructive) { model.signOut() }
+            } else {
+                SignInWithAppleButton(.signIn) { request in
+                    request.requestedScopes = [.fullName, .email]
+                } onCompletion: { result in
+                    model.signIn(result)
+                }
+                .signInWithAppleButtonStyle(.white)
+                .frame(height: 46)
+            }
+        } header: {
+            Text("Konto")
+        } footer: {
+            Text("Kontot sparas bara på den här telefonen. Allt i Paus fungerar även utan konto.")
         }
     }
 

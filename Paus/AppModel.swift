@@ -1,3 +1,4 @@
+import AuthenticationServices
 import FamilyControls
 import Foundation
 import Observation
@@ -26,6 +27,9 @@ final class AppModel {
     var errorMessage: String?
     /// Set when Paus finds its Screen Time access was turned off since the last launch.
     var isProtectionWarningPresented = false
+    private(set) var hasFinishedIntro = IntroStore.isFinished
+    private(set) var introAnswers = IntroStore.answers
+    private(set) var account = IntroStore.account
 
     let store = Store()
     let league = LeagueService()
@@ -79,6 +83,7 @@ final class AppModel {
     /// Picks up changes the extensions made and makes sure monitoring and the shield match the rules.
     func reload() {
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+        Task { await checkAccount() }
         checkProtection()
         runtime = SharedStore.runtime
         progress = SharedStore.progress
@@ -119,6 +124,61 @@ final class AppModel {
         Task { await syncLeague(force: false) }
     }
 
+    // MARK: Intro and account
+
+    /// Ends the intro, with the answers when the user got as far as giving them.
+    func finishIntro(answers: IntroAnswers?) {
+        if let answers {
+            introAnswers = answers
+            IntroStore.answers = answers
+        }
+        hasFinishedIntro = true
+        IntroStore.isFinished = true
+    }
+
+    /// Saves the account from Sign in with Apple. Returns whether it worked; cancelling isn't an error.
+    @discardableResult
+    func signIn(_ result: Result<ASAuthorization, Error>) -> Bool {
+        switch result {
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else { return false }
+            var signedIn = PausAccount(credential: credential)
+            // Signing in again on the same phone doesn't share the name a second time.
+            if let account, account.userID == signedIn.userID {
+                signedIn.givenName = signedIn.givenName ?? account.givenName
+                signedIn.email = signedIn.email ?? account.email
+            }
+            account = signedIn
+            IntroStore.account = signedIn
+            return true
+        case .failure(let error):
+            if (error as? ASAuthorizationError)?.code != .canceled {
+                errorMessage = "Inloggningen med Apple misslyckades. Försök igen."
+            }
+            return false
+        }
+    }
+
+    /// The first name Pip uses: the one typed in the intro, otherwise the one from Apple.
+    var firstName: String? {
+        if let name = introAnswers?.name, !name.isEmpty { return name }
+        return account?.givenName
+    }
+
+    func signOut() {
+        account = nil
+        IntroStore.account = nil
+    }
+
+    /// Signs out when the user has stopped using Sign in with Apple for Paus.
+    private func checkAccount() async {
+        guard let userID = account?.userID else { return }
+        let state = try? await ASAuthorizationAppleIDProvider().credentialState(forUserID: userID)
+        if state == .revoked || state == .notFound {
+            signOut()
+        }
+    }
+
     // MARK: Privacy
 
     /// Deletes the league record, local progress, rules and selection, and lifts every block.
@@ -135,6 +195,9 @@ final class AppModel {
         }
         ActivityScheduler.stopAll()
         SharedStore.eraseUserData()
+        signOut()
+        introAnswers = nil
+        IntroStore.answers = nil
         ShieldController.refresh()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         selection = SharedStore.selection

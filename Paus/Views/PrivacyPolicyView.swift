@@ -5,7 +5,7 @@ struct PrivacyPolicyView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Text("Senast uppdaterad 20 oktober 2026")
+                Text("Senast uppdaterad 22 oktober 2026")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
@@ -16,7 +16,10 @@ struct PrivacyPolicyView: View {
                     "\(AppInfo.developerName). Kontakt: \(AppInfo.supportEmail)."
                 }
                 PolicySection(title: "Det som bara finns på din telefon") {
-                    "Dina regler, scheman, fokuspass, XP, nivå, streak, troféer och skälen du anger när du tar en paus sparas bara lokalt på telefonen. Vilka appar du blockerar och hur länge du använder dem hanteras av Apples Skärmtid. Paus ser bara anonyma symboler för apparna, och den informationen lämnar aldrig telefonen."
+                    "Dina regler, scheman, fokuspass, XP, nivå, streak, troféer, Pips hälsa, skälen du anger när du tar en paus och dina svar i introduktionen (förnamn, åldersgrupp, ungefärlig skärmtid, appar och mål) sparas bara lokalt på telefonen. Vilka appar du blockerar och hur länge du använder dem hanteras av Apples Skärmtid. Paus ser bara anonyma symboler för apparna, och den informationen lämnar aldrig telefonen. Skärmtidsrapporten räknas ut i ett tillägg som iOS stänger in, så siffrorna kan bara visas för dig och sparas eller skickas aldrig."
+                }
+                PolicySection(title: "Konto") {
+                    "Du kan skapa ett konto med Logga in med Apple, men allt fungerar även utan. Apple ger då Paus en anonym identifierare och, om du väljer det, ditt namn och din e-post (som kan vara en dold vidarebefordringsadress). Paus har ingen server, så kontot sparas bara på din telefon och används för att Pip ska kunna hälsa på dig. Du loggar ut under Regler > Konto, och Radera all min data tar bort kontot. Du kan också sluta använda Logga in med Apple för Paus under Inställningar > [ditt namn] > Logga in med Apple."
                 }
                 PolicySection(title: "Ligan") {
                     "Om du väljer ett smeknamn och går med i ligan sparas följande i Apples iCloud-tjänst CloudKit: smeknamn, veckopoäng, nivå, division, ligagrupp, land och en anonym identifierare som iCloud skapar för appen. Uppgifterna syns för andra spelare i topplistorna. Ditt Apple-ID, namn eller e-post delas aldrig. Rättslig grund är att du själv valt att gå med (avtal). Uppgifterna finns kvar tills du lämnar ligan."
