@@ -8,6 +8,8 @@ extension DeviceActivityName {
     static let dailyLimit = Self("paus.limit")
     /// Follows how long the guarded apps are used each day, for Pip's health.
     static let usage = Self("paus.usage")
+    /// Ends a vacation, so the shield comes back by itself.
+    static let vacation = Self("paus.vacation")
 
     private static let schedulePrefix = "paus.schedule."
 
@@ -123,6 +125,14 @@ enum ActivityScheduler {
 
     static func stopPause() {
         center.stopMonitoring([.pause])
+    }
+
+    static func startVacation(until end: Date) throws {
+        try startOneShot(.vacation, until: end)
+    }
+
+    static func stopVacation() {
+        center.stopMonitoring([.vacation])
     }
 
     private static func expectedActivities(rules: PausRules, selection: FamilyActivitySelection) -> Set<DeviceActivityName> {

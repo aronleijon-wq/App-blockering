@@ -1,5 +1,6 @@
 import AuthenticationServices
 import SwiftUI
+import UserNotifications
 
 /// First launch: Pip asks a few questions in a chat, shows what the scrolling costs, offers an account,
 /// shows what Paus does and lets the user pick a league nickname.
@@ -11,9 +12,10 @@ struct IntroView: View {
     @State private var nickname = ""
     @State private var suggestions = Nickname.suggestions(count: 3, seed: Int.random(in: 0..<1_000_000))
     @FocusState private var isTyping: Bool
+    @State private var isPaywallPresented = false
 
     enum Step: Int, CaseIterable {
-        case hello, name, age, hours, apps, goals, calculating, reveal, account, tour, nickname
+        case hello, name, age, hours, apps, goals, calculating, reveal, plan, account, tour, nickname, trial
     }
 
     private let appChoices = ["TikTok", "Instagram", "YouTube", "Snapchat", "X", "Reddit", "Netflix", "Spel", "Nyheter"]
@@ -145,9 +147,12 @@ struct IntroView: View {
                 "Med **\(Self.hours(answers.hoursPerDay)) om dagen** lägger du resten av livet…",
             ]) {
                 RevealCard(answers: answers)
-                Button("Det vill jag ändra") { step = .account }
+                Button("Det vill jag ändra") { step = .plan }
                     .buttonStyle(GlowButtonStyle())
             }
+
+        case .plan:
+            PlanStep(answers: answers, goalText: goalText) { step = .account }
 
         case .account:
             ChatStep(mood: .happy, lines: [
@@ -170,11 +175,7 @@ struct IntroView: View {
             }
 
         case .tour:
-            ChatStep(mood: .hyped, lines: [
-                "Men det är inte kört!",
-                "Halverar du tiden får du tillbaka **\(Self.years(halvedYears))** – till att \(goalText).",
-                "Så här gör vi det tillsammans:",
-            ]) {
+            ChatStep(mood: .hyped, lines: ["Så här hjälper jag dig att klara det:"]) {
                 TourList(items: [
                     TourItem(symbol: "shield.lefthalf.filled", title: "Jag vaktar dina appar", text: "Jag säger nej till \(appText) när du har bestämt det."),
                     TourItem(symbol: "scope", title: "Fokuspass", text: "Blockera allt med ett tryck och få XP för varje minut."),
@@ -229,10 +230,17 @@ struct IntroView: View {
                 Button("Klar!") { submitNickname() }
                     .buttonStyle(GlowButtonStyle())
                     .disabled(Nickname.problem(with: nickname) != nil)
-                Button("Hoppa över ligan") { finish() }
+                Button("Hoppa över ligan") { goToTrial() }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
+
+        case .trial:
+            TrialStep(name: trimmedName) { isPaywallPresented = true }
+                // Whether the user starts the free week or not, the intro is over once the offer closes.
+                .sheet(isPresented: $isPaywallPresented, onDismiss: finish) {
+                    PaywallView()
+                }
         }
     }
 
@@ -250,17 +258,22 @@ struct IntroView: View {
     private func submitNickname() {
         guard Nickname.problem(with: nickname) == nil else { return }
         model.league.setNickname(nickname)
-        finish()
         Task { await model.syncLeague(force: true) }
+        goToTrial()
+    }
+
+    /// Offers the free week, unless the user already has Pro.
+    private func goToTrial() {
+        if model.isPro {
+            finish()
+        } else {
+            step = .trial
+        }
     }
 
     /// Ends the intro. Answers are only kept once the user has started giving them.
     private func finish() {
         model.finishIntro(answers: step.rawValue > Step.name.rawValue ? answers : nil)
-    }
-
-    private var halvedYears: Double {
-        LifeMath.wakingYears(hoursPerDay: answers.hoursPerDay, age: answers.ageGroup.typicalAge) / 2
     }
 
     private var goalText: String {
@@ -585,6 +598,265 @@ private struct TourList: View {
                 withAnimation(.spring(duration: 0.5, bounce: 0.35)) { shown = index + 1 }
             }
         }
+    }
+}
+
+// MARK: - Plan
+
+/// The promise: what a 30 % cut gives back, sealed with a fist bump.
+private struct PlanStep: View {
+    let answers: IntroAnswers
+    let goalText: String
+    let onDone: () -> Void
+
+    @State private var shownYears = 0.0
+    @State private var shownRows = 0
+    @State private var isBumping = false
+
+    private var years: Double {
+        Plan.yearsBack(hoursPerDay: answers.hoursPerDay, age: answers.ageGroup.typicalAge)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 28) {
+                    VStack(spacing: 6) {
+                        if !answers.name.isEmpty {
+                            Text("\(answers.name),")
+                        }
+                        Text("Paus ger dig tillbaka")
+                        HStack(spacing: 8) {
+                            CountingYears(value: shownYears)
+                                .foregroundStyle(Theme.brand)
+                            Text("av ditt liv")
+                        }
+                    }
+                    .font(.system(size: 32, weight: .heavy, design: .rounded))
+                    .multilineTextAlignment(.center)
+                    .monospacedDigit()
+                    .padding(.top, 24)
+
+                    VStack(alignment: .leading, spacing: 22) {
+                        PlanRow(
+                            symbol: "lock.shield.fill",
+                            title: "30 % mindre skärmtid",
+                            text: "Från \(IntroView.hours(answers.hoursPerDay)) till **\(IntroView.hours(Plan.targetHours(from: answers.hoursPerDay)))** om dagen."
+                        )
+                        .planReveal(index: 0, shown: shownRows)
+                        PlanRow(
+                            symbol: "tree.fill",
+                            title: "Mer tid utanför skärmen",
+                            text: "**\(Int((Plan.offlineIncrease(hoursPerDay: answers.hoursPerDay) * 100).rounded())) %** mer vaken tid offline, till att \(goalText)."
+                        )
+                        .planReveal(index: 1, shown: shownRows)
+                        PlanRow(
+                            symbol: "calendar.badge.clock",
+                            title: "\(Plan.daysBackPerYear(hoursPerDay: answers.hoursPerDay)) dygn tillbaka i år",
+                            text: "Med fokuspass, scheman och Pip som vaktar."
+                        )
+                        .planReveal(index: 2, shown: shownRows)
+                    }
+                    .padding(.horizontal, 4)
+                }
+                .padding(.horizontal, 20)
+            }
+
+            VStack(spacing: 12) {
+                Text("Vi skakar hand på det")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Button {
+                    isBumping = true
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(650))
+                        onDone()
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("👊")
+                            .font(.title)
+                            .scaleEffect(isBumping ? 1.6 : 1)
+                            .rotationEffect(.degrees(isBumping ? -20 : 0))
+                        Text("Nu kör vi!")
+                    }
+                }
+                .buttonStyle(GlowButtonStyle())
+                .disabled(isBumping)
+                .sensoryFeedback(.impact(weight: .heavy, intensity: 1), trigger: isBumping)
+                .animation(.spring(duration: 0.35, bounce: 0.6), value: isBumping)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 16)
+        }
+        .task {
+            withAnimation(.easeOut(duration: 1.6)) { shownYears = years }
+            for index in 0..<3 {
+                try? await Task.sleep(for: .milliseconds(450))
+                withAnimation(.spring(duration: 0.5, bounce: 0.3)) { shownRows = index + 1 }
+            }
+        }
+    }
+}
+
+private struct PlanRow: View {
+    let symbol: String
+    let title: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: symbol)
+                .font(.title)
+                .foregroundStyle(LinearGradient(colors: [Theme.mint, Theme.violet], startPoint: .top, endPoint: .bottom))
+                .frame(width: 40)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.title3.bold())
+                Text((try? AttributedString(markdown: text)) ?? AttributedString(text))
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private extension View {
+    func planReveal(index: Int, shown: Int) -> some View {
+        opacity(shown > index ? 1 : 0)
+            .offset(y: shown > index ? 0 : 24)
+    }
+}
+
+// MARK: - Trial
+
+/// Lets the user pick when Pip reminds them before the free week ends, then shows the offer.
+private struct TrialStep: View {
+    let name: String
+    let onContinue: () -> Void
+
+    @State private var daysBefore = IntroStore.trialReminderDays
+
+    private var trialEnd: Date {
+        Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
+    }
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("När ska Pip påminna dig innan gratisveckan tar slut?")
+                .font(.title2.bold())
+                .multilineTextAlignment(.center)
+                .padding(.top, 16)
+
+            NotificationPreview(daysBefore: daysBefore, trialEnd: trialEnd)
+
+            Spacer(minLength: 0)
+
+            VStack(spacing: 0) {
+                ForEach(TrialReminder.choices, id: \.self) { days in
+                    Button {
+                        daysBefore = days
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(days) dagar innan")
+                                    .font(.headline)
+                                Text(reminderDate(days).formatted(.dateTime.weekday(.wide).day().month(.wide)))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: daysBefore == days ? "checkmark.circle.fill" : "circle")
+                                .font(.title2)
+                                .foregroundStyle(daysBefore == days ? Theme.mint : .secondary)
+                        }
+                        .padding(16)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .sensoryFeedback(.selection, trigger: daysBefore)
+                    if days != TrialReminder.choices.last {
+                        Divider().overlay(Color.white.opacity(0.08))
+                    }
+                }
+            }
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+
+            Button("Fortsätt") {
+                IntroStore.trialReminderDays = daysBefore
+                Task {
+                    // The reminder is a notification, so ask now, while it is clear why.
+                    _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+                    onContinue()
+                }
+            }
+            .buttonStyle(GlowButtonStyle())
+            Text("Slå på notiser för att få påminnelsen. Ingen bindningstid, du säger upp när du vill.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
+    }
+
+    private func reminderDate(_ days: Int) -> Date {
+        Calendar.current.date(byAdding: .day, value: -days, to: trialEnd) ?? trialEnd
+    }
+}
+
+/// A lock screen with the reminder as it will look.
+private struct NotificationPreview: View {
+    let daysBefore: Int
+    let trialEnd: Date
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.7))
+            Text("9:41")
+                .font(.system(size: 64, weight: .bold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.85))
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "pause.fill")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .frame(width: 38, height: 38)
+                    .background(Theme.glow, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text("\(daysBefore) dagar kvar av din gratisvecka ⏳")
+                            .font(.subheadline.bold())
+                        Spacer()
+                        Text("nu")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text("Säg upp före \(trialEnd.formatted(.dateTime.day().month(.wide))) om du vill sluta.")
+                        .font(.subheadline)
+                }
+                .contentTransition(.numericText())
+            }
+            .padding(14)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .animation(.snappy, value: daysBefore)
+        }
+        .padding(.vertical, 24)
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 40, style: .continuous)
+                .fill(LinearGradient(colors: [Theme.violet.opacity(0.5), Theme.card], startPoint: .top, endPoint: .bottom))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 40, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.15), lineWidth: 2)
+        )
+        .accessibilityElement(children: .combine)
     }
 }
 

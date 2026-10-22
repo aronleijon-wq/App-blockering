@@ -21,6 +21,8 @@ struct BlockEngine {
         if let end = runtime.focusEndsAt, end > date {
             return .focus(until: end)
         }
+        // On vacation only a focus session the user starts blocks anything.
+        if rules.isOnVacation(at: date) { return nil }
         for schedule in rules.schedules {
             let override = scheduleOverrides[schedule.id]
             if override == false { continue }

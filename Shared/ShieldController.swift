@@ -13,12 +13,16 @@ enum ShieldController {
     /// Raises or lowers the shield to match the stored rules and runtime state.
     /// Call it after anything that changes them; it is safe to call repeatedly.
     static func refresh(at date: Date = .now, scheduleOverrides: [UUID: Bool] = [:]) {
-        let engine = BlockEngine(rules: SharedStore.effectiveRules, runtime: SharedStore.runtime)
+        let rules = SharedStore.effectiveRules
+        let engine = BlockEngine(rules: rules, runtime: SharedStore.runtime)
         if engine.shouldShield(at: date, scheduleOverrides: scheduleOverrides) {
             apply(SharedStore.selection)
+            // Without this, deleting and reinstalling Paus would be the easy way out of a block.
+            store.application.denyAppRemoval = rules.preventUninstall ? true : nil
         } else {
             store.clearAllSettings()
         }
+        store.webContent.blockedByFilter = rules.adultFilter ? .auto() : nil
     }
 
     private static func apply(_ selection: FamilyActivitySelection) {

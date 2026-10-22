@@ -1,6 +1,7 @@
 import AuthenticationServices
 import FamilyControls
 import Foundation
+import StoreKit
 import Observation
 import UserNotifications
 
@@ -346,6 +347,8 @@ final class AppModel {
         change(&new)
         guard new != oldRules else { return }
         if isStrictFocusActive, !new.strictFocus { new.strictFocus = true }
+        // Strict focus can't be escaped by deleting the app either.
+        if isStrictFocusActive, oldRules.preventUninstall { new.preventUninstall = true }
         rules = new
         SharedStore.rules = new
 
@@ -359,6 +362,49 @@ final class AppModel {
             resyncMonitoring()
         }
         ShieldController.refresh()
+    }
+
+    // MARK: Settings
+
+    /// Rests schedules and the daily limit for `days` days. Focus sessions still work.
+    func startVacation(days: Int) {
+        guard let end = Calendar.current.date(byAdding: .day, value: days, to: .now) else { return }
+        do {
+            try ActivityScheduler.startVacation(until: end)
+        } catch {
+            errorMessage = "Semesterläget kunde inte startas (\(error.localizedDescription))."
+            return
+        }
+        updateRules { $0.vacationUntil = end }
+    }
+
+    func endVacation() {
+        ActivityScheduler.stopVacation()
+        updateRules { $0.vacationUntil = nil }
+    }
+
+    /// Registers all monitoring again and reapplies the shield, for when something seems stuck.
+    func reapplyEverything() {
+        resyncMonitoring()
+        ShieldController.refresh()
+        reload()
+    }
+
+    func restorePurchases() async {
+        do {
+            try await AppStore.sync()
+        } catch {
+            errorMessage = "Köpen kunde inte återställas just nu. Försök igen."
+        }
+        await store.refresh()
+    }
+
+    /// Changes the intro answers, starting from defaults when the intro was skipped.
+    func updateAnswers(_ change: (inout IntroAnswers) -> Void) {
+        var answers = introAnswers ?? IntroAnswers()
+        change(&answers)
+        introAnswers = answers
+        IntroStore.answers = answers
     }
 
     func saveSchedule(_ schedule: BlockSchedule) {

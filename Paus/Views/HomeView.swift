@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @Environment(AppModel.self) private var model
     @State private var isHealthInfoPresented = false
+    @State private var isSettingsPresented = false
 
     private let focusLengths = [25, 50, 90]
 
@@ -36,9 +37,22 @@ struct HomeView: View {
             .screenBackground()
             .navigationTitle(model.firstName.map { "Hej \($0)!" } ?? "Paus")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        isSettingsPresented = true
+                    } label: {
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                    .accessibilityLabel("Konto och inställningar")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     StreakPill(streak: model.progress.currentStreak(at: .now, calendar: .current))
                 }
+            }
+            .sheet(isPresented: $isSettingsPresented) {
+                SettingsView()
             }
         }
     }

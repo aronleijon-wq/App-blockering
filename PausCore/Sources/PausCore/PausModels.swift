@@ -33,17 +33,34 @@ struct PausRules: Codable, Equatable {
     /// A strict focus session can't be ended early or paused.
     var strictFocus: Bool
     var pause: PauseRules
+    /// Stops apps, Paus included, from being deleted while the shield is up.
+    var preventUninstall: Bool
+    /// Keeps Apple's adult website filter on at all times.
+    var adultFilter: Bool
+    /// Schedules and the daily limit rest until this date. Focus sessions still work.
+    var vacationUntil: Date?
 
     init(
         dailyLimitMinutes: Int? = nil,
         schedules: [BlockSchedule] = [],
         strictFocus: Bool = true,
-        pause: PauseRules = PauseRules()
+        pause: PauseRules = PauseRules(),
+        preventUninstall: Bool = false,
+        adultFilter: Bool = false,
+        vacationUntil: Date? = nil
     ) {
         self.dailyLimitMinutes = dailyLimitMinutes
         self.schedules = schedules
         self.strictFocus = strictFocus
         self.pause = pause
+        self.preventUninstall = preventUninstall
+        self.adultFilter = adultFilter
+        self.vacationUntil = vacationUntil
+    }
+
+    func isOnVacation(at date: Date) -> Bool {
+        guard let vacationUntil else { return false }
+        return vacationUntil > date
     }
 
     init(from decoder: Decoder) throws {
@@ -53,6 +70,9 @@ struct PausRules: Codable, Equatable {
         schedules = try container.decodeIfPresent([BlockSchedule].self, forKey: .schedules) ?? defaults.schedules
         strictFocus = try container.decodeIfPresent(Bool.self, forKey: .strictFocus) ?? defaults.strictFocus
         pause = try container.decodeIfPresent(PauseRules.self, forKey: .pause) ?? defaults.pause
+        preventUninstall = try container.decodeIfPresent(Bool.self, forKey: .preventUninstall) ?? defaults.preventUninstall
+        adultFilter = try container.decodeIfPresent(Bool.self, forKey: .adultFilter) ?? defaults.adultFilter
+        vacationUntil = try container.decodeIfPresent(Date.self, forKey: .vacationUntil)
     }
 }
 

@@ -9,6 +9,17 @@ enum AppInfo {
     /// Apple's standard license agreement, which App Store subscriptions may use as their terms of use.
     static let termsURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
 
+    static let websiteURL = URL(string: "https://pausewebb.lovable.app")!
+    static let helpURL = URL(string: "https://pausewebb.lovable.app/support")!
+
+    /// "0.1.0 (1)", from the bundle.
+    static var version: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(short) (\(build))"
+    }
+
     static var supportMailURL: URL? {
         URL(string: "mailto:\(supportEmail)?subject=Paus")
     }

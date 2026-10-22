@@ -43,7 +43,10 @@ struct PaywallView: View {
         }
         .subscriptionStoreControlStyle(.prominentPicker)
         .onInAppPurchaseCompletion { _, result in
-            if case .success(.success) = result {
+            if case .success(.success(let verification)) = result {
+                if case .verified(let transaction) = verification {
+                    Reminders.scheduleTrialEnd(for: transaction, daysBefore: IntroStore.trialReminderDays)
+                }
                 await model.store.refresh()
                 dismiss()
             }

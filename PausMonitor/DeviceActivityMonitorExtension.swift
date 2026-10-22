@@ -34,6 +34,8 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
         super.eventDidReachThreshold(event, activity: activity)
         if let minutes = event.scrolledMinutes {
+            // Pip doesn't mind scrolling on vacation.
+            guard !SharedStore.rules.isOnVacation(at: .now) else { return }
             recordHealth(.scrolled(minutes: minutes), scrolledMinutes: minutes)
             return
         }

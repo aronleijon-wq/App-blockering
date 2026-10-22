@@ -24,4 +24,22 @@ final class IntroTests: XCTestCase {
         let decoded = try JSONDecoder().decode(IntroAnswers.self, from: JSONEncoder().encode(answers))
         XCTAssertEqual(decoded, answers)
     }
+
+    func testPlan() {
+        XCTAssertEqual(Plan.targetHours(from: 5), 3.5, accuracy: 0.001)
+        XCTAssertEqual(Plan.yearsBack(hoursPerDay: 6, age: 15), 24.375 * 0.3, accuracy: 0.001)
+        XCTAssertEqual(Plan.daysBackPerYear(hoursPerDay: 5), 23)
+        // 5 h on the phone leaves 11 waking hours; winning back 1.5 h is about 14 % more offline time.
+        XCTAssertEqual(Plan.offlineIncrease(hoursPerDay: 5), 1.5 / 11, accuracy: 0.0001)
+        XCTAssertEqual(Plan.offlineIncrease(hoursPerDay: 16), 0)
+    }
+
+    func testTrialReminder() {
+        let calendar = TestCalendar.stockholm
+        let now = TestCalendar.date(2026, 10, 22, 16, 0)
+        let trialEnd = TestCalendar.date(2026, 10, 29, 16, 0)
+        XCTAssertEqual(TrialReminder.date(trialEnd: trialEnd, daysBefore: 2, now: now, calendar: calendar), TestCalendar.date(2026, 10, 27, 10, 0))
+        XCTAssertEqual(TrialReminder.date(trialEnd: trialEnd, daysBefore: 3, now: now, calendar: calendar), TestCalendar.date(2026, 10, 26, 10, 0))
+        XCTAssertNil(TrialReminder.date(trialEnd: TestCalendar.date(2026, 10, 23, 16, 0), daysBefore: 2, now: now, calendar: calendar))
+    }
 }

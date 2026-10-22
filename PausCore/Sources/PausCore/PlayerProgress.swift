@@ -513,13 +513,14 @@ enum MascotMood: String, CaseIterable {
 }
 
 extension PausRules {
-    /// The rules in force without Pro: one schedule, no daily limit and no strict focus.
+    /// The rules in force without Pro: one schedule, no daily limit, no strict focus and no uninstall protection.
     func effective(isPro: Bool) -> PausRules {
         guard !isPro else { return self }
         var rules = self
         rules.schedules = Array(schedules.prefix(1))
         rules.dailyLimitMinutes = nil
         rules.strictFocus = false
+        rules.preventUninstall = false
         return rules
     }
 }

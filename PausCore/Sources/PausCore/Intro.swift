@@ -67,3 +67,46 @@ enum LifeMath {
         Int((hoursPerDay * 365 / 24).rounded())
     }
 }
+
+/// What Paus promises at the end of the intro: a realistic cut, not an empty phone.
+enum Plan {
+    /// The share of screen time the plan aims to cut.
+    static let reduction = 0.3
+
+    static func targetHours(from hoursPerDay: Double) -> Double {
+        hoursPerDay * (1 - reduction)
+    }
+
+    /// Waking years won back from `age` until 80.
+    static func yearsBack(hoursPerDay: Double, age: Int) -> Double {
+        LifeMath.wakingYears(hoursPerDay: hoursPerDay, age: age) * reduction
+    }
+
+    /// Whole 24-hour days won back over the next year.
+    static func daysBackPerYear(hoursPerDay: Double) -> Int {
+        Int((hoursPerDay * reduction * 365 / 24).rounded())
+    }
+
+    /// How much more of each waking day is spent offline, as a share of the offline time before.
+    static func offlineIncrease(hoursPerDay: Double) -> Double {
+        let offline = LifeMath.wakingHoursPerDay - hoursPerDay
+        guard offline > 0 else { return 0 }
+        return hoursPerDay * reduction / offline
+    }
+}
+
+/// The reminder before a free trial turns into a paid subscription.
+enum TrialReminder {
+    static let choices = [2, 3]
+    static let defaultDaysBefore = 2
+    static let hour = 10
+
+    /// The morning `daysBefore` days ahead of `trialEnd`, or nil when that is already past.
+    static func date(trialEnd: Date, daysBefore: Int, now: Date, calendar: Calendar) -> Date? {
+        guard let day = calendar.date(byAdding: .day, value: -daysBefore, to: trialEnd),
+              let date = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: day),
+              date > now else { return nil }
+        return date
+    }
+}
+

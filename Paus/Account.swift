@@ -30,6 +30,7 @@ enum IntroStore {
     private static let finishedKey = "introFinished"
     private static let answersKey = "introAnswers"
     private static let accountKey = "account"
+    private static let trialReminderKey = "trialReminderDays"
 
     static var isFinished: Bool {
         get { UserDefaults.standard.bool(forKey: finishedKey) }
@@ -44,6 +45,15 @@ enum IntroStore {
     static var account: PausAccount? {
         get { load(accountKey) }
         set { save(newValue, forKey: accountKey) }
+    }
+
+    /// How many days before a free trial ends the user wants to be reminded.
+    static var trialReminderDays: Int {
+        get {
+            let days = UserDefaults.standard.integer(forKey: trialReminderKey)
+            return TrialReminder.choices.contains(days) ? days : TrialReminder.defaultDaysBefore
+        }
+        set { UserDefaults.standard.set(newValue, forKey: trialReminderKey) }
     }
 
     private static func load<Value: Decodable>(_ key: String) -> Value? {

@@ -15,6 +15,22 @@ final class BlockEngineTests: XCTestCase {
         XCTAssertFalse(engine().shouldShield(at: monday10))
     }
 
+    func testVacationRestsSchedulesAndLimitButNotFocus() {
+        let rules = PausRules(dailyLimitMinutes: 30, schedules: [school], vacationUntil: monday10.addingTimeInterval(3600))
+        XCTAssertNil(engine(rules: rules, runtime: PausRuntime(limitReachedDay: "2026-10-19")).reason(at: monday10))
+        let focusEnd = monday10.addingTimeInterval(25 * 60)
+        XCTAssertEqual(engine(rules: rules, runtime: PausRuntime(focusEndsAt: focusEnd)).reason(at: monday10), .focus(until: focusEnd))
+        // Once the vacation is over the schedule applies again.
+        XCTAssertNotNil(engine(rules: rules).reason(at: monday10.addingTimeInterval(2 * 3600)))
+    }
+
+    func testFreeUsersDontGetUninstallProtection() {
+        let rules = PausRules(preventUninstall: true, adultFilter: true)
+        XCTAssertFalse(rules.effective(isPro: false).preventUninstall)
+        XCTAssertTrue(rules.effective(isPro: false).adultFilter)
+        XCTAssertTrue(rules.effective(isPro: true).preventUninstall)
+    }
+
     func testFocusWinsOverSchedule() {
         let focusEnd = monday10.addingTimeInterval(25 * 60)
         let sut = engine(rules: PausRules(schedules: [school]), runtime: PausRuntime(focusEndsAt: focusEnd))
