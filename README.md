@@ -5,6 +5,8 @@ En iPhone-app som blockerar sociala medier och andra appar som stjäl tid. "Paus
 ## Funktioner
 
 - **Pip**: en animerad maskot vars humör följer vad du gör. Den är zen under fokus, sömnig sent på kvällen, peppad när streaken lever och lite ledsen när gränsen är slut. Pip får nya prylar på nivå 3, 6 och 8.
+- **Pips hälsa (0–100 %)**: Pip mår som du scrollar. Varje halvtimme i de valda apparna (−5), pauser (−5 till −25), slut på dagens tid (−15) och att stänga av Paus (−40) gör Pip ledsen, gråtande och till sist scrollsjuk. En natts sömn (+15), fokuspass, att tacka nej till pauser, att stänga blockerade appar och dagens belöning gör Pip glad igen. Pip skickar en notis när hälsan sjunker till en sämre nivå. Hälsan påverkar inte XP eller nivå.
+- **Skärmtidsrapport**: dagens skärmtid, upplockningar, en stapel för varje dag i veckan, snittet jämfört med veckan innan, de mest använda apparna och hur många dygn per år det blir. Du kan se hela telefonen eller bara Pips appar.
 - **XP och nivåer**: från *Scrollzombie* till *Legend*. Du får XP för fokuspass (1 per minut + bonus), för att stänga en blockerad app, för att tacka nej till en paus och för att hålla dig under den dagliga gränsen.
 - **Dagens belöning och streak**: en belöning per dag som växer med streaken. En påminnelse kl. 18.30 ser till att streaken inte bryts.
 - **Dagliga uppdrag**: tre nya uppdrag varje dag.
@@ -22,7 +24,7 @@ Appen använder Apples Skärmtid-ramverk (FamilyControls, ManagedSettings och De
    `https://github.com/aronleijon-wq/App-blockering.git`
 2. Öppna `Paus.xcodeproj`.
 3. Välj projektet **Paus** i listan till vänster. Gå till *Build Settings* och sök på `PAUS_BUNDLE_PREFIX`. Byt `se.aronleijon.paus` till ett eget id om Xcode säger att det är upptaget. App Group och alla bundle-id:n byggs från det värdet.
-4. För var och en av de fyra targets (**Paus**, **PausMonitor**, **PausShieldConfiguration** och **PausShieldAction**) går du till *Signing & Capabilities* och väljer ditt Team.
+4. För var och en av de fem targets (**Paus**, **PausMonitor**, **PausShieldConfiguration**, **PausShieldAction** och **PausReport**) går du till *Signing & Capabilities* och väljer ditt Team.
 5. Anslut din iPhone, välj den som mål och tryck på ▶︎.
 6. Testa prenumerationen utan riktiga pengar: gå till *Product → Scheme → Edit Scheme… → Run → Options* och välj `Paus.storekit` under *StoreKit Configuration*.
 
@@ -40,7 +42,8 @@ Inskickade anmälningar sparas som posttypen `Report` och kan granskas i CloudKi
 
 **Viktigt:**
 - Skärmtid-funktionerna fungerar inte i simulatorn. Testa på en riktig iPhone.
-- Capability-en *Family Controls* kräver ett betalt Apple Developer-konto (99 USD/år). För att publicera i App Store måste du dessutom ansöka hos Apple om distributionsrätt för Family Controls, för appen och alla tre tillägg.
+- Capability-en *Family Controls* kräver ett betalt Apple Developer-konto (99 USD/år). För att publicera i App Store måste du dessutom ansöka hos Apple om distributionsrätt för Family Controls, för appen och alla fyra tillägg.
+- Skärmtidsrapporten visar bara data på en riktig iPhone. I simulatorn visas påhittade exempelsiffror.
 
 ## Integritet och moderering
 
@@ -53,7 +56,7 @@ Inskickade anmälningar sparas som posttypen `Report` och kan granskas i CloudKi
 ## Lanseringschecklista
 
 1. Publicera integritetspolicyn och en supportsida på en webbadress (till exempel en enkel sida i Lovable).
-2. Ansök om distributionsrätt för Family Controls för alla fyra bundle-id:n: <https://developer.apple.com/contact/request/family-controls-distribution>
+2. Ansök om distributionsrätt för Family Controls för alla fem bundle-id:n (`.monitor`, `.shieldconfiguration`, `.shieldaction`, `.report` och själva appen): <https://developer.apple.com/contact/request/family-controls-distribution>
 3. CloudKit: lägg till index (se ovan) och *Deploy Schema Changes* till produktion.
 4. App Store Connect: skapa appen, båda prenumerationerna, avtalet för betalappar, bank- och skatteuppgifter, och ansök om Small Business Program.
 5. Fyll i *App Privacy*: User ID, Other User Content (smeknamn), Gameplay Content (poäng) och Coarse Location (land), alla kopplade till användaren, för appens funktion och inte för spårning.
@@ -68,9 +71,11 @@ Inskickade anmälningar sparas som posttypen `Report` och kan granskas i CloudKi
 | `Shared/` | Kod som både appen och tilläggen använder: lagring i App Group, sköld och schemaläggning |
 | `Paus/Design/` | Färger, knappstilar, maskoten Pip och konfetti |
 | `PausCore/` | Ren logik för scheman, regler, pauser, XP, nivåer, uppdrag, troféer, ligapoäng och divisioner, med enhetstester (`swift test`) |
-| `PausMonitor/` | DeviceActivity-tillägg som startar och stoppar blockeringen när ett schema, ett fokuspass eller en paus börjar eller slutar |
+| `PausMonitor/` | DeviceActivity-tillägg som startar och stoppar blockeringen när ett schema, ett fokuspass eller en paus börjar eller slutar, och som sänker Pips hälsa för varje halvtimme i de valda apparna |
 | `PausShieldConfiguration/` | Utseendet på spärrskärmen |
 | `PausShieldAction/` | Vad knapparna på spärrskärmen gör |
+| `PausReport/` | DeviceActivityReport-tillägg som räknar ut skärmtidsrapporten. iOS låter inte siffrorna lämna tillägget, så de visas bara och sparas aldrig. |
+| `ReportUI/` | Rapportens vyer, som både tillägget och appen använder (appen visar exempeldata i simulatorn) |
 | `Config/` | Info.plist och entitlements för varje target |
 
 All logik som avgör *om* något ska blockeras finns i `BlockEngine`, som appen och tilläggen delar. Varje händelse (ett schema börjar, en paus tar slut, gränsen nås och så vidare) uppdaterar det delade tillståndet och anropar sedan `ShieldController.refresh()`.

@@ -10,6 +10,7 @@
 		F63A06AD15A0912274D9E219 /* PausMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 41E668286B0796FB7E488F39 /* PausMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A762749A0A80138B67008C07 /* PausShieldConfiguration.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CF1643F1F0D7FFD88370D2D0 /* PausShieldConfiguration.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		47FC4BA2B18D0FAF779FB90B /* PausShieldAction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 764F188140277AF7321C7FA0 /* PausShieldAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7D495D3C538261D2DB516B33 /* PausReport.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = C3F26AA166B41159331D07E3 /* PausReport.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,6 +35,13 @@
 			remoteGlobalIDString = D21BAD69FD2B88C955D02991;
 			remoteInfo = PausShieldAction;
 		};
+		09DD1AB32C90D28EB4ABEE03 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1F1C6DEB305654D9E8B94EBF;
+			remoteInfo = PausReport;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -50,6 +58,17 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D2B000F249FF4F227CF0CAD3 /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				7D495D3C538261D2DB516B33 /* PausReport.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -57,6 +76,7 @@
 		41E668286B0796FB7E488F39 /* PausMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PausMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CF1643F1F0D7FFD88370D2D0 /* PausShieldConfiguration.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PausShieldConfiguration.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		764F188140277AF7321C7FA0 /* PausShieldAction.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PausShieldAction.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		C3F26AA166B41159331D07E3 /* PausReport.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = PausReport.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -88,6 +108,16 @@
 		CFA40C5788693F5A6A2DEC94 /* PausShieldAction */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = PausShieldAction;
+			sourceTree = "<group>";
+		};
+		DF7382602F6ACE72DE54E3D0 /* PausReport */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PausReport;
+			sourceTree = "<group>";
+		};
+		EF81914CCCEF443025E3A526 /* ReportUI */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ReportUI;
 			sourceTree = "<group>";
 		};
 		8D36E4C8C1445369A8090D18 /* Config */ = {
@@ -126,6 +156,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		946EB3E3304AA90BCC81AAC9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -138,6 +175,8 @@
 				17B68358202B543197E8735B /* PausMonitor */,
 				C5A7E7F6C7DD7F4846597CEF /* PausShieldConfiguration */,
 				CFA40C5788693F5A6A2DEC94 /* PausShieldAction */,
+				DF7382602F6ACE72DE54E3D0 /* PausReport */,
+				EF81914CCCEF443025E3A526 /* ReportUI */,
 				8D36E4C8C1445369A8090D18 /* Config */,
 				113236722DEE1DC96F378B9D /* Products */,
 			);
@@ -150,6 +189,7 @@
 				41E668286B0796FB7E488F39 /* PausMonitor.appex */,
 				CF1643F1F0D7FFD88370D2D0 /* PausShieldConfiguration.appex */,
 				764F188140277AF7321C7FA0 /* PausShieldAction.appex */,
+				C3F26AA166B41159331D07E3 /* PausReport.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -165,6 +205,7 @@
 				0431B8F210F5D9F16D3C321B /* Frameworks */,
 				8C4D982934685C2AFDA0DAE6 /* Resources */,
 				370629FD6D8AA78693D12695 /* Embed Foundation Extensions */,
+				D2B000F249FF4F227CF0CAD3 /* Embed ExtensionKit Extensions */,
 			);
 			buildRules = (
 			);
@@ -172,11 +213,13 @@
 				656336EC0207A4525AD574F5 /* PBXTargetDependency */,
 				4E7AA56B70A1AF41F02BB3E7 /* PBXTargetDependency */,
 				4B654E1C422761CC863C703F /* PBXTargetDependency */,
+				09C6A9E4960F4388F3279BD0 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				C66D821B8AFF026F504788C6 /* Paus */,
 				71CF18FAD41D5536C0497AA2 /* Shared */,
 				DB525CDD853270E7C68F1BE1 /* PausCore */,
+				EF81914CCCEF443025E3A526 /* ReportUI */,
 			);
 			name = Paus;
 			packageProductDependencies = (
@@ -257,6 +300,29 @@
 			productReference = 764F188140277AF7321C7FA0 /* PausShieldAction.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		1F1C6DEB305654D9E8B94EBF /* PausReport */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D70652CD7FD9482626AD1F37 /* Build configuration list for PBXNativeTarget "PausReport" */;
+			buildPhases = (
+				33B41692046B2577EBE31286 /* Sources */,
+				946EB3E3304AA90BCC81AAC9 /* Frameworks */,
+				D6ECC064F318386E034D4171 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DF7382602F6ACE72DE54E3D0 /* PausReport */,
+				EF81914CCCEF443025E3A526 /* ReportUI */,
+			);
+			name = PausReport;
+			packageProductDependencies = (
+			);
+			productName = PausReport;
+			productReference = C3F26AA166B41159331D07E3 /* PausReport.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -277,6 +343,9 @@
 						CreatedOnToolsVersion = 16.0;
 					};
 					D21BAD69FD2B88C955D02991 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					1F1C6DEB305654D9E8B94EBF = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -300,6 +369,7 @@
 				EB3FD700DF2BCCADB6EFC596 /* PausMonitor */,
 				ABE7401FD69068A88A1897DB /* PausShieldConfiguration */,
 				D21BAD69FD2B88C955D02991 /* PausShieldAction */,
+				1F1C6DEB305654D9E8B94EBF /* PausReport */,
 			);
 		};
 /* End PBXProject section */
@@ -327,6 +397,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		D8FED54ED794760F5F0E77C8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D6ECC064F318386E034D4171 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -364,6 +441,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		33B41692046B2577EBE31286 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -381,6 +465,11 @@
 			isa = PBXTargetDependency;
 			target = D21BAD69FD2B88C955D02991 /* PausShieldAction */;
 			targetProxy = FBC4065EA1A459204944519B /* PBXContainerItemProxy */;
+		};
+		09C6A9E4960F4388F3279BD0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1F1C6DEB305654D9E8B94EBF /* PausReport */;
+			targetProxy = 09DD1AB32C90D28EB4ABEE03 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -527,7 +616,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/Paus-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Paus;
-				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -554,7 +642,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/Paus-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Paus;
-				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -696,6 +783,48 @@
 			};
 			name = Release;
 		};
+		9FBC117B55F2DB7D8131D086 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/PausReport.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/PausReport-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = PausReport;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PAUS_BUNDLE_PREFIX).report";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		051238F1C567E7D775810AA0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/PausReport.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/PausReport-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = PausReport;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PAUS_BUNDLE_PREFIX).report";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -740,6 +869,15 @@
 			buildConfigurations = (
 				D9A8EE73A95174E1A94C3963 /* Debug */,
 				5ABDD2F11C6197F02D981483 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D70652CD7FD9482626AD1F37 /* Build configuration list for PBXNativeTarget "PausReport" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9FBC117B55F2DB7D8131D086 /* Debug */,
+				051238F1C567E7D775810AA0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

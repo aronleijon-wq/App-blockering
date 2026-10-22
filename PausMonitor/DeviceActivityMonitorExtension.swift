@@ -33,8 +33,29 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
     override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
         super.eventDidReachThreshold(event, activity: activity)
+        if let minutes = event.scrolledMinutes {
+            recordHealth(.scrolled(minutes: minutes), scrolledMinutes: minutes)
+            return
+        }
         guard event == .dailyLimit else { return }
-        SharedStore.updateRuntime { $0.limitReachedDay = DayKey.string(for: .now, calendar: .current) }
+        let today = DayKey.string(for: .now, calendar: .current)
+        var isFirstTimeToday = false
+        SharedStore.updateRuntime { runtime in
+            isFirstTimeToday = runtime.limitReachedDay != today
+            runtime.limitReachedDay = today
+        }
+        if isFirstTimeToday {
+            recordHealth(.reachedDailyLimit, scrolledMinutes: nil)
+        }
         ShieldController.refresh()
+    }
+
+    /// Records something that hurts Pip and lets the user know when Pip feels worse because of it.
+    private func recordHealth(_ event: ProgressEvent, scrolledMinutes: Int?) {
+        let before = SharedStore.progress.healthStage
+        ProgressRecorder.record(event)
+        let progress = SharedStore.progress
+        guard progress.healthStage < before else { return }
+        PipNotifier.healthDropped(to: progress.healthStage, health: progress.health, scrolledMinutes: scrolledMinutes)
     }
 }

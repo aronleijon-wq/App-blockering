@@ -23,6 +23,10 @@ enum Coach {
             options = ["Det är sent… sociala medier sover också.", "Lägg undan mobilen, så ses vi i morgon.", "Zzz… din hjärna tackar dig för sömnen."]
         case .sad:
             options = ["Det är okej. I morgon är en ny dag.", "Alla behöver en paus ibland. Vi kör igen snart.", "Jag tror på dig, även idag."]
+        case .crying:
+            options = ["Jag mår inte så bra… kan vi köra ett fokuspass ihop?", "Allt scrollande gör mig ledsen. Hjälp mig att må bättre?", "Säg nej till nästa paus, så piggnar jag till."]
+        case .wrecked:
+            options = ["Jag är helt scrollsjuk. Snälla, lägg undan mobilen en stund.", "Mitt huvud snurrar av alla klipp… ett fokuspass skulle rädda mig.", "Jag behöver dig nu. Varje nej gör mig lite friskare."]
         case .proud:
             options = ["Alla uppdrag klara! Du är grym.", "Full pott idag. Kolla på dig!", "Det här är din bästa version."]
         case .hyped:
@@ -45,6 +49,7 @@ enum Coach {
                 """)
             let prompt = """
                 Skriv ett personligt peppmeddelande till användaren. Ditt humör: \(mood.label). \
+                Din hälsa: \(progress.health) av 100. Är den låg, be användaren om hjälp att må bättre. \
                 Streak: \(progress.currentStreak(at: date, calendar: .current)) dagar. Nivå: \(progress.level). \
                 Fokusminuter idag: \(counts.focusMinutes). Gånger användaren stängt en blockerad app idag: \(counts.closes).
                 """

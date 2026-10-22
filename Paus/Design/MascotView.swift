@@ -23,16 +23,44 @@ struct MascotView: View {
                         BlobShape(phase: time * 1.6, wobble: mood == .hyped ? 0.055 : 0.03)
                             .stroke(Color.white.opacity(0.3), lineWidth: 2)
                     }
-                    .saturation(mood == .sad ? 0.45 : 1)
+                    .overlay {
+                        if mood == .wrecked {
+                            // A sickly green tinge.
+                            BlobShape(phase: time * 1.6, wobble: 0.03)
+                                .fill(Color(red: 0.45, green: 0.6, blue: 0.3).opacity(0.35))
+                        }
+                    }
+                    .saturation(saturation)
 
                 face(time: time)
                 accessories(time: time)
+                if mood == .crying {
+                    tears(time: time)
+                }
             }
             .frame(width: size, height: size)
-            .offset(y: CGFloat(sin(time * (mood == .hyped ? 4 : 2))) * size * 0.025)
+            .scaleEffect(x: mood == .wrecked ? 1.04 : 1, y: mood == .wrecked ? 0.92 : 1, anchor: .bottom)
+            .offset(y: CGFloat(sin(time * bobSpeed)) * size * 0.025)
         }
         .accessibilityElement()
         .accessibilityLabel("Pip, nivå \(level), \(mood.label)")
+    }
+
+    private var saturation: Double {
+        switch mood {
+        case .sad: return 0.45
+        case .crying: return 0.3
+        case .wrecked: return 0.12
+        default: return 1
+        }
+    }
+
+    private var bobSpeed: Double {
+        switch mood {
+        case .hyped: return 4
+        case .crying, .wrecked: return 1
+        default: return 2
+        }
     }
 
     private var bodyGradient: LinearGradient {
@@ -83,13 +111,18 @@ struct MascotView: View {
             ArcShape(upward: mood == .zen)
                 .stroke(Color.black.opacity(0.75), style: StrokeStyle(lineWidth: size * 0.025, lineCap: .round))
                 .frame(width: eyeSize, height: eyeSize * 0.45)
+        case .wrecked:
+            // Dazed X eyes.
+            CrossShape()
+                .stroke(Color.black.opacity(0.75), style: StrokeStyle(lineWidth: size * 0.028, lineCap: .round))
+                .frame(width: eyeSize * 0.7, height: eyeSize * 0.7)
         default:
             ZStack {
                 Ellipse().fill(.white)
                 Circle()
                     .fill(Color.black.opacity(0.85))
                     .frame(width: eyeSize * 0.52)
-                    .offset(y: mood == .sad ? eyeSize * 0.15 : 0)
+                    .offset(y: mood == .sad || mood == .crying ? eyeSize * 0.15 : 0)
                 Circle()
                     .fill(.white)
                     .frame(width: eyeSize * 0.18)
@@ -107,10 +140,14 @@ struct MascotView: View {
             HalfCircle()
                 .fill(Color.black.opacity(0.75))
                 .frame(width: width, height: width * 0.55)
-        case .sad:
+        case .sad, .crying:
             ArcShape(upward: true)
                 .stroke(Color.black.opacity(0.75), style: StrokeStyle(lineWidth: size * 0.025, lineCap: .round))
-                .frame(width: width * 0.8, height: width * 0.3)
+                .frame(width: width * (mood == .crying ? 1 : 0.8), height: width * (mood == .crying ? 0.4 : 0.3))
+        case .wrecked:
+            WavyLine()
+                .stroke(Color.black.opacity(0.75), style: StrokeStyle(lineWidth: size * 0.025, lineCap: .round, lineJoin: .round))
+                .frame(width: width, height: width * 0.25)
         case .sleepy:
             Ellipse()
                 .fill(Color.black.opacity(0.7))
@@ -122,10 +159,37 @@ struct MascotView: View {
         }
     }
 
+    /// Two drops that keep running down from under the eyes.
+    private func tears(time: Double) -> some View {
+        ForEach(0..<2, id: \.self) { index in
+            let phase = (time * 0.7 + Double(index) * 0.5).truncatingRemainder(dividingBy: 1)
+            Image(systemName: "drop.fill")
+                .font(.system(size: size * 0.07))
+                .foregroundStyle(Color(red: 0.55, green: 0.8, blue: 1))
+                .offset(
+                    x: (index == 0 ? -1 : 1) * size * 0.19,
+                    y: size * 0.02 + CGFloat(phase) * size * 0.22
+                )
+                .opacity(1 - phase)
+        }
+    }
+
     @ViewBuilder
     private func accessories(time: Double) -> some View {
         let top = -size * 0.47
-        if level >= 8 {
+        if mood == .wrecked {
+            // A plaster instead of the level accessory.
+            RoundedRectangle(cornerRadius: size * 0.03, style: .continuous)
+                .fill(Color(red: 0.98, green: 0.84, blue: 0.68))
+                .overlay {
+                    RoundedRectangle(cornerRadius: size * 0.015, style: .continuous)
+                        .fill(Color(red: 0.9, green: 0.72, blue: 0.56))
+                        .frame(width: size * 0.07, height: size * 0.06)
+                }
+                .frame(width: size * 0.22, height: size * 0.08)
+                .rotationEffect(.degrees(-30))
+                .offset(x: size * 0.2, y: -size * 0.3)
+        } else if level >= 8 {
             Image(systemName: "crown.fill")
                 .font(.system(size: size * 0.22))
                 .foregroundStyle(LinearGradient(colors: [Color(red: 1, green: 0.88, blue: 0.3), Theme.orange], startPoint: .top, endPoint: .bottom))
@@ -145,7 +209,7 @@ struct MascotView: View {
                 .offset(x: size * 0.04, y: top + size * 0.03)
         }
 
-        if level >= 10 || mood == .proud || mood == .hyped {
+        if (level >= 10 && mood != .crying && mood != .wrecked) || mood == .proud || mood == .hyped {
             ForEach(0..<3, id: \.self) { index in
                 let angle = time * 0.9 + Double(index) * 2 * .pi / 3
                 Image(systemName: "sparkle")
@@ -165,6 +229,8 @@ extension MascotMood {
         case .zen: return "i fokus"
         case .sleepy: return "sömnig"
         case .sad: return "lite ledsen"
+        case .crying: return "ledsen och mår dåligt"
+        case .wrecked: return "scrollsjuk"
         case .proud: return "stolt"
         case .hyped: return "peppad"
         }
@@ -210,6 +276,33 @@ struct ArcShape: Shape {
             to: CGPoint(x: rect.maxX, y: upward ? rect.maxY : rect.minY),
             control: CGPoint(x: rect.midX, y: upward ? rect.minY - rect.height : rect.maxY + rect.height)
         )
+        return path
+    }
+}
+
+/// The two diagonals of a box, for dazed eyes.
+struct CrossShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        return path
+    }
+}
+
+/// A queasy zigzag mouth.
+struct WavyLine: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let segments = 4
+        path.move(to: CGPoint(x: rect.minX, y: rect.midY))
+        for index in 1...segments {
+            let x = rect.minX + rect.width * CGFloat(index) / CGFloat(segments)
+            let controlX = x - rect.width / CGFloat(segments * 2)
+            path.addQuadCurve(to: CGPoint(x: x, y: rect.midY), control: CGPoint(x: controlX, y: index.isMultiple(of: 2) ? rect.maxY : rect.minY))
+        }
         return path
     }
 }

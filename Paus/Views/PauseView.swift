@@ -187,6 +187,10 @@ struct PauseView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
+            let healthCost = model.progress.nextPauseHealthCost(at: now, calendar: .current)
+            Label("Pip tappar \(healthCost) i hälsa: \(model.progress.health) % → \(max(0, model.progress.health - healthCost)) %", systemImage: "heart.slash.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.pink)
             Text("Pauser i dag: \(pausesToday) av \(model.rules.pause.maxPerDay). Pausen varar \(model.rules.pause.minutes) min.")
                 .font(.caption)
                 .foregroundStyle(.secondary)

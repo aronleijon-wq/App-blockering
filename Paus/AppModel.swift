@@ -90,7 +90,9 @@ final class AppModel {
             runtime = SharedStore.runtime
         }
         SharedStore.updateProgress { [effectiveRules, runtime] progress in
-            progress.settleDayUnderLimit(
+            // Pip gets the night's recovery even on a day without anything else to record.
+            progress.recoverOvernight(at: .now, calendar: .current)
+            return progress.settleDayUnderLimit(
                 limitWasSet: effectiveRules.dailyLimitMinutes != nil,
                 limitReachedDay: runtime.limitReachedDay,
                 at: .now,

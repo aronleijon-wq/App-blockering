@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(AppModel.self) private var model
+    @State private var isHealthInfoPresented = false
 
     private let focusLengths = [25, 50, 90]
 
@@ -19,6 +20,7 @@ struct HomeView: View {
                             statusCard(at: context.date)
                             focusCard(at: context.date)
                         }
+                        ScreenTimeCard()
                         questsCard(at: context.date)
                     }
                     .padding(.horizontal, 16)
@@ -72,6 +74,16 @@ struct HomeView: View {
                             .accessibilityHidden(true)
                     }
                     .contentTransition(.opacity)
+            }
+
+            Button {
+                isHealthInfoPresented = true
+            } label: {
+                HealthBar(health: progress.health)
+            }
+            .buttonStyle(.plain)
+            .sheet(isPresented: $isHealthInfoPresented) {
+                PipHealthSheet()
             }
 
             VStack(spacing: 8) {

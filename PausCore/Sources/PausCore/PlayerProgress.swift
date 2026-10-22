@@ -11,6 +11,10 @@ enum ProgressEvent: Equatable {
     case tookPause
     /// Turned off Paus's Screen Time access. Costs points and the streak.
     case disabledProtection
+    /// The guarded apps have been used for `minutes` today. Only makes Pip sadder.
+    case scrolled(minutes: Int)
+    /// Used up the daily limit. Only makes Pip sadder.
+    case reachedDailyLimit
 }
 
 enum Reward: Codable, Equatable, Hashable {
@@ -38,8 +42,10 @@ struct DailyCounts: Codable, Equatable {
     /// Focus minutes already counted toward league points today.
     var focusPoints: Int
     var pauses: Int
+    /// The highest usage threshold of the guarded apps already reported today.
+    var scrolledMinutes: Int
 
-    init(day: String? = nil, focusSessions: Int = 0, focusMinutes: Int = 0, closes: Int = 0, declines: Int = 0, completedQuests: Set<String> = [], focusPoints: Int = 0, pauses: Int = 0) {
+    init(day: String? = nil, focusSessions: Int = 0, focusMinutes: Int = 0, closes: Int = 0, declines: Int = 0, completedQuests: Set<String> = [], focusPoints: Int = 0, pauses: Int = 0, scrolledMinutes: Int = 0) {
         self.day = day
         self.focusSessions = focusSessions
         self.focusMinutes = focusMinutes
@@ -48,6 +54,7 @@ struct DailyCounts: Codable, Equatable {
         self.completedQuests = completedQuests
         self.focusPoints = focusPoints
         self.pauses = pauses
+        self.scrolledMinutes = scrolledMinutes
     }
 
     init(from decoder: Decoder) throws {
@@ -60,6 +67,7 @@ struct DailyCounts: Codable, Equatable {
         completedQuests = try container.decodeIfPresent(Set<String>.self, forKey: .completedQuests) ?? []
         focusPoints = try container.decodeIfPresent(Int.self, forKey: .focusPoints) ?? 0
         pauses = try container.decodeIfPresent(Int.self, forKey: .pauses) ?? 0
+        scrolledMinutes = try container.decodeIfPresent(Int.self, forKey: .scrolledMinutes) ?? 0
     }
 }
 
@@ -104,6 +112,10 @@ struct PlayerProgress: Codable, Equatable {
     var finishedWeek: FinishedWeek?
     /// How often each pause reason was picked, keyed by `PauseReason` raw value.
     var pauseReasons: [String: Int]
+    /// Pip's health, 0...100. See `PipHealth`.
+    var health: Int
+    /// The day health last recovered overnight.
+    var healthDay: String?
 
     init(
         xp: Int = 0,
@@ -125,7 +137,9 @@ struct PlayerProgress: Codable, Equatable {
         division: Division = .brons,
         leagueGroupID: String? = nil,
         finishedWeek: FinishedWeek? = nil,
-        pauseReasons: [String: Int] = [:]
+        pauseReasons: [String: Int] = [:],
+        health: Int = PipHealth.start,
+        healthDay: String? = nil
     ) {
         self.xp = xp
         self.streak = streak
@@ -147,6 +161,8 @@ struct PlayerProgress: Codable, Equatable {
         self.leagueGroupID = leagueGroupID
         self.finishedWeek = finishedWeek
         self.pauseReasons = pauseReasons
+        self.health = health
+        self.healthDay = healthDay
     }
 
     init(from decoder: Decoder) throws {
@@ -171,9 +187,13 @@ struct PlayerProgress: Codable, Equatable {
         leagueGroupID = try container.decodeIfPresent(String.self, forKey: .leagueGroupID)
         finishedWeek = try container.decodeIfPresent(FinishedWeek.self, forKey: .finishedWeek)
         pauseReasons = try container.decodeIfPresent([String: Int].self, forKey: .pauseReasons) ?? [:]
+        health = try container.decodeIfPresent(Int.self, forKey: .health) ?? PipHealth.start
+        healthDay = try container.decodeIfPresent(String.self, forKey: .healthDay)
     }
 
     var level: Int { Level.level(forXP: xp) }
+
+    var healthStage: PipHealth.Stage { PipHealth.Stage(health: health) }
 
     /// The streak as of `date`; it lapses after a whole day without activity.
     func currentStreak(at date: Date, calendar: Calendar) -> Int {
@@ -206,9 +226,11 @@ struct PlayerProgress: Codable, Equatable {
         if firstDay == nil { firstDay = day }
         if today.day != day { today = DailyCounts(day: day) }
         rollWeek(at: date, calendar: calendar)
+        recoverOvernight(at: date, calendar: calendar)
         let levelBefore = level
         var gained = 0
         var points = 0
+        var healthChange = 0
 
         switch event {
         case .focusCompleted(let minutes):
@@ -220,18 +242,21 @@ struct PlayerProgress: Codable, Equatable {
             gained = minutes + XP.focusBonus
             points = min(minutes, max(0, League.Points.focusDailyCap - today.focusPoints))
             today.focusPoints += points
+            healthChange = points / PipHealth.focusMinutesPerPoint
             markActive(at: date, calendar: calendar)
         case .closedBlockedApp:
             closes += 1
             today.closes += 1
             gained = today.closes <= XP.closeDailyCap ? XP.close : 0
             points = gained > 0 ? League.Points.close : 0
+            healthChange = gained > 0 ? PipHealth.closedBlockedApp : 0
             markActive(at: date, calendar: calendar)
         case .declinedPause:
             declines += 1
             today.declines += 1
             gained = today.declines <= XP.declineDailyCap ? XP.decline : 0
             points = gained > 0 ? League.Points.decline : 0
+            healthChange = gained > 0 ? PipHealth.declinedPause : 0
             markActive(at: date, calendar: calendar)
         case .claimedDailyReward:
             guard lastRewardDay != day else { return [] }
@@ -240,17 +265,31 @@ struct PlayerProgress: Codable, Equatable {
             markActive(at: date, calendar: calendar)
             gained = XP.dailyRewardBase + XP.dailyRewardPerStreakDay * min(streak, XP.dailyRewardMaxStreakBonus)
             points = League.Points.dailyReward
+            healthChange = PipHealth.dailyReward
         case .dayUnderLimit:
             gained = XP.dayUnderLimit
             points = League.Points.dayUnderLimit
+            healthChange = PipHealth.dayUnderLimit
         case .tookPause:
             today.pauses += 1
             points = -League.pausePenalty(forPause: today.pauses)
+            healthChange = -PipHealth.pauseCost(forPause: today.pauses)
         case .disabledProtection:
             points = -League.Points.disabledProtectionPenalty
+            healthChange = -PipHealth.disabledProtection
             streak = 0
             lastActiveDay = nil
+        case .scrolled(let minutes):
+            // Thresholds can be reported again when monitoring restarts, so only new steps count.
+            let reached = min(minutes, PipHealth.scrollMaxMinutes)
+            guard reached > today.scrolledMinutes else { return [] }
+            let steps = reached / PipHealth.scrollStepMinutes - today.scrolledMinutes / PipHealth.scrollStepMinutes
+            today.scrolledMinutes = reached
+            healthChange = -steps * PipHealth.perScrollStep
+        case .reachedDailyLimit:
+            healthChange = -PipHealth.reachedDailyLimit
         }
+        health = min(PipHealth.maximum, max(0, health + healthChange))
         // XP is never taken away, so levels stay earned; only this week's league points drop.
         weeklyPoints = max(0, weeklyPoints + points)
 
@@ -288,6 +327,21 @@ struct PlayerProgress: Codable, Equatable {
         // Only days the user actually had Paus count.
         guard limitWasSet, limitReachedDay != yesterday, let firstDay, firstDay <= yesterday else { return [] }
         return record(.dayUnderLimit, at: date, calendar: calendar)
+    }
+
+    /// Gives Pip the night's recovery once a day has passed since the last one.
+    mutating func recoverOvernight(at date: Date, calendar: Calendar) {
+        let day = DayKey.string(for: date, calendar: calendar)
+        guard healthDay != day else { return }
+        if healthDay != nil {
+            health = min(PipHealth.maximum, health + PipHealth.overnight)
+        }
+        healthDay = day
+    }
+
+    /// Health the next pause today would cost.
+    func nextPauseHealthCost(at date: Date, calendar: Calendar) -> Int {
+        PipHealth.pauseCost(forPause: counts(at: date, calendar: calendar).pauses + 1)
     }
 
     /// League points the next pause today would cost.
@@ -437,10 +491,16 @@ struct Achievement: Identifiable {
 
 /// How the mascot feels, derived from what is going on right now.
 enum MascotMood: String, CaseIterable {
-    case happy, zen, sleepy, sad, proud, hyped
+    case happy, zen, sleepy, sad, proud, hyped, crying, wrecked
 
     static func current(reason: BlockReason?, isPaused: Bool, progress: PlayerProgress, at date: Date, calendar: Calendar) -> MascotMood {
         if case .focus = reason { return .zen }
+        switch progress.healthStage {
+        case .wrecked: return .wrecked
+        case .sick: return .crying
+        case .down: return .sad
+        case .okay, .great: break
+        }
         if isPaused { return .sad }
         if case .dailyLimit = reason { return .sad }
         let hour = calendar.component(.hour, from: date)

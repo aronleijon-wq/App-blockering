@@ -6,6 +6,8 @@ extension DeviceActivityName {
     static let focus = Self("paus.focus")
     static let pause = Self("paus.pause")
     static let dailyLimit = Self("paus.limit")
+    /// Follows how long the guarded apps are used each day, for Pip's health.
+    static let usage = Self("paus.usage")
 
     private static let schedulePrefix = "paus.schedule."
 
@@ -22,6 +24,18 @@ extension DeviceActivityName {
 
 extension DeviceActivityEvent.Name {
     static let dailyLimit = Self("paus.limit.reached")
+
+    private static let scrolledPrefix = "paus.scrolled."
+
+    static func scrolled(minutes: Int) -> Self {
+        Self(scrolledPrefix + String(minutes))
+    }
+
+    /// The usage in minutes this event reports, if it is a usage event.
+    var scrolledMinutes: Int? {
+        guard rawValue.hasPrefix(Self.scrolledPrefix) else { return nil }
+        return Int(rawValue.dropFirst(Self.scrolledPrefix.count))
+    }
 }
 
 /// Registers DeviceActivity monitoring so the monitor extension wakes up when blocks should start or end,
@@ -33,15 +47,15 @@ enum ActivityScheduler {
 
     /// Whether the registered schedule and limit activities match the saved rules.
     static func isInSync(rules: PausRules, selection: FamilyActivitySelection) -> Bool {
-        let registered = Set(center.activities.filter { $0.scheduleID != nil || $0 == .dailyLimit })
+        let registered = Set(center.activities.filter(isRuleActivity))
         return registered == expectedActivities(rules: rules, selection: selection)
     }
 
-    /// Re-registers schedule and daily-limit monitoring from the enforced rules. Focus and pause are left running.
+    /// Re-registers schedule, daily-limit and usage monitoring from the enforced rules. Focus and pause are left running.
     static func sync() throws {
         let rules = SharedStore.effectiveRules
         let selection = SharedStore.selection
-        let stale = center.activities.filter { $0.scheduleID != nil || $0 == .dailyLimit }
+        let stale = center.activities.filter(isRuleActivity)
         // An empty list would stop every activity, focus and pause included.
         if !stale.isEmpty {
             center.stopMonitoring(stale)
@@ -62,14 +76,26 @@ enum ActivityScheduler {
             }
         }
 
+        let day = DeviceActivitySchedule(
+            intervalStart: DateComponents(hour: 0, minute: 0),
+            intervalEnd: DateComponents(hour: 23, minute: 59),
+            repeats: true
+        )
         if let limit = rules.dailyLimitMinutes, !selection.isEmpty {
-            let day = DeviceActivitySchedule(
-                intervalStart: DateComponents(hour: 0, minute: 0),
-                intervalEnd: DateComponents(hour: 23, minute: 59),
-                repeats: true
-            )
             do {
-                try center.startMonitoring(.dailyLimit, during: day, events: [.dailyLimit: limitEvent(minutes: limit, selection: selection)])
+                try center.startMonitoring(.dailyLimit, during: day, events: [.dailyLimit: usageEvent(minutes: limit, selection: selection)])
+            } catch {
+                firstError = firstError ?? error
+            }
+        }
+
+        if !selection.isEmpty {
+            var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
+            for minutes in PipHealth.scrollThresholds {
+                events[.scrolled(minutes: minutes)] = usageEvent(minutes: minutes, selection: selection)
+            }
+            do {
+                try center.startMonitoring(.usage, during: day, events: events)
             } catch {
                 firstError = firstError ?? error
             }
@@ -104,17 +130,25 @@ enum ActivityScheduler {
         if rules.dailyLimitMinutes != nil, !selection.isEmpty {
             names.insert(.dailyLimit)
         }
+        if !selection.isEmpty {
+            names.insert(.usage)
+        }
         return names
+    }
+
+    /// Activities derived from the rules and selection, as opposed to focus sessions and pauses.
+    private static func isRuleActivity(_ name: DeviceActivityName) -> Bool {
+        name.scheduleID != nil || name == .dailyLimit || name == .usage
     }
 
     private static func isMonitorable(_ schedule: BlockSchedule) -> Bool {
         schedule.isEnabled && !schedule.weekdays.isEmpty && schedule.durationMinutes >= 15 && schedule.durationMinutes < 1440
     }
 
-    private static func limitEvent(minutes: Int, selection: FamilyActivitySelection) -> DeviceActivityEvent {
+    private static func usageEvent(minutes: Int, selection: FamilyActivitySelection) -> DeviceActivityEvent {
         let threshold = DateComponents(minute: minutes)
         if #available(iOS 17.4, *) {
-            // Count usage from midnight, so re-registering during the day doesn't reset the limit.
+            // Count usage from midnight, so re-registering during the day doesn't reset the count.
             return DeviceActivityEvent(
                 applications: selection.applicationTokens,
                 categories: selection.categoryTokens,

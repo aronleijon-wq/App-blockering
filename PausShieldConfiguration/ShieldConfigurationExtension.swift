@@ -36,6 +36,10 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         if earnsXP {
             subtitle += " Stäng nu och få +\(PlayerProgress.XP.close) XP."
         }
+        let stage = progress.healthStage
+        if stage <= .down {
+            subtitle += "\n\nPip mår \(stage == .wrecked ? "jättedåligt" : stage == .sick ? "dåligt" : "lite sådär") (\(progress.health) %). En paus gör Pip ledsnare."
+        }
 
         return ShieldConfiguration(
             backgroundBlurStyle: .systemUltraThinMaterialDark,
