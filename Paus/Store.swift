@@ -20,6 +20,10 @@ final class Store {
     private(set) var yearlyPerMonth: String?
     /// How much cheaper the yearly plan is than twelve months, in whole percent.
     private(set) var yearlySavingsPercent: Int?
+    /// The products from the App Store, yearly first, once loaded.
+    private(set) var products: [Product] = []
+    /// Whether this Apple ID can still get the free week.
+    private(set) var isEligibleForTrial = true
     /// Called when the entitlement changes, so rules can be re-applied.
     @ObservationIgnored var onChange: (@MainActor (Bool) -> Void)?
     @ObservationIgnored private var updates: Task<Void, Never>?
@@ -44,13 +48,37 @@ final class Store {
                 active = true
             }
         }
-        if monthlyPrice == nil, let products = try? await Product.products(for: Self.proProductIDs) {
-            loadPrices(from: products)
+        if products.isEmpty, let loaded = try? await Product.products(for: Self.proProductIDs) {
+            products = Self.proProductIDs.compactMap { id in loaded.first { $0.id == id } }
+            loadPrices(from: loaded)
+        }
+        if let subscription = products.first?.subscription {
+            isEligibleForTrial = await subscription.isEligibleForIntroOffer
         }
         guard active != isPro else { return }
         isPro = active
         SharedStore.isPro = active
         onChange?(active)
+    }
+
+    /// Buys `product` and returns the verified transaction, or nil if the user cancelled or it awaits approval.
+    func purchase(_ product: Product) async throws -> Transaction? {
+        switch try await product.purchase() {
+        case .success(.verified(let transaction)):
+            await transaction.finish()
+            await refresh()
+            return transaction
+        case .success(.unverified), .pending, .userCancelled:
+            return nil
+        @unknown default:
+            return nil
+        }
+    }
+
+    /// Asks the App Store for the purchases on this Apple ID, for someone who bought Pro on another phone.
+    func restore() async {
+        try? await AppStore.sync()
+        await refresh()
     }
 
     private func loadPrices(from products: [Product]) {
