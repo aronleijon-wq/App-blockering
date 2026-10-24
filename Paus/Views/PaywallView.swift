@@ -37,6 +37,8 @@ struct PaywallView: View {
             .background(Theme.backdrop)
         }
         .storeButton(.visible, for: .restorePurchases)
+        // An X in the corner, so it is obvious that Paus works without Pro too.
+        .storeButton(.visible, for: .cancellation)
         .subscriptionStorePolicyDestination(url: AppInfo.termsURL, for: .termsOfService)
         .subscriptionStorePolicyDestination(for: .privacyPolicy) {
             NavigationStack { PrivacyPolicyView() }
