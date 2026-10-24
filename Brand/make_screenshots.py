@@ -8,7 +8,7 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
-from make_brand import (BG, BLACK, BOLD, CARD, MINT, ORANGE, PINK, SEMI, VIOLET, WHITE, app_icon, dark_backdrop, font, pip,
+from make_brand import (BG, BLACK, BOLD, CARD, CYAN, MINT, ORANGE, PINK, SEMI, VIOLET, WHITE, app_icon, brand_gradient, dark_backdrop, font, pip,
                         rounded, save)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -22,6 +22,7 @@ HEADLINES = {
     "notification": {"sv": "Pip hejar på dig\nvarje dag", "en": "Pip cheers you on\nevery day"},
     "levels": {"sv": "Från Scrollzombie\ntill Legend", "en": "From Scroll Zombie\nto Legend"},
     "math": {"en": "See what scrolling\nreally costs you"},
+    "before-after": {"en": "Less scrolling.\nMore living."},
     "live": {"sv": "Fokuspasset syns\npå låsskärmen", "en": "Your focus, right on\nyour Lock Screen"},
 }
 DATE = {"sv": "torsdag 23 oktober", "en": "Thursday, October 23"}
@@ -393,6 +394,68 @@ def framed_shot(name, lang, source):
     return img.convert("RGB")
 
 
+def bar_card(img, box, title, value, hours, colors):
+    """A dark Screen Time style card with a daily average and four bars against a dashed average line."""
+    x0, y0, x1, y1 = box
+    translucent(img, lambda d: d.rounded_rectangle(box, 48, fill=(22, 18, 44, 245)))
+    d = ImageDraw.Draw(img)
+    text(d, (x0 + 40, y0 + 36), title, font(SEMI, 40), GREY)
+    text(d, (x0 + 40, y0 + 90), value, font(BLACK, 92), WHITE)
+    base, top = y1 - 90, y0 + 230
+    scale = (base - top) / 8
+    avg = sum(hours) / len(hours)
+    ay = base - avg * scale
+    for dx in range(int(x0 + 30), int(x1 - 30), 26):
+        d.line([(dx, ay), (dx + 13, ay)], fill=MINT, width=4)
+    slot = (x1 - x0 - 80) / len(hours)
+    for i, h in enumerate(hours):
+        bx = x0 + 40 + slot * i + slot * 0.25
+        bar = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        ImageDraw.Draw(bar).rounded_rectangle([bx, base - h * scale, bx + slot * 0.5, base], 10, fill=WHITE)
+        gradient_fill(img, bar, colors)
+        text(ImageDraw.Draw(img), (bx + slot * 0.25, base + 22), "MTWT"[i], font(SEMI, 34), DIM, "ma")
+
+
+def before_after_shot(lang):
+    """The real shield from the app in a phone, above a before and after of daily screen time."""
+    img = Image.new("RGBA", (W, H))
+    img.paste(brand_gradient(W, H))
+    d = ImageDraw.Draw(img)
+    centered_lines(d, HEADLINES["before-after"][lang], 150, font(BLACK, 128), WHITE, 150)
+    # Phone running down to a shelf, like a phone stood in a dock.
+    shelf = 1930
+    left, right, top = 200, W - 200, 520
+    shadow = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle([left, top + 30, right, shelf + 200], 140, fill=(40, 0, 60, 150))
+    img.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(50)))
+    bezel = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(bezel).rounded_rectangle([left, top, right, shelf + 200], 140, fill=(12, 10, 20, 255), outline=(255, 255, 255, 90), width=6)
+    inset = 26
+    sx0, sy0, sx1 = left + inset, top + inset, right - inset
+    shot = Image.open(os.path.join(HERE, "source", "shield-en.jpg")).convert("RGB")
+    sw = sx1 - sx0
+    # Keep Pip, the message and both buttons; the status bar and the empty top fall outside.
+    crop = shot.crop((0, 520, shot.width, shot.height))
+    crop = crop.resize((sw, round(crop.height * sw / crop.width)), Image.LANCZOS)
+    screen = Image.new("RGBA", (sw, shelf + 200 - sy0), (*shot.getpixel((20, 20)), 255))
+    screen.paste(crop, (0, 130))
+    mask = Image.new("L", screen.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, screen.width - 1, screen.height - 1], 116, fill=255)
+    bezel.paste(screen, (sx0, sy0), mask)
+    ImageDraw.Draw(bezel).rounded_rectangle([W / 2 - 120, sy0 + 34, W / 2 + 120, sy0 + 104], 35, fill=(0, 0, 0, 255))
+    img.alpha_composite(bezel.crop((0, 0, W, shelf)), (0, 0))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([90, shelf, W - 90, shelf + 12], 6, fill=(255, 255, 255, 200))
+    # Before and after.
+    cy0, cy1 = shelf + 60, shelf + 520
+    bar_card(img, (90, cy0, 620, cy1), "Daily Average", "6h 12m", [6.8, 5.1, 6.4, 6.5], [ORANGE, PINK])
+    bar_card(img, (670, cy0, W - 90, cy1), "Daily Average", "1h 54m", [2.3, 1.4, 1.9, 2.0], [MINT, CYAN])
+    d = ImageDraw.Draw(img)
+    text(d, (355, cy1 + 40), "Before", font(BLACK, 110), WHITE, "ma")
+    text(d, (W - 355, cy1 + 40), "After", font(BLACK, 110), WHITE, "ma")
+    return img.convert("RGB")
+
+
 # Other display sizes App Store Connect asks for, made by scaling the 6.9" screenshot and trimming the sides.
 SIZES = [(1290, 2796), (1206, 2622)]
 
@@ -409,6 +472,9 @@ def main():
     shot = framed_shot("math", "en", os.path.join(HERE, "source", "intro-life-math-en.jpg"))
     for w, h in SIZES:
         save(fit(shot, (w, h)), "appstore", "en", f"screenshot-life-math-{w}x{h}.png")
+    shot = before_after_shot("en")
+    for w, h in SIZES:
+        save(fit(shot, (w, h)), "appstore", "en", f"screenshot-before-after-{w}x{h}.png")
     for lang in ("sv", "en"):
         for name, shot in (("notification", notification_shot(lang)), ("lock-screen", live_shot(lang)),
                            ("levels", levels_shot(lang))):
