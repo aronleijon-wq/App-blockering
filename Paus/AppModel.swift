@@ -360,7 +360,7 @@ final class AppModel {
         coachKey = key
         coachMessage = Coach.fallbackMessage(mood: currentMood, progress: progress, at: now)
         if isPro {
-            coachMessage = await Coach.message(mood: currentMood, progress: progress, isPro: true, at: now)
+            coachMessage = await Coach.message(mood: currentMood, progress: progress, name: firstName, isPro: true, at: now)
         }
     }
 

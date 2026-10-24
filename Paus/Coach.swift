@@ -6,8 +6,8 @@ import FoundationModels
 /// What Pip says. Pro users get a fresh line from Apple's on-device model where it is available;
 /// everyone else, and every device without it, gets a handwritten line.
 enum Coach {
-    static func message(mood: MascotMood, progress: PlayerProgress, isPro: Bool, at date: Date) async -> String {
-        if isPro, let generated = await generatedMessage(mood: mood, progress: progress, at: date) {
+    static func message(mood: MascotMood, progress: PlayerProgress, name: String?, isPro: Bool, at date: Date) async -> String {
+        if isPro, let generated = await generatedMessage(mood: mood, progress: progress, name: name, at: date) {
             return generated
         }
         return fallbackMessage(mood: mood, progress: progress, at: date)
@@ -38,7 +38,7 @@ enum Coach {
         return options[day % options.count]
     }
 
-    private static func generatedMessage(mood: MascotMood, progress: PlayerProgress, at date: Date) async -> String? {
+    private static func generatedMessage(mood: MascotMood, progress: PlayerProgress, name: String?, at date: Date) async -> String? {
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *) {
             guard SystemLanguageModel.default.isAvailable else { return nil }
@@ -46,24 +46,24 @@ enum Coach {
             let english = Language.current == .en
             let session = LanguageModelSession(instructions: english ? """
                 You are Pip, a cute, upbeat mascot in an app that helps young people scroll less. \
-                Write exactly one short sentence of at most 12 words, in English. \
-                It is a line on the home screen, not a chat: never greet, never introduce yourself, never ask a question. \
-                No emojis, no quotation marks. \
-                Examples: "Three days in a row, keep the chain going." "I feel a bit weak, a focus session would help."
+                Write one to three short sentences in English, at most 50 words, to the user by name if you know it. \
+                You may greet them and ask questions that need no answer, but this is a speech bubble, not a chat: \
+                never ask them to reply, tell you something or choose, and never offer tips or help as a question. \
+                No emojis, no quotation marks.
                 """ : """
                 Du är Pip, en gullig och peppig maskot i en app som hjälper unga att scrolla mindre. \
-                Skriv exakt en kort mening på högst 12 ord, på svenska. \
-                Det är en rad på hemskärmen, ingen chatt: hälsa aldrig, presentera dig aldrig och ställ aldrig frågor. \
-                Inga emojis och inga citattecken. \
-                Exempel: "Tre dagar i rad, bryt inte kedjan nu." "Jag känner mig svag, ett fokuspass skulle hjälpa."
+                Skriv en till tre korta meningar på svenska, högst 50 ord, till användaren, gärna med namn om du vet det. \
+                Du får hälsa och ställa frågor som inte kräver svar, men det här är en pratbubbla, ingen chatt: \
+                be aldrig användaren svara, berätta något eller välja, och erbjud aldrig tips eller hjälp som en fråga. \
+                Inga emojis och inga citattecken.
                 """)
             let prompt = """
-                Mood: \(mood.label). Health: \(progress.health)/100 (if low, ask for help feeling better, without a question). \
+                \(name.map { "Name: \($0). " } ?? "")Mood: \(mood.label). Health: \(progress.health)/100 (if low, ask for help feeling better). \
                 Streak: \(progress.currentStreak(at: date, calendar: .current)) days. Level: \(progress.level). \
                 Focus minutes today: \(counts.focusMinutes). Blocked apps closed today: \(counts.closes).
                 """
             do {
-                let response = try await session.respond(to: prompt, options: GenerationOptions(maximumResponseTokens: 60))
+                let response = try await session.respond(to: prompt, options: GenerationOptions(maximumResponseTokens: 150))
                 return PipLine.cleaned(response.content)
             } catch {
                 return nil

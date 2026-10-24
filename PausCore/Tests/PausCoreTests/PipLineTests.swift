@@ -2,21 +2,19 @@ import XCTest
 @testable import PausCore
 
 final class PipLineTests: XCTestCase {
-    func testKeepsAShortLine() {
-        XCTAssertEqual(PipLine.cleaned(" \"Ett fokuspass till, så blir jag pigg igen.\"\n"), "Ett fokuspass till, så blir jag pigg igen.")
+    func testKeepsAGreetingAndSeveralSentences() {
+        let line = "Hej Aron! Tre dagar i rad nu. Vem hade trott det?"
+        XCTAssertEqual(PipLine.cleaned(" \"\(line)\"\n"), line)
     }
 
-    func testDropsALongAnswer() {
-        let reply = "Hello there! I'm Pip, your friendly social media blocker. I'm feeling a bit under the weather today, with a health score of 34 out of 100."
+    func testDropsQuestionsThatWaitForAnAnswer() {
+        XCTAssertNil(PipLine.cleaned("Hi Aron! I'm feeling a bit down. Would you like some tips on managing your time?"))
+        XCTAssertNil(PipLine.cleaned("Jag mår inte så bra. Vill du att jag ger dig ett tips?"))
+    }
+
+    func testDropsAnAnswerTooLongForTheBubble() {
+        let reply = Array(repeating: "Scrolling less is good for you.", count: 15).joined(separator: " ")
         XCTAssertNil(PipLine.cleaned(reply))
-    }
-
-    func testDropsQuestionsSincePipCantReply() {
-        XCTAssertNil(PipLine.cleaned("Would you like some tips?"))
-    }
-
-    func testDropsIntroductions() {
-        XCTAssertNil(PipLine.cleaned("Jag är Pip och jag mår bra."))
     }
 
     func testDropsALineCutOffMidSentence() {
