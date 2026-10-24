@@ -11,7 +11,7 @@
 	<false/>
 	<!-- Firebase Authentication web API key for email accounts. Email sign-in stays hidden while it is empty. -->
 	<key>PausFirebaseAPIKey</key>
-	<string></string>
+	<string>AIzaSyCIJmb-AQpPYDLhFVPBO2UXoXxpGfdprDA</string>
 	<key>PausCloudContainer</key>
 	<string>iCloud.$(PAUS_BUNDLE_PREFIX)</string>
 	<key>PausAppGroup</key>
