@@ -232,7 +232,7 @@ struct SettingsView: View {
                     ProPerk(symbol: "lock.fill", text: L("Strikt fokus och avinstallationsskydd"))
                     ProPerk(symbol: "calendar", text: L("Obegränsat antal scheman"))
                     ProPerk(symbol: "hourglass", text: L("Daglig gräns"))
-                    ProPerk(symbol: "sparkles", text: L("Pip pratar personligt med dig"))
+                    ProPerk(symbol: "sparkles", text: L("Personliga tips från Pip"))
                 }
                 Button(model.store.yearlyPerMonth.map { L("Prova gratis, sedan \($0)/mån") } ?? L("Prova gratis i 7 dagar")) {
                     isPaywallPresented = true

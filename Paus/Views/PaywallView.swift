@@ -26,7 +26,7 @@ struct PaywallView: View {
                     Benefit(symbol: "calendar", text: L("Obegränsat antal scheman"))
                     Benefit(symbol: "hourglass", text: L("Daglig gräns för scrollandet"))
                     Benefit(symbol: "lock.fill", text: L("Strikt fokus som inte går att fuska bort"))
-                    Benefit(symbol: "sparkles", text: L("Pip pratar personligt med dig med AI"))
+                    Benefit(symbol: "sparkles", text: L("Personliga tips och pepp från Pip, med AI"))
                 }
                 .padding(.top, 4)
             }
