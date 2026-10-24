@@ -8,7 +8,7 @@ struct RootView: View {
         @Bindable var model = model
 
         Group {
-            if model.isAuthorized {
+            if model.showsMainApp {
                 TabView(selection: $model.selectedTab) {
                     HomeView()
                         .tabItem { Label(L("Hem"), systemImage: "house.fill") }

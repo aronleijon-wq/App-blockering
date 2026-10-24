@@ -1,4 +1,5 @@
 import AuthenticationServices
+import Combine
 import FamilyControls
 import Foundation
 import Observation
@@ -17,6 +18,9 @@ final class AppModel {
 
     var selectedTab: Tab = .home
     var authorizationStatus: AuthorizationStatus = AuthorizationCenter.shared.authorizationStatus
+    /// Screen Time reports "not determined" for a moment at launch even when access was granted,
+    /// so until that settles, someone who had access is assumed to still have it.
+    private(set) var mayStillBeAuthorized = SharedStore.wasAuthorized
     private(set) var selection: FamilyActivitySelection = SharedStore.selection
     private(set) var rules: PausRules = SharedStore.rules
     private(set) var runtime: PausRuntime = SharedStore.runtime
@@ -58,6 +62,14 @@ final class AppModel {
 
     init() {
         store.onChange = { [weak self] _ in self?.applyEntitlement() }
+        Task { [weak self] in
+            for await status in AuthorizationCenter.shared.$authorizationStatus.values {
+                guard let self else { return }
+                let wasApproved = authorizationStatus == .approved
+                authorizationStatus = status
+                if status == .approved, !wasApproved { reload() }
+            }
+        }
     }
 
     var isPro: Bool { store.isPro }
@@ -65,6 +77,8 @@ final class AppModel {
     var effectiveRules: PausRules { rules.effective(isPro: isPro) }
     var engine: BlockEngine { BlockEngine(rules: effectiveRules, runtime: runtime) }
     var isAuthorized: Bool { authorizationStatus == .approved || isSimulatorPreview }
+    /// Whether to show the app rather than onboarding; doesn't flash onboarding while Screen Time's status loads.
+    var showsMainApp: Bool { isAuthorized || (authorizationStatus == .notDetermined && mayStillBeAuthorized) }
     var hasSelection: Bool { !selection.isEmpty }
 
     var isStrictFocusActive: Bool {
@@ -301,12 +315,14 @@ final class AppModel {
         #if !targetEnvironment(simulator)
         if authorizationStatus == .approved {
             SharedStore.wasAuthorized = true
+            mayStillBeAuthorized = true
         } else if SharedStore.wasAuthorized {
             // The status can read as not determined for a moment at launch, so look again before judging.
             Task {
                 try? await Task.sleep(for: .seconds(3))
                 let status = AuthorizationCenter.shared.authorizationStatus
                 authorizationStatus = status
+                mayStillBeAuthorized = status == .approved
                 guard status != .approved, SharedStore.wasAuthorized else { return }
                 SharedStore.wasAuthorized = false
                 ProgressRecorder.record(.disabledProtection)
