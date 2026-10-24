@@ -20,16 +20,18 @@ struct ScreenTimeScene: DeviceActivityReportScene {
     /// How many apps the report lists.
     private static let topAppCount = 5
 
-    /// The activity of the person using Paus. A parent who organizes an iCloud family also gets their children's
-    /// devices, which would add the children's screen time to their own, so children are left out whenever the
-    /// person who authorized Paus is there too.
-    private static func ownData(in data: DeviceActivityResults<DeviceActivityData>) async -> [DeviceActivityData] {
+    /// The activity of this phone. Screen Time hands Paus every device on the iCloud account, and a parent who
+    /// organizes a family also gets their children's, so another phone's screen time ended up in this one's total.
+    /// No device ID is shared, but the phone Paus is open on is the one whose data was updated last.
+    private static func thisPhone(in data: DeviceActivityResults<DeviceActivityData>) async -> [DeviceActivityData] {
         var all: [DeviceActivityData] = []
         for await item in data {
             all.append(item)
         }
         let own = all.filter { $0.user.role == .individual }
-        return own.isEmpty ? all : own
+        let candidates = own.isEmpty ? all : own
+        guard let latest = candidates.max(by: { $0.lastUpdatedDate < $1.lastUpdatedDate }) else { return [] }
+        return candidates.filter { $0.device == latest.device }
     }
 
     func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> ScreenTimeSummary {
@@ -41,7 +43,8 @@ struct ScreenTimeScene: DeviceActivityReportScene {
         var pickups = 0
         var firstPickup: Date?
 
-        for device in await Self.ownData(in: data) {
+        let phone = await Self.thisPhone(in: data)
+        for device in phone {
             for await segment in device.activitySegments {
                 let day = calendar.startOfDay(for: segment.dateInterval.start)
                 totals[day, default: 0] += segment.totalActivityDuration
@@ -77,6 +80,6 @@ struct ScreenTimeScene: DeviceActivityReportScene {
             .filter { $0.duration >= 60 }
             .sorted { $0.duration > $1.duration }
             .prefix(Self.topAppCount)
-        return ScreenTimeSummary(days: days, topApps: Array(topApps), pickupsToday: pickups, firstPickupToday: firstPickup)
+        return ScreenTimeSummary(days: days, topApps: Array(topApps), pickupsToday: pickups, firstPickupToday: firstPickup, deviceName: phone.first?.device.name)
     }
 }

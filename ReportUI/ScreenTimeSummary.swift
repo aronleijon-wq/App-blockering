@@ -36,6 +36,8 @@ struct ScreenTimeSummary {
     var topApps: [AppUsage]
     var pickupsToday: Int
     var firstPickupToday: Date?
+    /// The phone the numbers come from, as named in its settings, so it's clear whose screen time this is.
+    var deviceName: String? = nil
 
     var today: TimeInterval { days.last?.duration ?? 0 }
 

@@ -115,6 +115,7 @@ extension Translations {
         "Dela Paus med en vän": "Share Paus with a friend",
         "Den här appen är blockerad just nu.": "This app is blocked right now.",
         "Den här pausen kostar %@ XP och %@ veckopoäng": "This pause costs %@ XP and %@ weekly points",
+        "Den här telefonen: %@": "This phone: %@",
         "Det gick inte att lämna ligan just nu. Försök igen.": "Couldn't leave the league right now. Try again.",
         "Det här är din bästa version.": "This is the best version of you.",
         "Det namnet är inte tillåtet. Välj ett annat.": "That name isn't allowed. Choose another one.",

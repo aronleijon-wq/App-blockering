@@ -66,6 +66,11 @@ struct ScreenTimeReportView: View {
                     .font(.system(size: 44, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                 comparison
+                if let deviceName = summary.deviceName {
+                    Label(L("Den här telefonen: \(deviceName)"), systemImage: "iphone")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             .reportCard()
 
