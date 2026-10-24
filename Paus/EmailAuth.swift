@@ -97,6 +97,11 @@ enum EmailAuth {
     }
 
     private static func send(_ request: URLRequest) async throws -> [String: Any] {
+        var request = request
+        // Firebase locks the iOS app's key to its bundle ID, which the request has to name.
+        if let bundleID = Bundle.main.bundleIdentifier {
+            request.setValue(bundleID, forHTTPHeaderField: "X-Ios-Bundle-Identifier")
+        }
         let data: Data
         do {
             (data, _) = try await URLSession.shared.data(for: request)
