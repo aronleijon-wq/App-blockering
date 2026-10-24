@@ -1,4 +1,6 @@
+#if !WIDGET_EXTENSION
 import FamilyControls
+#endif
 import Foundation
 
 enum AppGroup {
@@ -30,10 +32,12 @@ enum SharedStore {
         set { save(newValue, forKey: runtimeKey) }
     }
 
+    #if !WIDGET_EXTENSION
     static var selection: FamilyActivitySelection {
         get { load(selectionKey) ?? FamilyActivitySelection() }
         set { save(newValue, forKey: selectionKey) }
     }
+    #endif
 
     static var progress: PlayerProgress {
         get { load(progressKey) ?? PlayerProgress() }
@@ -93,8 +97,10 @@ enum SharedStore {
     }
 }
 
+#if !WIDGET_EXTENSION
 extension FamilyActivitySelection {
     var isEmpty: Bool {
         applicationTokens.isEmpty && categoryTokens.isEmpty && webDomainTokens.isEmpty
     }
 }
+#endif

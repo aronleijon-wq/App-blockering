@@ -1,3 +1,5 @@
+// Screen Time code, which the widgets leave out since they have no Family Controls entitlement.
+#if !WIDGET_EXTENSION
 import FamilyControls
 import Foundation
 import ManagedSettings
@@ -34,3 +36,4 @@ enum ShieldController {
         store.shield.webDomainCategories = categories.isEmpty ? nil : .specific(categories)
     }
 }
+#endif

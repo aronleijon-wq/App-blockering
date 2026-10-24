@@ -1,3 +1,5 @@
+// Screen Time code, which the widgets leave out since they have no Family Controls entitlement.
+#if !WIDGET_EXTENSION
 import DeviceActivity
 import FamilyControls
 import Foundation
@@ -189,3 +191,4 @@ enum ActivityScheduler {
         try center.startMonitoring(name, during: schedule)
     }
 }
+#endif
