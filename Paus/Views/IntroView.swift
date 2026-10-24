@@ -13,6 +13,7 @@ struct IntroView: View {
     @State private var suggestions = Nickname.suggestions(count: 3, seed: Int.random(in: 0..<1_000_000))
     @FocusState private var isTyping: Bool
     @State private var isPaywallPresented = false
+    @State private var isEmailSignInPresented = false
 
     enum Step: Int, CaseIterable {
         case language, hello, name, age, hours, apps, goals, calculating, reveal, plan, account, tour, nickname, friends, trial
@@ -177,6 +178,13 @@ struct IntroView: View {
                 .signInWithAppleButtonStyle(.white)
                 .frame(height: 54)
                 .clipShape(Capsule())
+                if EmailAuth.isAvailable {
+                    OrDivider()
+                    EmailSignInButton { isEmailSignInPresented = true }
+                        .sheet(isPresented: $isEmailSignInPresented) {
+                            EmailSignInView(suggestedName: trimmedName) { step = .tour }
+                        }
+                }
                 Button(L("Inte nu")) { step = .tour }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)

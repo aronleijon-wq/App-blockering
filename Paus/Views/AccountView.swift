@@ -7,6 +7,7 @@ struct AccountView: View {
     @State private var name = ""
     @State private var isNicknamePresented = false
     @State private var isDeletePresented = false
+    @State private var isEmailSignInPresented = false
 
     var body: some View {
         ScrollView {
@@ -68,9 +69,13 @@ struct AccountView: View {
                     .tint(.secondary)
                 }
 
-                SettingsGroup(title: L("Apple-konto")) {
+                SettingsGroup(title: L("Konto")) {
                     if let account = model.account {
-                        SettingsRow(symbol: "apple.logo", title: L("Inloggad"), detail: account.email ?? account.displayName)
+                        SettingsRow(
+                            symbol: account.provider == .apple ? "apple.logo" : "envelope.fill",
+                            title: L("Inloggad"),
+                            detail: account.email ?? account.displayName
+                        )
                         SettingsDivider()
                         Button(role: .destructive) {
                             model.signOut()
@@ -90,6 +95,10 @@ struct AccountView: View {
                             .signInWithAppleButtonStyle(.white)
                             .frame(height: 50)
                             .clipShape(Capsule())
+                            if EmailAuth.isAvailable {
+                                OrDivider()
+                                EmailSignInButton { isEmailSignInPresented = true }
+                            }
                         }
                         .padding(.vertical, 12)
                     }
@@ -122,6 +131,9 @@ struct AccountView: View {
         .onDisappear(perform: saveName)
         .sheet(isPresented: $isNicknamePresented) {
             NicknameSheet()
+        }
+        .sheet(isPresented: $isEmailSignInPresented) {
+            EmailSignInView(suggestedName: model.firstName ?? "")
         }
         .sheet(isPresented: $isDeletePresented) {
             DeleteAccountSheet()

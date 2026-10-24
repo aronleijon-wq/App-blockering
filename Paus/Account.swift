@@ -1,17 +1,33 @@
 import AuthenticationServices
 import Foundation
 
-/// The account from Sign in with Apple. Paus has no server, so it only lives on this phone:
-/// it greets the user by name, and Apple tells Paus if the user stops using it.
+/// The account from Sign in with Apple or an email address. Apple accounts only live on this phone:
+/// they greet the user by name, and Apple tells Paus if the user stops using it. Email accounts are kept by
+/// Firebase Authentication, which checks the password and can delete the account.
 struct PausAccount: Codable, Equatable {
+    enum Provider: String, Codable {
+        case apple, email
+    }
+
     let userID: String
     var givenName: String?
     var email: String?
+    var provider: Provider
 
-    init(userID: String, givenName: String?, email: String?) {
+    init(userID: String, givenName: String?, email: String?, provider: Provider = .apple) {
         self.userID = userID
         self.givenName = givenName
         self.email = email
+        self.provider = provider
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        userID = try container.decode(String.self, forKey: .userID)
+        givenName = try container.decodeIfPresent(String.self, forKey: .givenName)
+        email = try container.decodeIfPresent(String.self, forKey: .email)
+        // Accounts saved before email sign-in existed are all Apple accounts.
+        provider = try container.decodeIfPresent(Provider.self, forKey: .provider) ?? .apple
     }
 
     init(credential: ASAuthorizationAppleIDCredential) {
@@ -21,7 +37,7 @@ struct PausAccount: Codable, Equatable {
 
     var displayName: String {
         if let givenName, !givenName.isEmpty { return givenName }
-        return email ?? L("Apple-konto")
+        return email ?? (provider == .apple ? L("Apple-konto") : L("E-postkonto"))
     }
 }
 

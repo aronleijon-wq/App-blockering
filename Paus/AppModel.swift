@@ -191,20 +191,31 @@ final class AppModel {
         }
     }
 
-    /// The first name Pip uses: the one typed in the intro, otherwise the one from Apple.
+    /// Saves an email account that Firebase has just created or signed in.
+    func signIn(_ session: EmailAuth.Session, name: String?) {
+        let name = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let givenName = (name?.isEmpty == false ? name : nil) ?? (account?.userID == session.userID ? account?.givenName : nil)
+        let signedIn = PausAccount(userID: session.userID, givenName: givenName, email: session.email, provider: .email)
+        account = signedIn
+        IntroStore.account = signedIn
+    }
+
+    /// The first name Pip uses: the one typed in the intro, otherwise the one from the account.
     var firstName: String? {
         if let name = introAnswers?.name, !name.isEmpty { return name }
         return account?.givenName
     }
 
     func signOut() {
+        if account?.provider == .email { EmailAuth.forget() }
         account = nil
         IntroStore.account = nil
     }
 
     /// Signs out when the user has stopped using Sign in with Apple for Paus.
     private func checkAccount() async {
-        guard let userID = account?.userID else { return }
+        guard let account, account.provider == .apple else { return }
+        let userID = account.userID
         let state = try? await ASAuthorizationAppleIDProvider().credentialState(forUserID: userID)
         if state == .revoked || state == .notFound {
             signOut()
@@ -222,6 +233,14 @@ final class AppModel {
                 try await league.leave()
             } catch {
                 errorMessage = L("Din ligadata kunde inte raderas just nu. Kontrollera internet och försök igen.")
+                return
+            }
+        }
+        if account?.provider == .email {
+            do {
+                try await EmailAuth.deleteAccount()
+            } catch {
+                errorMessage = L("Ditt konto kunde inte raderas just nu. Kontrollera internet och försök igen.")
                 return
             }
         }
