@@ -18,8 +18,10 @@ struct IntroView: View {
         case language, hello, name, age, hours, apps, goals, calculating, reveal, plan, account, tour, nickname, friends, trial
     }
 
-    private let appChoices = ["TikTok", "Instagram", "YouTube", "Snapchat", "X", "Reddit", "Netflix", L("Spel"), L("Nyheter")]
-    private let goalChoices = [L("Plugga"), L("Träna"), L("Sova mer"), L("Umgås med vänner"), L("Familjen"), L("Skapa något"), L("Läsa"), L("Jobba på en idé")]
+    private let appChoices = ["TikTok", "Instagram", "YouTube", "Snapchat", "X", "Reddit", "Netflix", L("Spel"), L("Nyheter"), Self.other]
+    private let goalChoices = [L("Plugga"), L("Träna"), L("Sova mer"), L("Umgås med vänner"), L("Familjen"), L("Skapa något"), L("Läsa"), L("Jobba på en idé"), Self.other]
+    /// The last choice in both lists, for anything not listed. It names nothing, so Pip leaves it out of sentences.
+    private static var other: String { L("Annat") }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -116,7 +118,7 @@ struct IntroView: View {
                         .foregroundStyle(Theme.brand)
                         .contentTransition(.numericText(value: answers.hoursPerDay))
                         .animation(.snappy, value: answers.hoursPerDay)
-                    Slider(value: $answers.hoursPerDay, in: 0.5...12, step: 0.5)
+                    Slider(value: $answers.hoursPerDay, in: 0.5...Self.maxHours, step: 0.5)
                         .tint(Theme.pink)
                         .sensoryFeedback(.selection, trigger: answers.hoursPerDay)
                         .accessibilityLabel(L("Timmar per dag"))
@@ -301,12 +303,14 @@ struct IntroView: View {
     }
 
     private var goalText: String {
-        guard !answers.goals.isEmpty else { return L("leva livet") }
-        return Self.list(answers.goals.map { $0.lowercased() })
+        let goals = answers.goals.filter { $0 != Self.other }
+        guard !goals.isEmpty else { return L("leva livet") }
+        return Self.list(goals.map { $0.lowercased() })
     }
 
     private var appText: String {
-        answers.apps.isEmpty ? L("apparna som stjäl din tid") : Self.list(answers.apps)
+        let apps = answers.apps.filter { $0 != Self.other }
+        return apps.isEmpty ? L("apparna som stjäl din tid") : Self.list(apps)
     }
 
     /// "a", "a och b", "a, b och c".
@@ -315,8 +319,12 @@ struct IntroView: View {
         return items.dropLast().joined(separator: ", ") + L(" och ") + last
     }
 
+    /// The most the screen time slider goes to; it reads "12+ h" there.
+    static let maxHours = 12.0
+
     static func hours(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(0...1)).locale(Language.current.locale)) + " h"
+        let number = value.formatted(.number.precision(.fractionLength(0...1)).locale(Language.current.locale))
+        return value >= maxHours ? number + "+ h" : number + " h"
     }
 
     static func years(_ value: Double) -> String {

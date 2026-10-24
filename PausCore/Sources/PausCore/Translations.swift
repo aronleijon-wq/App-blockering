@@ -58,6 +58,7 @@ extension Translations {
         "Anmäl olämpligt namn": "Report inappropriate name",
         "Anmälda namn granskas och kan tas bort.": "Reported names are reviewed and may be removed.",
         "Anmälningar": "Reports",
+        "Annat": "Other",
         "Antingen är inget blockerat, pauserna för idag är slut eller så pågår ett strikt fokuspass.": "Either nothing is blocked, today's pauses are used up, or a strict focus session is running.",
         "Använd bara bokstäver, siffror, punkt, bindestreck och understreck.": "Use only letters, numbers, dots, hyphens and underscores.",
         "Använd inte ditt riktiga namn.": "Don't use your real name.",
