@@ -2,14 +2,23 @@ import XCTest
 @testable import PausCore
 
 final class PipLineTests: XCTestCase {
-    func testKeepsAGreetingAndSeveralSentences() {
-        let line = "Hej Aron! Tre dagar i rad nu. Vem hade trott det?"
+    func testKeepsAGreetingAndATip() {
+        let line = "Hej Aron! Tre dagar i rad nu. Lägg mobilen i ett annat rum när du pluggar."
         XCTAssertEqual(PipLine.cleaned(" \"\(line)\"\n"), line)
     }
 
-    func testDropsQuestionsThatWaitForAnAnswer() {
-        XCTAssertNil(PipLine.cleaned("Hi Aron! I'm feeling a bit down. Would you like some tips on managing your time?"))
-        XCTAssertNil(PipLine.cleaned("Jag mår inte så bra. Vill du att jag ger dig ett tips?"))
+    func testTakesOutQuestionsAndIntroductions() {
+        let reply = "Hej Aron!\n\n\nJag är Pip. Jag kan se att du är sömnig. Jag vill hjälpa dig att få mer fokus. Hur mår du idag? Vad kan jag göra för att hjälpa dig?"
+        XCTAssertEqual(PipLine.cleaned(reply), "Hej Aron! Jag kan se att du är sömnig. Jag vill hjälpa dig att få mer fokus.")
+    }
+
+    func testTakesOutOffersInEnglish() {
+        let reply = "Hi Aron! I'm Pip, your friendly blocker. You have been scrolling a lot today. Would you like some tips?"
+        XCTAssertEqual(PipLine.cleaned(reply), "Hi Aron! You have been scrolling a lot today.")
+    }
+
+    func testDropsALineThatIsOnlyAGreetingOnceQuestionsAreGone() {
+        XCTAssertNil(PipLine.cleaned("Hej Aron! Hur mår du?"))
     }
 
     func testDropsAnAnswerTooLongForTheBubble() {
