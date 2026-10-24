@@ -43,21 +43,28 @@ enum Coach {
         if #available(iOS 26.0, *) {
             guard SystemLanguageModel.default.isAvailable else { return nil }
             let counts = progress.counts(at: date, calendar: .current)
-            let session = LanguageModelSession(instructions: """
-                Du är Pip, en gullig och peppig maskot i en app som hjälper unga att scrolla mindre på sociala medier. \
-                Svara alltid på \(Language.current == .sv ? "svenska" : "engelska") med en enda kort mening, högst 14 ord. \
-                Inga emojis och inga citattecken.
+            let english = Language.current == .en
+            let session = LanguageModelSession(instructions: english ? """
+                You are Pip, a cute, upbeat mascot in an app that helps young people scroll less. \
+                Write exactly one short sentence of at most 12 words, in English. \
+                It is a line on the home screen, not a chat: never greet, never introduce yourself, never ask a question. \
+                No emojis, no quotation marks. \
+                Examples: "Three days in a row, keep the chain going." "I feel a bit weak, a focus session would help."
+                """ : """
+                Du är Pip, en gullig och peppig maskot i en app som hjälper unga att scrolla mindre. \
+                Skriv exakt en kort mening på högst 12 ord, på svenska. \
+                Det är en rad på hemskärmen, ingen chatt: hälsa aldrig, presentera dig aldrig och ställ aldrig frågor. \
+                Inga emojis och inga citattecken. \
+                Exempel: "Tre dagar i rad, bryt inte kedjan nu." "Jag känner mig svag, ett fokuspass skulle hjälpa."
                 """)
             let prompt = """
-                Skriv ett personligt peppmeddelande till användaren. Ditt humör: \(mood.label). \
-                Din hälsa: \(progress.health) av 100. Är den låg, be användaren om hjälp att må bättre. \
-                Streak: \(progress.currentStreak(at: date, calendar: .current)) dagar. Nivå: \(progress.level). \
-                Fokusminuter idag: \(counts.focusMinutes). Gånger användaren stängt en blockerad app idag: \(counts.closes).
+                Mood: \(mood.label). Health: \(progress.health)/100 (if low, ask for help feeling better, without a question). \
+                Streak: \(progress.currentStreak(at: date, calendar: .current)) days. Level: \(progress.level). \
+                Focus minutes today: \(counts.focusMinutes). Blocked apps closed today: \(counts.closes).
                 """
             do {
-                let response = try await session.respond(to: prompt)
-                let text = response.content.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "\"”")))
-                return text.isEmpty ? nil : text
+                let response = try await session.respond(to: prompt, options: GenerationOptions(maximumResponseTokens: 60))
+                return PipLine.cleaned(response.content)
             } catch {
                 return nil
             }
