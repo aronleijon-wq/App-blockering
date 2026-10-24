@@ -20,6 +20,18 @@ struct ScreenTimeScene: DeviceActivityReportScene {
     /// How many apps the report lists.
     private static let topAppCount = 5
 
+    /// The activity of the person using Paus. A parent who organizes an iCloud family also gets their children's
+    /// devices, which would add the children's screen time to their own, so children are left out whenever the
+    /// person who authorized Paus is there too.
+    private static func ownData(in data: DeviceActivityResults<DeviceActivityData>) async -> [DeviceActivityData] {
+        var all: [DeviceActivityData] = []
+        for await item in data {
+            all.append(item)
+        }
+        let own = all.filter { $0.user.role == .individual }
+        return own.isEmpty ? all : own
+    }
+
     func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> ScreenTimeSummary {
         let calendar = Calendar.current
         let now = Date.now
@@ -29,7 +41,7 @@ struct ScreenTimeScene: DeviceActivityReportScene {
         var pickups = 0
         var firstPickup: Date?
 
-        for await device in data {
+        for device in await Self.ownData(in: data) {
             for await segment in device.activitySegments {
                 let day = calendar.startOfDay(for: segment.dateInterval.start)
                 totals[day, default: 0] += segment.totalActivityDuration
