@@ -456,6 +456,77 @@ def before_after_shot(lang):
     return img.convert("RGB")
 
 
+def header_art(w, h):
+    """The product page header: Pip in the middle, glowing, with XP, a trophy and a streak around him,
+    and dimmed, locked app tiles towards the edges. Everything that matters stays in the centre,
+    since the App Store crops the sides on a phone."""
+    import random
+    rng = random.Random(7)
+    img = Image.new("RGBA", (w, h), (*BG, 255))
+    glow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(glow)
+    d.ellipse([w * 0.18, -h * 0.4, w * 0.62, h * 0.9], fill=(*VIOLET, 120))
+    d.ellipse([w * 0.45, h * 0.2, w * 0.9, h * 1.4], fill=(*PINK, 95))
+    img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(h * 0.18)))
+
+    cx, cy = w / 2, h * 0.47
+    s = h * 0.58  # Pip's size
+    # Locked app tiles, fading out towards Pip.
+    tiles = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    td = ImageDraw.Draw(tiles)
+    tile = h * 0.13
+    step = tile * 1.45
+    y = -tile * 0.4
+    row = 0
+    while y < h:
+        x = -tile * 0.5 + (step / 2 if row % 2 else 0)
+        while x < w:
+            dx, dy = (x + tile / 2 - cx) / (s * 1.25), (y + tile / 2 - cy) / (s * 0.95)
+            distance = (dx * dx + dy * dy) ** 0.5
+            if distance > 1:
+                alpha = int(min(1, (distance - 1) * 0.9) * 70) + rng.randint(0, 20)
+                color = rng.choice([VIOLET, PINK, ORANGE, CYAN, MINT])
+                td.rounded_rectangle([x, y, x + tile, y + tile], tile * 0.24, fill=(*color, alpha))
+                # A small padlock on each tile.
+                lx, ly, lw = x + tile / 2, y + tile / 2, tile * 0.28
+                td.arc([lx - lw * 0.38, ly - lw * 0.75, lx + lw * 0.38, ly + lw * 0.05], 180, 360,
+                       fill=(255, 255, 255, alpha + 40), width=max(2, int(tile * 0.035)))
+                td.rounded_rectangle([lx - lw / 2, ly - lw * 0.25, lx + lw / 2, ly + lw * 0.45], tile * 0.04,
+                                     fill=(255, 255, 255, alpha + 40))
+            x += step
+        y += step
+        row += 1
+    img.alpha_composite(tiles.filter(ImageFilter.GaussianBlur(h * 0.003)))
+
+    # Pip with a mint halo.
+    halo = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(halo).ellipse([cx - s * 0.75, cy - s * 0.75, cx + s * 0.75, cy + s * 0.75], fill=(*MINT, 110))
+    img.alpha_composite(halo.filter(ImageFilter.GaussianBlur(s * 0.2)))
+    img.alpha_composite(pip(int(s)), (int(cx - s / 2), int(cy - s / 2)))
+
+    def badge(x, y, label, colors, size):
+        f = font(BLACK, int(size))
+        bw = ImageDraw.Draw(img).textlength(label, font=f) + size * 1.4
+        bh = size * 1.75
+        shadow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        ImageDraw.Draw(shadow).rounded_rectangle([x, y + size * 0.3, x + bw, y + bh + size * 0.3], bh / 2, fill=(0, 0, 0, 150))
+        img.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(size * 0.4)))
+        layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        ImageDraw.Draw(layer).rounded_rectangle([x, y, x + bw, y + bh], bh / 2, fill=WHITE)
+        gradient_fill(img, layer, colors, vertical=False)
+        text(ImageDraw.Draw(img), (x + bw / 2, y + bh / 2), label, f, WHITE, "mm")
+        return bw
+
+    unit = s * 0.11
+    # Close to Pip, so a phone's crop keeps them.
+    badge(cx + s * 0.22, cy - s * 0.66, "+25 XP", [VIOLET, PINK], unit)
+    small = unit * 0.7
+    width = ImageDraw.Draw(img).textlength("7 day streak", font=font(BLACK, int(small))) + small * 1.4
+    badge(cx - s * 0.22 - width, cy + s * 0.3, "7 day streak", [ORANGE, PINK], small)
+    trophy(img, cx + s * 0.62, cy + s * 0.3, s * 0.28)
+    return img.convert("RGB")
+
+
 # Other display sizes App Store Connect asks for, made by scaling the 6.9" screenshot and trimming the sides.
 SIZES = [(1290, 2796), (1206, 2622)]
 
@@ -469,6 +540,8 @@ def fit(img, size):
 
 
 def main():
+    for w, h in ((3840, 1646), (5244, 2950)):
+        save(header_art(w, h), "appstore", "en", f"appstore-header-{w}x{h}.png")
     shot = framed_shot("math", "en", os.path.join(HERE, "source", "intro-life-math-en.jpg"))
     for w, h in SIZES:
         save(fit(shot, (w, h)), "appstore", "en", f"screenshot-life-math-{w}x{h}.png")
