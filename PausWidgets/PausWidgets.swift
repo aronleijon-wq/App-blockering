@@ -236,6 +236,20 @@ private struct StatusWidgetView: View {
 
 // MARK: - Live Activity
 
+/// The app icon, so a Live Activity is recognisably Paus at a glance.
+private struct PausIcon: View {
+    let size: CGFloat
+
+    var body: some View {
+        Image("PausIcon")
+            .resizable()
+            .interpolation(.high)
+            .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: size * 0.2237, style: .continuous))
+            .accessibilityHidden(true)
+    }
+}
+
 struct PausLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: PausActivityAttributes.self) { context in
@@ -246,9 +260,7 @@ struct PausLiveActivity: Widget {
             let status = context.state.status
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Image(systemName: status.symbol)
-                        .font(.title2)
-                        .foregroundStyle(status.tint)
+                    PausIcon(size: 40)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     if let range = status.countdown(from: .now) {
@@ -270,8 +282,7 @@ struct PausLiveActivity: Widget {
                         .foregroundStyle(.secondary)
                 }
             } compactLeading: {
-                Image(systemName: status.symbol)
-                    .foregroundStyle(status.tint)
+                PausIcon(size: 24)
             } compactTrailing: {
                 if let range = status.countdown(from: .now) {
                     Text(timerInterval: range, countsDown: true)
@@ -280,8 +291,7 @@ struct PausLiveActivity: Widget {
                         .foregroundStyle(status.tint)
                 }
             } minimal: {
-                Image(systemName: status.symbol)
-                    .foregroundStyle(status.tint)
+                PausIcon(size: 24)
             }
         }
     }
@@ -295,11 +305,7 @@ private struct LockScreenActivityView: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: status.symbol)
-                .font(.title)
-                .foregroundStyle(.white)
-                .frame(width: 52, height: 52)
-                .background(status.tint.gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            PausIcon(size: 52)
             VStack(alignment: .leading, spacing: 4) {
                 Text(status.title)
                     .font(.headline)
