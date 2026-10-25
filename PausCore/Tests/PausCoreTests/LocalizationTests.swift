@@ -28,7 +28,7 @@ final class LocalizationTests: XCTestCase {
         Language.override = .sv
         XCTAssertEqual(L("**\(share) %** mer vaken tid offline, till att \("läsa")."), "**14 %** mer vaken tid offline, till att läsa.")
         Language.override = .en
-        XCTAssertEqual(L("30 % mindre skärmtid"), "30 % less screen time")
+        XCTAssertEqual(L("Spara \(37) %"), "Save 37%")
     }
 
     func testMissingTranslationFallsBackToSwedish() {
