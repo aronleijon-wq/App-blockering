@@ -5,7 +5,7 @@ struct RulesView: View {
     @State private var editing: BlockSchedule?
     @State private var isSettingsPresented = false
 
-    private let limitOptions = [15, 30, 45, 60, 90, 120]
+    private let limitOptions = [15, 30, 45, 60, 90, 120, 150, 180, 240]
 
     var body: some View {
         NavigationStack {

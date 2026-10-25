@@ -26,11 +26,11 @@ final class IntroTests: XCTestCase {
     }
 
     func testPlan() {
-        XCTAssertEqual(Plan.targetHours(from: 5), 3.5, accuracy: 0.001)
-        XCTAssertEqual(Plan.yearsBack(hoursPerDay: 6, age: 15), 24.375 * 0.3, accuracy: 0.001)
-        XCTAssertEqual(Plan.daysBackPerYear(hoursPerDay: 5), 23)
-        // 5 h on the phone leaves 11 waking hours; winning back 1.5 h is about 14 % more offline time.
-        XCTAssertEqual(Plan.offlineIncrease(hoursPerDay: 5), 1.5 / 11, accuracy: 0.0001)
+        XCTAssertEqual(Plan.targetHours(from: 5), 2.5, accuracy: 0.001)
+        XCTAssertEqual(Plan.yearsBack(hoursPerDay: 6, age: 15), 24.375 * 0.5, accuracy: 0.001)
+        XCTAssertEqual(Plan.daysBackPerYear(hoursPerDay: 5), 38)
+        // 5 h on the phone leaves 11 waking hours; winning back 2.5 h is about 23 % more offline time.
+        XCTAssertEqual(Plan.offlineIncrease(hoursPerDay: 5), 2.5 / 11, accuracy: 0.0001)
         XCTAssertEqual(Plan.offlineIncrease(hoursPerDay: 16), 0)
     }
 

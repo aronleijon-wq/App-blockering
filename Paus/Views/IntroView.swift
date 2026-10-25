@@ -736,7 +736,7 @@ private struct InviteCard: View {
 
 // MARK: - Plan
 
-/// The promise: what a 30 % cut gives back, sealed with a fist bump.
+/// The goal: what halving screen time gives back, sealed with a fist bump.
 private struct PlanStep: View {
     let answers: IntroAnswers
     let goalText: String
@@ -773,7 +773,7 @@ private struct PlanStep: View {
                     VStack(alignment: .leading, spacing: 22) {
                         PlanRow(
                             symbol: "lock.shield.fill",
-                            title: L("30 % mindre skärmtid"),
+                            title: L("Målet: halvera din skärmtid"),
                             text: L("Från \(IntroView.hours(answers.hoursPerDay)) till **\(IntroView.hours(Plan.targetHours(from: answers.hoursPerDay)))** om dagen.")
                         )
                         .planReveal(index: 0, shown: shownRows)

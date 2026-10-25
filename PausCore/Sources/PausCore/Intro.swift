@@ -68,10 +68,10 @@ enum LifeMath {
     }
 }
 
-/// What Paus promises at the end of the intro: a realistic cut, not an empty phone.
+/// The goal Paus sets at the end of the intro: halving screen time, not an empty phone.
 enum Plan {
     /// The share of screen time the plan aims to cut.
-    static let reduction = 0.3
+    static let reduction = 0.5
 
     static func targetHours(from hoursPerDay: Double) -> Double {
         hoursPerDay * (1 - reduction)
