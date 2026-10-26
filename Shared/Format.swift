@@ -39,6 +39,8 @@ enum Format {
         switch reason {
         case .focus(let until):
             return L("Fokuspass till \(time(until))")
+        case .stepFocus(let goal):
+            return L("Stegpass: gå \(number(goal)) steg så låses apparna upp")
         case .schedule(let name, let until):
             return L("Schemat ”\(name)” gäller till \(time(until))")
         case .dailyLimit(let minutes):

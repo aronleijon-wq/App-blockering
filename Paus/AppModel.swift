@@ -50,8 +50,8 @@ final class AppModel {
     private(set) var hasFinishedIntro = IntroStore.isFinished
     private(set) var introAnswers = IntroStore.answers
     private(set) var account = IntroStore.account
-    /// Today's steps from Health while walking to unlock is on; nil before the first read or when Health can't be read.
-    private(set) var stepsToday: Int?
+    /// Steps walked since the running step session started; nil when there is none or Health can't be read.
+    private(set) var sessionSteps: Int?
 
     let store = Store()
     let league = LeagueService()
@@ -82,10 +82,10 @@ final class AppModel {
     /// Whether to show the app rather than onboarding; doesn't flash onboarding while Screen Time's status loads.
     var showsMainApp: Bool { isAuthorized || (authorizationStatus == .notDetermined && mayStillBeAuthorized) }
     var hasSelection: Bool { !selection.isEmpty }
-    var stepUnlock: StepUnlock { StepUnlock(rules: effectiveRules.steps, runtime: runtime) }
 
     var isStrictFocusActive: Bool {
-        guard effectiveRules.strictFocus, let end = runtime.focusEndsAt else { return false }
+        // A step session is always strict: walking is the only way out.
+        guard effectiveRules.strictFocus || runtime.focusStepGoal != nil, let end = runtime.focusEndsAt else { return false }
         return end > .now
     }
 
@@ -157,7 +157,7 @@ final class AppModel {
         Task { await refreshNotificationPermission() }
         Task { await refreshCoach() }
         Task { await syncLeague(force: false) }
-        Task { await refreshSteps() }
+        Task { await refreshSessionSteps() }
     }
 
     // MARK: Intro and account
@@ -570,7 +570,7 @@ final class AppModel {
     // MARK: Focus and pauses
 
     func startFocus(minutes: Int) {
-        guard hasSelection else { return }
+        guard hasSelection, runtime.focusStepGoal == nil else { return }
         let now = Date.now
         let end = now.addingTimeInterval(TimeInterval(minutes * 60))
         do {
@@ -585,6 +585,55 @@ final class AppModel {
         }
         refreshShield()
         Notifier.scheduleFocusDone(at: end, xp: minutes + PlayerProgress.XP.focusBonus)
+        Task { await refreshCoach() }
+    }
+
+    /// Blocks the apps until `goal` steps are walked. It can't be stopped or paused, so it only starts once
+    /// Paus can read steps from Health; otherwise it would stay locked until the backstop.
+    func startStepFocus(goal: Int) async {
+        guard hasSelection, isPro, runtime.focusStepGoal == nil, !(runtime.focusEndsAt.map { $0 > .now } ?? false) else { return }
+        await StepCounter.requestAccess()
+        let now = Date.now
+        guard let today = await StepCounter.steps(since: Calendar.current.startOfDay(for: now)), today > 0 else {
+            errorMessage = L("Paus kan inte läsa dina steg. Öppna Hälsa, tryck på din profilbild, välj Appar > Paus och slå på Steg. Sedan kan du starta ett stegpass.")
+            return
+        }
+        let end = now.addingTimeInterval(StepFocus.backstop)
+        do {
+            try ActivityScheduler.startFocus(until: end)
+        } catch {
+            errorMessage = L("Fokuspasset kunde inte startas (\(error.localizedDescription)).")
+            return
+        }
+        updateRuntime {
+            $0.focusStartedAt = now
+            $0.focusEndsAt = end
+            $0.focusStepGoal = goal
+        }
+        sessionSteps = 0
+        refreshShield()
+        Task { await refreshCoach() }
+    }
+
+    /// Reads the steps of the running step session and ends it once the goal is walked.
+    func refreshSessionSteps() async {
+        guard runtime.focusStepGoal != nil, let start = runtime.focusStartedAt else {
+            sessionSteps = nil
+            return
+        }
+        guard let walked = await StepCounter.steps(since: start) else { return }
+        // The session may have ended while Health was being read.
+        guard let goal = runtime.focusStepGoal else { return }
+        sessionSteps = walked
+        guard walked >= goal else { return }
+        // Clear the session before stopping its monitoring, which reports the stop to the monitor too.
+        ProgressRecorder.completeStepFocus()
+        ActivityScheduler.stopFocus()
+        sessionSteps = nil
+        runtime = SharedStore.runtime
+        progress = SharedStore.progress
+        refreshShield()
+        showPendingCelebrations()
         Task { await refreshCoach() }
     }
 
@@ -625,48 +674,6 @@ final class AppModel {
         ActivityScheduler.stopPause()
         Notifier.cancel([Notifier.ID.pauseEnding, Notifier.ID.pauseOver])
         updateRuntime { $0.pausedUntil = nil }
-        refreshShield()
-    }
-
-    // MARK: Walking to unlock
-
-    /// Turns walking to unlock on or off, asking Health for the step count when it is turned on.
-    func setWalkToUnlock(_ isOn: Bool) async {
-        if isOn { await StepCounter.requestAccess() }
-        updateRules { $0.steps.isEnabled = isOn }
-        await refreshSteps()
-    }
-
-    func refreshSteps() async {
-        guard effectiveRules.steps.isEnabled else {
-            stepsToday = nil
-            return
-        }
-        stepsToday = await StepCounter.stepsToday()
-    }
-
-    /// Trades steps for `minutes` in the blocked apps, added on top of a pause that is already running.
-    /// Unlike a pause it doesn't use up one of the day's pauses or cost XP: the minutes were earned.
-    func spendSteps(minutes: Int) async {
-        await refreshSteps()
-        let now = Date.now
-        guard
-            let walked = stepsToday,
-            minutes > 0,
-            engine.canSpendSteps(at: now),
-            minutes <= stepUnlock.availableMinutes(walked: walked, at: now)
-        else { return }
-        let start = max(runtime.pausedUntil ?? now, now)
-        let end = start.addingTimeInterval(TimeInterval(minutes * 60))
-        do {
-            try ActivityScheduler.startPause(until: end)
-        } catch {
-            errorMessage = L("Pausen kunde inte startas (\(error.localizedDescription)).")
-            return
-        }
-        let steps = stepUnlock.cost(minutes: minutes)
-        updateRuntime { $0.spendSteps(steps, minutes: minutes, at: now, until: end, calendar: .current) }
-        Notifier.schedulePauseEnd(at: end)
         refreshShield()
     }
 

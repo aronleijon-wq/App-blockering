@@ -20,10 +20,32 @@ enum ProgressRecorder {
             // Stopping a session early also ends its monitoring, which calls this from the monitor.
             // Only a session that ran its course earns XP.
             guard date >= end.addingTimeInterval(-focusEndTolerance) else { return }
+            // A step session that reaches its backstop wasn't walked, so it ends without XP.
+            if runtime.focusStepGoal != nil {
+                runtime.focusEndsAt = nil
+                runtime.focusStartedAt = nil
+                runtime.focusStepGoal = nil
+                return
+            }
             let start = runtime.focusStartedAt ?? end
             minutes = max(0, Int((end.timeIntervalSince(start) / 60).rounded()))
             runtime.focusEndsAt = nil
             runtime.focusStartedAt = nil
+        }
+        guard minutes > 0 else { return [] }
+        return record(.focusCompleted(minutes: minutes), at: date)
+    }
+
+    /// Awards a step session whose steps are walked and clears it. A second call finds nothing to award.
+    @discardableResult
+    static func completeStepFocus(at date: Date = .now) -> [Reward] {
+        var minutes = 0
+        SharedStore.updateRuntime { runtime in
+            guard runtime.focusStepGoal != nil, let start = runtime.focusStartedAt else { return }
+            minutes = StepFocus.rewardMinutes(from: start, to: date)
+            runtime.focusEndsAt = nil
+            runtime.focusStartedAt = nil
+            runtime.focusStepGoal = nil
         }
         guard minutes > 0 else { return [] }
         return record(.focusCompleted(minutes: minutes), at: date)

@@ -2,6 +2,8 @@ import Foundation
 
 enum BlockReason: Equatable {
     case focus(until: Date)
+    /// A focus session that ends once enough steps are walked rather than at a time.
+    case stepFocus(goal: Int)
     case schedule(name: String, until: Date)
     case dailyLimit(minutes: Int)
 }
@@ -19,6 +21,7 @@ struct BlockEngine {
     /// schedule a minute later and `false` treats it as ended, so a callback a few seconds early can't flip the result.
     func reason(at date: Date, scheduleOverrides: [UUID: Bool] = [:]) -> BlockReason? {
         if let end = runtime.focusEndsAt, end > date {
+            if let goal = runtime.focusStepGoal { return .stepFocus(goal: goal) }
             return .focus(until: end)
         }
         // On vacation only a focus session the user starts blocks anything.
@@ -63,15 +66,12 @@ struct BlockEngine {
         return !isStrictFocus(reason)
     }
 
-    /// Whether minutes earned by walking can lift the block at `date`: something has to be blocking, and a strict
-    /// focus session can't be walked out of. A running pause can be extended.
-    func canSpendSteps(at date: Date) -> Bool {
-        guard rules.steps.isEnabled, let reason = reason(at: date) else { return false }
-        return !isStrictFocus(reason)
-    }
-
     private func isStrictFocus(_ reason: BlockReason) -> Bool {
-        if case .focus = reason { return rules.strictFocus }
-        return false
+        switch reason {
+        case .focus: return rules.strictFocus
+        // Steps are the only way out of a step session.
+        case .stepFocus: return true
+        default: return false
+        }
     }
 }

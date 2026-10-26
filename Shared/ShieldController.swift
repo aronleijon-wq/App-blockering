@@ -20,7 +20,9 @@ enum ShieldController {
         if engine.shouldShield(at: date, scheduleOverrides: scheduleOverrides) {
             apply(SharedStore.selection)
             // Without this, deleting and reinstalling Paus would be the easy way out of a block.
-            store.application.denyAppRemoval = rules.preventUninstall ? true : nil
+            // A step session always has it, since walking must be the only way out.
+            let isStepFocus = SharedStore.runtime.focusStepGoal != nil
+            store.application.denyAppRemoval = rules.preventUninstall || isStepFocus ? true : nil
         } else {
             store.clearAllSettings()
         }

@@ -526,7 +526,10 @@ enum MascotMood: String, CaseIterable {
     case happy, zen, sleepy, sad, proud, hyped, crying, wrecked
 
     static func current(reason: BlockReason?, isPaused: Bool, progress: PlayerProgress, at date: Date, calendar: Calendar) -> MascotMood {
-        if case .focus = reason { return .zen }
+        switch reason {
+        case .focus, .stepFocus: return .zen
+        default: break
+        }
         switch progress.healthStage {
         case .wrecked: return .wrecked
         case .sick: return .crying
@@ -553,7 +556,6 @@ extension PausRules {
         rules.dailyLimitMinutes = nil
         rules.strictFocus = false
         rules.preventUninstall = false
-        rules.steps.isEnabled = false
         return rules
     }
 }

@@ -6,7 +6,6 @@ struct RulesView: View {
     @State private var isSettingsPresented = false
 
     private let limitOptions = [15, 30, 45, 60, 90, 120, 150, 180, 240]
-    private let stepOptions = [500, 1000, 2000, 3000, 5000]
 
     var body: some View {
         NavigationStack {
@@ -94,8 +93,6 @@ struct RulesView: View {
                     Text(L("En paus öppnar de blockerade apparna en kort stund. Först svarar du varför och andas en stund. Dagens första paus är gratis, sedan kostar de \(League.pausePenalty(forPause: 2)), \(League.pausePenalty(forPause: 3)) och \(League.pausePenalty(forPause: 4)) XP och veckopoäng. Tackar du nej får du \(PlayerProgress.XP.decline) XP. Att stänga av en blockering medan den pågår kostar \(PlayerProgress.XP.escapedBlock) XP. Du åker aldrig ner en nivå."))
                 }
 
-                stepsSection
-
                 Section {
                     Button {
                         isSettingsPresented = true
@@ -118,36 +115,6 @@ struct RulesView: View {
                     isNew: !model.rules.schedules.contains { $0.id == schedule.id }
                 )
             }
-        }
-    }
-
-    @ViewBuilder
-    private var stepsSection: some View {
-        let steps = model.rules.steps
-        Section {
-            if model.isPro {
-                Toggle(L("Gå för att låsa upp"), isOn: Binding(
-                    get: { steps.isEnabled },
-                    set: { isOn in Task { await model.setWalkToUnlock(isOn) } }
-                ))
-                if steps.isEnabled {
-                    Picker(L("Steg per upplåsning"), selection: binding(\.steps.stepsPerUnlock)) {
-                        ForEach(stepOptions, id: \.self) { Text(L("\(Format.number($0)) steg")).tag($0) }
-                    }
-                    Picker(L("Tid per upplåsning"), selection: binding(\.steps.minutesPerUnlock)) {
-                        ForEach([5, 10, 15], id: \.self) { Text("\($0) min").tag($0) }
-                    }
-                    Picker(L("Högst per dag"), selection: binding(\.steps.maxMinutesPerDay)) {
-                        ForEach([15, 30, 45, 60], id: \.self) { Text(Format.minutes($0)).tag($0) }
-                    }
-                }
-            } else {
-                LockedRow(title: L("Gå för att låsa upp")) { model.isPaywallPresented = true }
-            }
-        } header: {
-            Text(L("Steg"))
-        } footer: {
-            Text(L("Gå \(Format.number(steps.stepsPerUnlock)) steg så får du \(steps.minutesPerUnlock) min i de blockerade apparna, högst \(Format.minutes(steps.maxMinutesPerDay)) per dag. Det kostar inga pauser eller XP, men fungerar inte under strikt fokus. Paus läser bara antalet steg från Hälsa, och de lämnar aldrig din telefon."))
         }
     }
 

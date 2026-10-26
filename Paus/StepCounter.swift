@@ -1,6 +1,6 @@
 import HealthKit
 
-/// Reads today's step count from Health for walking to unlock. Paus only reads, and the count never leaves the phone.
+/// Reads step counts from Health for step sessions. Paus only reads, and the count never leaves the phone.
 enum StepCounter {
     private static let store = HKHealthStore()
     private static let stepCount = HKQuantityType(.stepCount)
@@ -14,10 +14,10 @@ enum StepCounter {
         try? await store.requestAuthorization(toShare: [], read: [stepCount])
     }
 
-    /// Steps since midnight, or nil when Health can't be read at all.
-    static func stepsToday(now: Date = .now) async -> Int? {
+    /// Steps walked from `start` until now, or nil when Health can't be read at all.
+    static func steps(since start: Date) async -> Int? {
         guard isAvailable else { return nil }
-        let since = HKQuery.predicateForSamples(withStart: Calendar.current.startOfDay(for: now), end: now)
+        let since = HKQuery.predicateForSamples(withStart: start, end: .now)
         let query = HKStatisticsQueryDescriptor(
             predicate: HKSamplePredicate.quantitySample(type: stepCount, predicate: since),
             options: .cumulativeSum

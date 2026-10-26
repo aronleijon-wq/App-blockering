@@ -24,6 +24,9 @@ struct PausStatus: Codable, Hashable {
         switch reason {
         case .focus(let until):
             return PausStatus(kind: .focus, title: L("Fokuspass"), start: runtime.focusStartedAt, end: until)
+        case .stepFocus:
+            // Ends with the steps, not at a time, so there is no countdown to show.
+            return PausStatus(kind: .focus, title: L("Stegpass"), start: runtime.focusStartedAt, end: nil)
         case .schedule(let name, let until):
             return PausStatus(kind: .schedule, title: name, start: nil, end: until)
         case .dailyLimit:

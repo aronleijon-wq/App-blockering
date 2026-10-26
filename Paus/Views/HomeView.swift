@@ -5,6 +5,8 @@ struct HomeView: View {
     @State private var isHealthInfoPresented = false
     @State private var isSettingsPresented = false
     @State private var isStopFocusConfirming = false
+    /// The step goal waiting for the user to confirm, since a step session can't be undone.
+    @State private var confirmingStepGoal: Int?
 
     private let focusLengths = [25, 50, 90]
 
@@ -20,9 +22,6 @@ struct HomeView: View {
                         dailyRewardCard(at: context.date)
                         if model.hasSelection {
                             statusCard(at: context.date)
-                            if model.effectiveRules.steps.isEnabled {
-                                StepsCard(date: context.date)
-                            }
                             focusCard(at: context.date)
                         }
                         ScreenTimeCard()
@@ -189,8 +188,11 @@ struct HomeView: View {
         let engine = model.engine
         if let reason = engine.reason(at: date) {
             let isStrictFocus: Bool = {
-                if case .focus = reason { return model.isStrictFocusActive }
-                return false
+                switch reason {
+                case .focus: return model.isStrictFocusActive
+                case .stepFocus: return true
+                default: return false
+                }
             }()
             VStack(alignment: .leading, spacing: 12) {
                 if engine.shouldShield(at: date) {
@@ -230,7 +232,9 @@ struct HomeView: View {
 
     private func focusCard(at date: Date) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            if let end = model.runtime.focusEndsAt, end > date, let start = model.runtime.focusStartedAt {
+            if let goal = model.runtime.focusStepGoal, let end = model.runtime.focusEndsAt, end > date {
+                stepSession(goal: goal)
+            } else if let end = model.runtime.focusEndsAt, end > date, let start = model.runtime.focusStartedAt {
                 let total = end.timeIntervalSince(start)
                 let done = total > 0 ? date.timeIntervalSince(start) / total : 0
                 HStack(spacing: 18) {
@@ -283,9 +287,94 @@ struct HomeView: View {
                         .accessibilityLabel(L("Starta fokus i \(Format.minutes(minutes))"))
                     }
                 }
+                stepSessionChoices
             }
         }
         .card()
+    }
+
+    // MARK: Step sessions
+
+    private func stepSession(goal: Int) -> some View {
+        let walked = min(model.sessionSteps ?? 0, goal)
+        return HStack(spacing: 18) {
+            ZStack {
+                Circle().stroke(Color.white.opacity(0.1), lineWidth: 10)
+                Circle()
+                    .trim(from: 0, to: Double(walked) / Double(max(goal, 1)))
+                    .stroke(Theme.glow, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                VStack(spacing: 2) {
+                    Image(systemName: "figure.walk")
+                        .font(.subheadline)
+                    Text(Format.number(walked))
+                        .font(.headline.monospacedDigit())
+                }
+            }
+            .frame(width: 96, height: 96)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(L("Stegpass pågår"))
+                    .font(.title3.bold())
+                Text(L("Gå \(Format.number(goal - walked)) steg till, så låses apparna upp."))
+                    .foregroundStyle(.secondary)
+                Label(L("Går inte att avbryta"), systemImage: "lock.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.pink)
+                if model.sessionSteps == nil {
+                    Text(L("Stegen kunde inte läsas från Hälsa just nu."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .task {
+            // Keep the count fresh while the card is on screen; the session ends as soon as the goal is reached.
+            while !Task.isCancelled {
+                await model.refreshSessionSteps()
+                try? await Task.sleep(for: .seconds(10))
+            }
+        }
+    }
+
+    private var stepSessionChoices: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(L("Eller lås apparna tills du har gått"))
+                    .font(.subheadline.weight(.semibold))
+                if !model.isPro {
+                    Spacer()
+                    ProBadge()
+                }
+            }
+            HStack(spacing: 10) {
+                ForEach(StepFocus.goals, id: \.self) { goal in
+                    Button {
+                        if model.isPro {
+                            confirmingStepGoal = goal
+                        } else {
+                            model.isPaywallPresented = true
+                        }
+                    } label: {
+                        Text(L("\(Format.number(goal)) steg"))
+                    }
+                    .buttonStyle(ChipButtonStyle())
+                }
+            }
+        }
+        .padding(.top, 4)
+        .confirmationDialog(
+            L("Starta ett stegpass?"),
+            isPresented: Binding(get: { confirmingStepGoal != nil }, set: { if !$0 { confirmingStepGoal = nil } }),
+            titleVisibility: .visible,
+            presenting: confirmingStepGoal
+        ) { goal in
+            Button(L("Lås tills jag gått \(Format.number(goal)) steg")) {
+                Task { await model.startStepFocus(goal: goal) }
+            }
+            Button(L("Inte nu"), role: .cancel) {}
+        } message: { goal in
+            Text(L("Apparna låses tills du har gått \(Format.number(goal)) steg. Det går inte att avbryta, pausa eller ta bort Paus under tiden. Öppna Paus när du har gått klart."))
+        }
     }
 
     // MARK: Quests
@@ -382,74 +471,3 @@ struct StreakPill: View {
     }
 }
 
-/// Today's steps and the minutes they have earned in the blocked apps.
-private struct StepsCard: View {
-    @Environment(AppModel.self) private var model
-    let date: Date
-
-    var body: some View {
-        let rules = model.effectiveRules.steps
-        let unlock = model.stepUnlock
-        let walked = model.stepsToday ?? 0
-        let available = unlock.availableMinutes(walked: walked, at: date)
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label(L("Gå för att låsa upp"), systemImage: "figure.walk")
-                    .font(.headline)
-                Spacer()
-                Text(L("\(Format.number(walked)) steg"))
-                    .font(.headline.monospacedDigit())
-                    .foregroundStyle(Theme.mint)
-            }
-
-            if let toNext = unlock.stepsToNext(walked: walked, at: date) {
-                GradientBar(fraction: Double(rules.stepsPerUnlock - toNext) / Double(max(rules.stepsPerUnlock, 1)))
-                Text(L("\(Format.number(toNext)) steg kvar till \(rules.minutesPerUnlock) min till"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text(L("Du har gått ihop dagens max på \(Format.minutes(rules.maxMinutesPerDay)). Snyggt!"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            if available > 0 {
-                if model.engine.canSpendSteps(at: date) {
-                    HStack(spacing: 10) {
-                        ForEach(unlock.choices(walked: walked, at: date), id: \.self) { minutes in
-                            Button(L("\(minutes) min")) {
-                                Task { await model.spendSteps(minutes: minutes) }
-                            }
-                            .buttonStyle(ChipButtonStyle())
-                        }
-                    }
-                    Text(L("Du har \(available) min att använda i de blockerade apparna."))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text(L("Du har \(available) min sparade. Använd dem när apparna är blockerade."))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            if model.stepsToday == 0 {
-                Text(L("Ser du 0 steg? Öppna Hälsa, tryck på din profilbild och välj Appar > Paus. Slå på Steg."))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else if model.stepsToday == nil {
-                Text(L("Stegen kunde inte läsas från Hälsa just nu."))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .card()
-        .task {
-            // Keep the count fresh while the card is on screen.
-            while !Task.isCancelled {
-                await model.refreshSteps()
-                try? await Task.sleep(for: .seconds(30))
-            }
-        }
-    }
-}

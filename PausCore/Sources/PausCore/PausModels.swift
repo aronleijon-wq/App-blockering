@@ -26,31 +26,6 @@ struct PauseRules: Codable, Equatable {
     }
 }
 
-/// Walking to earn time in the blocked apps.
-struct StepRules: Codable, Equatable {
-    var isEnabled: Bool
-    var stepsPerUnlock: Int
-    var minutesPerUnlock: Int
-    /// A cap, so walking can't undo the goal of halving screen time.
-    var maxMinutesPerDay: Int
-
-    init(isEnabled: Bool = false, stepsPerUnlock: Int = 1000, minutesPerUnlock: Int = 5, maxMinutesPerDay: Int = 30) {
-        self.isEnabled = isEnabled
-        self.stepsPerUnlock = stepsPerUnlock
-        self.minutesPerUnlock = minutesPerUnlock
-        self.maxMinutesPerDay = maxMinutesPerDay
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let defaults = StepRules()
-        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? defaults.isEnabled
-        stepsPerUnlock = try container.decodeIfPresent(Int.self, forKey: .stepsPerUnlock) ?? defaults.stepsPerUnlock
-        minutesPerUnlock = try container.decodeIfPresent(Int.self, forKey: .minutesPerUnlock) ?? defaults.minutesPerUnlock
-        maxMinutesPerDay = try container.decodeIfPresent(Int.self, forKey: .maxMinutesPerDay) ?? defaults.maxMinutesPerDay
-    }
-}
-
 /// The rules the user sets up in the app.
 struct PausRules: Codable, Equatable {
     var dailyLimitMinutes: Int?
@@ -64,7 +39,6 @@ struct PausRules: Codable, Equatable {
     var adultFilter: Bool
     /// Schedules and the daily limit rest until this date. Focus sessions still work.
     var vacationUntil: Date?
-    var steps: StepRules
 
     init(
         dailyLimitMinutes: Int? = nil,
@@ -73,8 +47,7 @@ struct PausRules: Codable, Equatable {
         pause: PauseRules = PauseRules(),
         preventUninstall: Bool = false,
         adultFilter: Bool = false,
-        vacationUntil: Date? = nil,
-        steps: StepRules = StepRules()
+        vacationUntil: Date? = nil
     ) {
         self.dailyLimitMinutes = dailyLimitMinutes
         self.schedules = schedules
@@ -83,7 +56,6 @@ struct PausRules: Codable, Equatable {
         self.preventUninstall = preventUninstall
         self.adultFilter = adultFilter
         self.vacationUntil = vacationUntil
-        self.steps = steps
     }
 
     func isOnVacation(at date: Date) -> Bool {
@@ -101,7 +73,6 @@ struct PausRules: Codable, Equatable {
         preventUninstall = try container.decodeIfPresent(Bool.self, forKey: .preventUninstall) ?? defaults.preventUninstall
         adultFilter = try container.decodeIfPresent(Bool.self, forKey: .adultFilter) ?? defaults.adultFilter
         vacationUntil = try container.decodeIfPresent(Date.self, forKey: .vacationUntil)
-        steps = try container.decodeIfPresent(StepRules.self, forKey: .steps) ?? defaults.steps
     }
 }
 
@@ -109,6 +80,9 @@ struct PausRules: Codable, Equatable {
 struct PausRuntime: Codable, Equatable {
     var focusStartedAt: Date?
     var focusEndsAt: Date?
+    /// Set for a step session: the focus session ends once this many steps are walked after `focusStartedAt`,
+    /// and `focusEndsAt` is only a backstop.
+    var focusStepGoal: Int?
     var pausedUntil: Date?
     /// Day key of the day the daily limit was reached.
     var limitReachedDay: String?
@@ -118,46 +92,40 @@ struct PausRuntime: Codable, Equatable {
     var statsDay: String?
     var pausesUsed: Int
     var closedCount: Int
-    /// Steps traded for minutes in the blocked apps today, and the minutes they bought.
-    var stepsSpent: Int
-    var stepMinutes: Int
 
     init(
         focusStartedAt: Date? = nil,
         focusEndsAt: Date? = nil,
+        focusStepGoal: Int? = nil,
         pausedUntil: Date? = nil,
         limitReachedDay: String? = nil,
         pauseRequestedAt: Date? = nil,
         statsDay: String? = nil,
         pausesUsed: Int = 0,
-        closedCount: Int = 0,
-        stepsSpent: Int = 0,
-        stepMinutes: Int = 0
+        closedCount: Int = 0
     ) {
         self.focusStartedAt = focusStartedAt
         self.focusEndsAt = focusEndsAt
+        self.focusStepGoal = focusStepGoal
         self.pausedUntil = pausedUntil
         self.limitReachedDay = limitReachedDay
         self.pauseRequestedAt = pauseRequestedAt
         self.statsDay = statsDay
         self.pausesUsed = pausesUsed
         self.closedCount = closedCount
-        self.stepsSpent = stepsSpent
-        self.stepMinutes = stepMinutes
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         focusStartedAt = try container.decodeIfPresent(Date.self, forKey: .focusStartedAt)
         focusEndsAt = try container.decodeIfPresent(Date.self, forKey: .focusEndsAt)
+        focusStepGoal = try container.decodeIfPresent(Int.self, forKey: .focusStepGoal)
         pausedUntil = try container.decodeIfPresent(Date.self, forKey: .pausedUntil)
         limitReachedDay = try container.decodeIfPresent(String.self, forKey: .limitReachedDay)
         pauseRequestedAt = try container.decodeIfPresent(Date.self, forKey: .pauseRequestedAt)
         statsDay = try container.decodeIfPresent(String.self, forKey: .statsDay)
         pausesUsed = try container.decodeIfPresent(Int.self, forKey: .pausesUsed) ?? 0
         closedCount = try container.decodeIfPresent(Int.self, forKey: .closedCount) ?? 0
-        stepsSpent = try container.decodeIfPresent(Int.self, forKey: .stepsSpent) ?? 0
-        stepMinutes = try container.decodeIfPresent(Int.self, forKey: .stepMinutes) ?? 0
     }
 
     /// Resets the daily counters when `date` falls on a new day.
@@ -167,21 +135,11 @@ struct PausRuntime: Codable, Equatable {
         statsDay = key
         pausesUsed = 0
         closedCount = 0
-        stepsSpent = 0
-        stepMinutes = 0
     }
 
     mutating func startPause(at date: Date, until end: Date, calendar: Calendar) {
         rollOver(to: date, calendar: calendar)
         pausesUsed += 1
-        pausedUntil = end
-    }
-
-    /// Lifts the block until `end` with minutes bought by walking. Unlike a pause it doesn't use up a pause.
-    mutating func spendSteps(_ steps: Int, minutes: Int, at date: Date, until end: Date, calendar: Calendar) {
-        rollOver(to: date, calendar: calendar)
-        stepsSpent += steps
-        stepMinutes += minutes
         pausedUntil = end
     }
 
@@ -194,12 +152,6 @@ struct PausRuntime: Codable, Equatable {
     func counts(on date: Date, calendar: Calendar) -> (pauses: Int, closed: Int) {
         guard statsDay == DayKey.string(for: date, calendar: calendar) else { return (0, 0) }
         return (pausesUsed, closedCount)
-    }
-
-    /// Steps spent and minutes bought on the day containing `date`.
-    func stepCounts(on date: Date, calendar: Calendar) -> (steps: Int, minutes: Int) {
-        guard statsDay == DayKey.string(for: date, calendar: calendar) else { return (0, 0) }
-        return (stepsSpent, stepMinutes)
     }
 }
 
