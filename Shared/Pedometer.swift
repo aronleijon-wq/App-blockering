@@ -34,7 +34,7 @@ enum Pedometer {
     }
 }
 
-/// Keeps a running step session up to date, from the app or from the monitor extension every quarter hour,
+/// Keeps a running step session up to date, from the app or from the monitor extension every few minutes,
 /// and ends it as soon as the goal is walked so the apps unlock even while Paus isn't running.
 enum StepChecker {
     /// Saves `walked` for the lock screen and ends the session once the goal is reached. Returns whether it ended.

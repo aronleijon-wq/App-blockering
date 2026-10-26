@@ -620,7 +620,7 @@ final class AppModel {
     }
 
     /// Reads the steps of the running step session for the home screen and lock screen, and ends it once the goal
-    /// is walked. The monitor extension does the same every quarter hour while Paus isn't running.
+    /// is walked. The monitor extension does the same every few minutes while Paus isn't running.
     func refreshSessionSteps() async {
         guard runtime.focusStepGoal != nil, let start = runtime.focusStartedAt else {
             sessionSteps = nil
