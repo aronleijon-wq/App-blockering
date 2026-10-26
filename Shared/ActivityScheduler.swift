@@ -133,7 +133,7 @@ enum ActivityScheduler {
 
     /// How often the monitor counts the steps of a step session. The interval behind each check is backdated
     /// to meet DeviceActivity's 15 minute minimum, so the checks can come more often than that.
-    static let stepCheckInterval: TimeInterval = 3 * 60
+    static let stepCheckInterval: TimeInterval = 5 * 60
 
     /// Books the next step count of a step session.
     static func scheduleStepCheck() throws {
