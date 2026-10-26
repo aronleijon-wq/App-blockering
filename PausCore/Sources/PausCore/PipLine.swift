@@ -17,12 +17,18 @@ enum PipLine {
             .trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "\"“”")))
             .split(whereSeparator: \.isWhitespace)
             .joined(separator: " ")
+            // With no name to use, the model sometimes writes a placeholder such as "[namn]". Take it out
+            // and close the gap it leaves, so "Hej [namn]!" becomes "Hej!".
+            .replacingOccurrences(of: #"\s*\\?[\[{<][^\]}>]*[\]}>]"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\s+([,.!?…])"#, with: "$1", options: .regularExpression)
         // A line cut off by the token limit doesn't end like a sentence.
         guard let last = flattened.last, ".!?…".contains(last) else { return nil }
 
         let kept = sentences(in: flattened).filter { sentence in
             let lowercased = sentence.lowercased()
-            return !sentence.hasSuffix("?") && !dropped.contains(where: lowercased.contains)
+            return !sentence.hasSuffix("?")
+                && !dropped.contains(where: lowercased.contains)
+                && sentence.rangeOfCharacter(from: CharacterSet(charactersIn: "[]{}<>\\")) == nil
         }
         let line = kept.joined(separator: " ")
         // A greeting alone, such as "Hej Aron!", says nothing.

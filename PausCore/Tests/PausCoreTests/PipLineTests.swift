@@ -17,6 +17,17 @@ final class PipLineTests: XCTestCase {
         XCTAssertEqual(PipLine.cleaned(reply), "Hi Aron! You have been scrolling a lot today.")
     }
 
+    func testTakesOutANamePlaceholder() {
+        XCTAssertEqual(
+            PipLine.cleaned("Hej \\[namn]! Det kan hjälpa dig att fokusera bättre på skolarbetet."),
+            "Hej! Det kan hjälpa dig att fokusera bättre på skolarbetet."
+        )
+        XCTAssertEqual(
+            PipLine.cleaned("Hi [name], put your phone in another room while you study."),
+            "Hi, put your phone in another room while you study."
+        )
+    }
+
     func testDropsALineThatIsOnlyAGreetingOnceQuestionsAreGone() {
         XCTAssertNil(PipLine.cleaned("Hej Aron! Hur mår du?"))
     }
