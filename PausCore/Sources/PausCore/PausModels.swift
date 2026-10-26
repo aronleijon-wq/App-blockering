@@ -83,6 +83,9 @@ struct PausRuntime: Codable, Equatable {
     /// Set for a step session: the focus session ends once this many steps are walked after `focusStartedAt`,
     /// and `focusEndsAt` is only a backstop.
     var focusStepGoal: Int?
+    /// The latest step count of the running step session, and when it was read, for the lock screen.
+    var focusStepsWalked: Int?
+    var focusStepsCheckedAt: Date?
     var pausedUntil: Date?
     /// Day key of the day the daily limit was reached.
     var limitReachedDay: String?
@@ -97,6 +100,8 @@ struct PausRuntime: Codable, Equatable {
         focusStartedAt: Date? = nil,
         focusEndsAt: Date? = nil,
         focusStepGoal: Int? = nil,
+        focusStepsWalked: Int? = nil,
+        focusStepsCheckedAt: Date? = nil,
         pausedUntil: Date? = nil,
         limitReachedDay: String? = nil,
         pauseRequestedAt: Date? = nil,
@@ -107,6 +112,8 @@ struct PausRuntime: Codable, Equatable {
         self.focusStartedAt = focusStartedAt
         self.focusEndsAt = focusEndsAt
         self.focusStepGoal = focusStepGoal
+        self.focusStepsWalked = focusStepsWalked
+        self.focusStepsCheckedAt = focusStepsCheckedAt
         self.pausedUntil = pausedUntil
         self.limitReachedDay = limitReachedDay
         self.pauseRequestedAt = pauseRequestedAt
@@ -120,6 +127,8 @@ struct PausRuntime: Codable, Equatable {
         focusStartedAt = try container.decodeIfPresent(Date.self, forKey: .focusStartedAt)
         focusEndsAt = try container.decodeIfPresent(Date.self, forKey: .focusEndsAt)
         focusStepGoal = try container.decodeIfPresent(Int.self, forKey: .focusStepGoal)
+        focusStepsWalked = try container.decodeIfPresent(Int.self, forKey: .focusStepsWalked)
+        focusStepsCheckedAt = try container.decodeIfPresent(Date.self, forKey: .focusStepsCheckedAt)
         pausedUntil = try container.decodeIfPresent(Date.self, forKey: .pausedUntil)
         limitReachedDay = try container.decodeIfPresent(String.self, forKey: .limitReachedDay)
         pauseRequestedAt = try container.decodeIfPresent(Date.self, forKey: .pauseRequestedAt)

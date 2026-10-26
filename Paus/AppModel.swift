@@ -609,32 +609,38 @@ final class AppModel {
             $0.focusStartedAt = now
             $0.focusEndsAt = end
             $0.focusStepGoal = goal
+            $0.focusStepsWalked = 0
+            $0.focusStepsCheckedAt = now
         }
+        try? ActivityScheduler.scheduleStepCheck()
+        StepRefresh.schedule()
         sessionSteps = 0
         refreshShield()
         Task { await refreshCoach() }
     }
 
-    /// Reads the steps of the running step session and ends it once the goal is walked.
+    /// Reads the steps of the running step session for the home screen and lock screen, and ends it once the goal
+    /// is walked. The monitor extension does the same every quarter hour while Paus isn't running.
     func refreshSessionSteps() async {
         guard runtime.focusStepGoal != nil, let start = runtime.focusStartedAt else {
             sessionSteps = nil
             return
         }
+        ActivityScheduler.ensureStepCheck()
         guard let walked = await StepCounter.steps(since: start) else { return }
-        // The session may have ended while Health was being read.
-        guard let goal = runtime.focusStepGoal else { return }
-        sessionSteps = walked
-        guard walked >= goal else { return }
-        // Clear the session before stopping its monitoring, which reports the stop to the monitor too.
-        ProgressRecorder.completeStepFocus()
-        ActivityScheduler.stopFocus()
-        sessionSteps = nil
+        // The session may have ended while the steps were being read.
+        guard SharedStore.runtime.focusStepGoal != nil else { return }
+        let finished = StepChecker.record(walked, notify: false)
+        sessionSteps = finished ? nil : walked
         runtime = SharedStore.runtime
         progress = SharedStore.progress
         refreshShield()
-        showPendingCelebrations()
-        Task { await refreshCoach() }
+        if finished {
+            showPendingCelebrations()
+            Task { await refreshCoach() }
+        } else {
+            StepRefresh.schedule()
+        }
     }
 
     /// Ends a non-strict focus session early. It earns nothing and costs XP, points and health.

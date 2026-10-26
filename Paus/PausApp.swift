@@ -9,5 +9,8 @@ struct PausApp: App {
             RootView()
                 .environment(model)
         }
+        .backgroundTask(.appRefresh(StepRefresh.identifier)) {
+            await model.refreshSessionSteps()
+        }
     }
 }

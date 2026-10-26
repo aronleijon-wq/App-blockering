@@ -25,6 +25,8 @@ enum ProgressRecorder {
                 runtime.focusEndsAt = nil
                 runtime.focusStartedAt = nil
                 runtime.focusStepGoal = nil
+                runtime.focusStepsWalked = nil
+                runtime.focusStepsCheckedAt = nil
                 return
             }
             let start = runtime.focusStartedAt ?? end
@@ -46,6 +48,8 @@ enum ProgressRecorder {
             runtime.focusEndsAt = nil
             runtime.focusStartedAt = nil
             runtime.focusStepGoal = nil
+            runtime.focusStepsWalked = nil
+            runtime.focusStepsCheckedAt = nil
         }
         guard minutes > 0 else { return [] }
         return record(.focusCompleted(minutes: minutes), at: date)

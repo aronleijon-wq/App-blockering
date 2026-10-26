@@ -10,6 +10,15 @@ struct PausStatus: Codable, Hashable {
     var title: String
     var start: Date?
     var end: Date?
+    /// For a step session: the goal, the steps walked so far and when they were counted.
+    var stepGoal: Int? = nil
+    var steps: Int? = nil
+    var stepsCheckedAt: Date? = nil
+
+    /// Steps still to walk in a step session.
+    var stepsLeft: Int? {
+        stepGoal.map { max(0, $0 - (steps ?? 0)) }
+    }
 
     static var free: PausStatus { PausStatus(kind: .free, title: L("Inget blockeras")) }
 
@@ -24,9 +33,12 @@ struct PausStatus: Codable, Hashable {
         switch reason {
         case .focus(let until):
             return PausStatus(kind: .focus, title: L("Fokuspass"), start: runtime.focusStartedAt, end: until)
-        case .stepFocus:
+        case .stepFocus(let goal):
             // Ends with the steps, not at a time, so there is no countdown to show.
-            return PausStatus(kind: .focus, title: L("Stegpass"), start: runtime.focusStartedAt, end: nil)
+            return PausStatus(
+                kind: .focus, title: L("Stegpass"), start: runtime.focusStartedAt, end: nil,
+                stepGoal: goal, steps: runtime.focusStepsWalked ?? 0, stepsCheckedAt: runtime.focusStepsCheckedAt
+            )
         case .schedule(let name, let until):
             return PausStatus(kind: .schedule, title: name, start: nil, end: until)
         case .dailyLimit:

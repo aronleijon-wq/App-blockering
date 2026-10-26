@@ -63,6 +63,17 @@ private extension PausStatus {
         }
     }
 
+    /// "100 av 2 000 steg" during a step session.
+    var stepsLine: String? {
+        guard let stepGoal else { return nil }
+        return L("\(Format.number(min(steps ?? 0, stepGoal))) av \(Format.number(stepGoal)) steg")
+    }
+
+    var stepFraction: Double {
+        guard let stepGoal, stepGoal > 0 else { return 0 }
+        return min(1, Double(steps ?? 0) / Double(stepGoal))
+    }
+
     /// The countdown range, from `now` or the start, whichever is earlier, to the end.
     func countdown(from now: Date) -> ClosedRange<Date>? {
         guard let end, end > now else { return nil }
@@ -145,7 +156,9 @@ private struct StatusWidgetView: View {
 
     @ViewBuilder
     private var inline: some View {
-        if let range = status.countdown(from: entry.date) {
+        if let left = status.stepsLeft {
+            Label(L("\(Format.number(left)) steg kvar"), systemImage: "figure.walk")
+        } else if let range = status.countdown(from: entry.date) {
             Label {
                 Text("\(status.title) ") + Text(timerInterval: range, countsDown: true)
             } icon: {
@@ -158,7 +171,14 @@ private struct StatusWidgetView: View {
 
     @ViewBuilder
     private var circular: some View {
-        if let range = status.countdown(from: entry.date) {
+        if status.stepGoal != nil {
+            Gauge(value: status.stepFraction) {
+                Image(systemName: "figure.walk")
+            } currentValueLabel: {
+                Image(systemName: "figure.walk")
+            }
+            .gaugeStyle(.accessoryCircular)
+        } else if let range = status.countdown(from: entry.date) {
             ProgressView(timerInterval: range, countsDown: true) {
                 Image(systemName: status.symbol)
             } currentValueLabel: {
@@ -180,7 +200,11 @@ private struct StatusWidgetView: View {
             Label(status.title, systemImage: status.symbol)
                 .font(.headline)
                 .widgetAccentable()
-            if let range = status.countdown(from: entry.date) {
+            if let left = status.stepsLeft {
+                Text(L("\(Format.number(left)) steg kvar"))
+                    .font(.body.weight(.semibold))
+                    .monospacedDigit()
+            } else if let range = status.countdown(from: entry.date) {
                 HStack(spacing: 4) {
                     Text(timerInterval: range, countsDown: true)
                         .monospacedDigit()
@@ -213,7 +237,15 @@ private struct StatusWidgetView: View {
             Text(status.title)
                 .font(.headline)
                 .lineLimit(1)
-            if let range = status.countdown(from: entry.date) {
+            if let left = status.stepsLeft {
+                Text(Format.number(left))
+                    .font(.system(size: 28, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(status.tint)
+                Text(L("steg kvar"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if let range = status.countdown(from: entry.date) {
                 Text(timerInterval: range, countsDown: true)
                     .font(.system(size: 28, weight: .heavy, design: .rounded))
                     .monospacedDigit()
@@ -263,7 +295,13 @@ struct PausLiveActivity: Widget {
                     PausIcon(size: 40)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    if let range = status.countdown(from: .now) {
+                    if let left = status.stepsLeft {
+                        Text(L("\(Format.number(left)) kvar"))
+                            .font(.title3.weight(.bold))
+                            .monospacedDigit()
+                            .foregroundStyle(status.tint)
+                            .frame(maxWidth: 110, alignment: .trailing)
+                    } else if let range = status.countdown(from: .now) {
                         Text(timerInterval: range, countsDown: true)
                             .font(.title3.weight(.bold))
                             .monospacedDigit()
@@ -277,14 +315,19 @@ struct PausLiveActivity: Widget {
                         .lineLimit(1)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    Text(context.isStale ? status.finishedText : status.subtitle)
+                    Text(context.isStale ? status.finishedText : status.stepsLine ?? status.subtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             } compactLeading: {
                 PausIcon(size: 24)
             } compactTrailing: {
-                if let range = status.countdown(from: .now) {
+                if let left = status.stepsLeft {
+                    Text(Format.number(left))
+                        .monospacedDigit()
+                        .frame(maxWidth: 52)
+                        .foregroundStyle(status.tint)
+                } else if let range = status.countdown(from: .now) {
                     Text(timerInterval: range, countsDown: true)
                         .monospacedDigit()
                         .frame(maxWidth: 48)
@@ -304,6 +347,49 @@ private struct LockScreenActivityView: View {
     private var status: PausStatus { state.status }
 
     var body: some View {
+        if status.stepGoal != nil {
+            steps
+        } else {
+            countdown
+        }
+    }
+
+    /// A step session: how many steps are left, walked so far and when they were last counted.
+    private var steps: some View {
+        HStack(spacing: 14) {
+            PausIcon(size: 52)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(status.title)
+                    .font(.headline)
+                if let line = status.stepsLine {
+                    Text(line)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                ProgressView(value: status.stepFraction)
+                    .tint(status.tint)
+                if let checked = status.stepsCheckedAt {
+                    Text(L("Uppdaterad \(Format.time(checked))"))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 0)
+            VStack(alignment: .trailing, spacing: 0) {
+                Text(Format.number(status.stepsLeft ?? 0))
+                    .font(.system(size: 30, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(status.tint)
+                Text(L("steg kvar"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(16)
+    }
+
+    private var countdown: some View {
         HStack(spacing: 14) {
             PausIcon(size: 52)
             VStack(alignment: .leading, spacing: 4) {

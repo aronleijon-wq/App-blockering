@@ -296,7 +296,7 @@ struct HomeView: View {
     // MARK: Step sessions
 
     private func stepSession(goal: Int) -> some View {
-        let walked = min(model.sessionSteps ?? 0, goal)
+        let walked = min(model.sessionSteps ?? model.runtime.focusStepsWalked ?? 0, goal)
         return HStack(spacing: 18) {
             ZStack {
                 Circle().stroke(Color.white.opacity(0.1), lineWidth: 10)
@@ -320,11 +320,6 @@ struct HomeView: View {
                 Label(L("Går inte att avbryta"), systemImage: "lock.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.pink)
-                if model.sessionSteps == nil {
-                    Text(L("Stegen kunde inte läsas från Hälsa just nu."))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
         }
         .task {

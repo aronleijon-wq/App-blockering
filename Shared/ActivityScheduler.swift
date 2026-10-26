@@ -12,6 +12,8 @@ extension DeviceActivityName {
     static let usage = Self("paus.usage")
     /// Ends a vacation, so the shield comes back by itself.
     static let vacation = Self("paus.vacation")
+    /// Wakes the monitor every quarter hour during a step session to count the steps.
+    static let stepCheck = Self("paus.steps")
 
     private static let schedulePrefix = "paus.schedule."
 
@@ -127,6 +129,21 @@ enum ActivityScheduler {
 
     static func stopPause() {
         center.stopMonitoring([.pause])
+    }
+
+    /// Books the next step count of a step session a quarter of an hour from now.
+    static func scheduleStepCheck() throws {
+        try startOneShot(.stepCheck, until: Date.now.addingTimeInterval(minimumInterval))
+    }
+
+    /// Books a step count unless one is already waiting, in case a check was missed.
+    static func ensureStepCheck() {
+        guard !center.activities.contains(.stepCheck) else { return }
+        try? scheduleStepCheck()
+    }
+
+    static func stopStepChecks() {
+        center.stopMonitoring([.stepCheck])
     }
 
     static func startVacation(until end: Date) throws {

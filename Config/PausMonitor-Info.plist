@@ -9,6 +9,8 @@
 		<key>NSExtensionPrincipalClass</key>
 		<string>$(PRODUCT_MODULE_NAME).DeviceActivityMonitorExtension</string>
 	</dict>
+	<key>NSMotionUsageDescription</key>
+	<string>Paus counts your steps during a step session, also while your iPhone is locked, so your apps unlock as soon as you have walked enough. Your steps never leave your iPhone.</string>
 	<key>PausAppGroup</key>
 	<string>group.$(PAUS_BUNDLE_PREFIX)</string>
 </dict>

@@ -16,7 +16,7 @@ Dina regler, scheman, fokuspass, XP, nivå, streak, troféer, Pips hälsa, skäl
 
 ## Steg från Hälsa
 
-Om du startar ett stegpass läser Paus hur många steg du har gått från Apples Hälsa, efter att du gett tillåtelse, så att apparna kan låsas upp när du gått klart. Paus läser bara antalet steg, skriver aldrig något i Hälsa, och stegen sparas inte, skickas inte till oss och används aldrig till reklam. Du kan ta bort tillåtelsen när som helst i Hälsa-appen.
+Om du startar ett stegpass läser Paus hur många steg du har gått, från Apples Hälsa och från telefonens rörelsesensor (Rörelse och träning), efter att du gett tillåtelse, så att apparna kan låsas upp när du gått klart. Paus läser bara antalet steg, skriver aldrig något i Hälsa, och stegen sparas inte, skickas inte till oss och används aldrig till reklam. Du kan ta bort tillåtelsen när som helst i Hälsa-appen och under Inställningar > Integritet och säkerhet > Rörelse och träning.
 
 ## Konto
 

@@ -23,6 +23,7 @@ enum Notifier {
         static let scheduleStarted = "paus.schedule-started"
         static let health = "paus.health"
         static let vacationOver = "paus.vacation-over"
+        static let stepsDone = "paus.steps-done"
     }
 
     static var settings: NotificationSettings {
@@ -41,6 +42,10 @@ enum Notifier {
         guard settings.focusAndPauses else { return }
         schedule(ID.pauseEnding, at: end.addingTimeInterval(-60), title: L("1 minut kvar av pausen ⏳"), body: L("Avsluta det du gör. Snart blockerar Pip apparna igen."))
         schedule(ID.pauseOver, at: end, title: L("Pausen är slut"), body: L("Apparna är blockerade igen. Bra att du höll tiden!"))
+    }
+
+    static func stepGoalReached(steps: Int) {
+        post(ID.stepsDone, title: L("Du har gått \(Format.number(steps)) steg! 🎉"), body: L("Stegpasset är klart och apparna är upplåsta. Öppna Paus och hämta din XP."))
     }
 
     static func limitReached(minutes: Int) {

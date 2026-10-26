@@ -28,7 +28,13 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         switch activity {
         case .focus:
             ProgressRecorder.completeFocus()
+            // A step session that reached its backstop needs no more step counts.
+            if SharedStore.runtime.focusStepGoal == nil {
+                ActivityScheduler.stopStepChecks()
+            }
             ShieldController.refresh()
+        case .stepCheck:
+            StepChecker.checkFromMonitor()
         case .pause:
             SharedStore.updateRuntime { $0.pausedUntil = nil }
             ShieldController.refresh()

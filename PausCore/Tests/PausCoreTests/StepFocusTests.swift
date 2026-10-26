@@ -41,9 +41,25 @@ final class StepFocusTests: XCTestCase {
         XCTAssertNil(decoded.focusStepGoal)
     }
 
-    func testStatusHasNoCountdownForAStepSession() {
-        let status = PausStatus.at(monday10.addingTimeInterval(60), rules: PausRules(), runtime: stepSession(), calendar: calendar)
+    func testStatusShowsStepsLeftInsteadOfACountdown() {
+        var runtime = stepSession()
+        runtime.focusStepsWalked = 100
+        runtime.focusStepsCheckedAt = monday10.addingTimeInterval(600)
+        let status = PausStatus.at(monday10.addingTimeInterval(900), rules: PausRules(), runtime: runtime, calendar: calendar)
         XCTAssertEqual(status.kind, .focus)
         XCTAssertNil(status.end)
+        XCTAssertEqual(status.stepGoal, 2000)
+        XCTAssertEqual(status.stepsLeft, 1900)
+        XCTAssertEqual(status.stepsCheckedAt, monday10.addingTimeInterval(600))
+        // A timed session has no steps.
+        XCTAssertNil(PausStatus.at(monday10, rules: PausRules(), runtime: PausRuntime(focusStartedAt: monday10, focusEndsAt: monday10.addingTimeInterval(1500)), calendar: calendar).stepsLeft)
+    }
+
+    func testOldSavedStatusDecodesWithoutSteps() throws {
+        let data = try JSONEncoder().encode(PausStatus(kind: .schedule, title: "Skola", start: nil, end: monday10))
+        var json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        json.removeValue(forKey: "stepGoal")
+        let decoded = try JSONDecoder().decode(PausStatus.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertNil(decoded.stepsLeft)
     }
 }

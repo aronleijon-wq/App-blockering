@@ -7,14 +7,16 @@ import Foundation
 enum LiveActivities {
     static func sync(status: PausStatus, health: Int) {
         let current = Activity<PausActivityAttributes>.activities
-        guard status.kind != .free, let end = status.end, end > .now else {
+        // A step session has no end time; it lasts until the steps are walked.
+        let isRunning = status.end.map { $0 > .now } ?? (status.stepGoal != nil)
+        guard status.kind != .free, isRunning else {
             for activity in current {
                 Task { await activity.end(nil, dismissalPolicy: .immediate) }
             }
             return
         }
         // Stale once it is over, so the lock screen can say so even if the app hasn't run since.
-        let content = ActivityContent(state: PausActivityAttributes.ContentState(status: status, health: health), staleDate: end)
+        let content = ActivityContent(state: PausActivityAttributes.ContentState(status: status, health: health), staleDate: status.end)
         if let activity = current.first {
             guard activity.content.state != content.state else { return }
             Task { await activity.update(content) }
