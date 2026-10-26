@@ -9,6 +9,8 @@
 	</array>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Paus reads your step count so walking can earn you minutes in the apps you block. Your steps never leave your iPhone.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Paus never writes to Health. It only reads your step count so walking can earn you minutes in the apps you block.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<!-- Firebase Authentication web API key for email accounts. Email sign-in stays hidden while it is empty. -->
