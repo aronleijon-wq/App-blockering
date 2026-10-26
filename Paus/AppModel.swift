@@ -50,6 +50,8 @@ final class AppModel {
     private(set) var hasFinishedIntro = IntroStore.isFinished
     private(set) var introAnswers = IntroStore.answers
     private(set) var account = IntroStore.account
+    /// Today's steps from Health while walking to unlock is on; nil before the first read or when Health can't be read.
+    private(set) var stepsToday: Int?
 
     let store = Store()
     let league = LeagueService()
@@ -80,6 +82,7 @@ final class AppModel {
     /// Whether to show the app rather than onboarding; doesn't flash onboarding while Screen Time's status loads.
     var showsMainApp: Bool { isAuthorized || (authorizationStatus == .notDetermined && mayStillBeAuthorized) }
     var hasSelection: Bool { !selection.isEmpty }
+    var stepUnlock: StepUnlock { StepUnlock(rules: effectiveRules.steps, runtime: runtime) }
 
     var isStrictFocusActive: Bool {
         guard effectiveRules.strictFocus, let end = runtime.focusEndsAt else { return false }
@@ -154,6 +157,7 @@ final class AppModel {
         Task { await refreshNotificationPermission() }
         Task { await refreshCoach() }
         Task { await syncLeague(force: false) }
+        Task { await refreshSteps() }
     }
 
     // MARK: Intro and account
@@ -621,6 +625,48 @@ final class AppModel {
         ActivityScheduler.stopPause()
         Notifier.cancel([Notifier.ID.pauseEnding, Notifier.ID.pauseOver])
         updateRuntime { $0.pausedUntil = nil }
+        refreshShield()
+    }
+
+    // MARK: Walking to unlock
+
+    /// Turns walking to unlock on or off, asking Health for the step count when it is turned on.
+    func setWalkToUnlock(_ isOn: Bool) async {
+        if isOn { await StepCounter.requestAccess() }
+        updateRules { $0.steps.isEnabled = isOn }
+        await refreshSteps()
+    }
+
+    func refreshSteps() async {
+        guard effectiveRules.steps.isEnabled else {
+            stepsToday = nil
+            return
+        }
+        stepsToday = await StepCounter.stepsToday()
+    }
+
+    /// Trades steps for `minutes` in the blocked apps, added on top of a pause that is already running.
+    /// Unlike a pause it doesn't use up one of the day's pauses or cost XP: the minutes were earned.
+    func spendSteps(minutes: Int) async {
+        await refreshSteps()
+        let now = Date.now
+        guard
+            let walked = stepsToday,
+            minutes > 0,
+            engine.canSpendSteps(at: now),
+            minutes <= stepUnlock.availableMinutes(walked: walked, at: now)
+        else { return }
+        let start = max(runtime.pausedUntil ?? now, now)
+        let end = start.addingTimeInterval(TimeInterval(minutes * 60))
+        do {
+            try ActivityScheduler.startPause(until: end)
+        } catch {
+            errorMessage = L("Pausen kunde inte startas (\(error.localizedDescription)).")
+            return
+        }
+        let steps = stepUnlock.cost(minutes: minutes)
+        updateRuntime { $0.spendSteps(steps, minutes: minutes, at: now, until: end, calendar: .current) }
+        Notifier.schedulePauseEnd(at: end)
         refreshShield()
     }
 

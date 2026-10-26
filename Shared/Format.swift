@@ -25,6 +25,11 @@ enum Format {
         }
     }
 
+    /// "1 000" in Swedish, "1,000" in English.
+    static func number(_ value: Int) -> String {
+        value.formatted(.number.locale(Language.current.locale))
+    }
+
     /// "08:30" for minutes after midnight.
     static func clock(minute: Int) -> String {
         String(format: "%02d:%02d", minute / 60, minute % 60)

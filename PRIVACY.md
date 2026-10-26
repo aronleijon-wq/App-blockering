@@ -1,6 +1,6 @@
 # Integritetspolicy för Paus
 
-*Senast uppdaterad 22 oktober 2026*
+*Senast uppdaterad 26 oktober 2026*
 
 ## Kort sagt
 
@@ -14,9 +14,13 @@ Aron Leijon. Kontakt: aron@pausapp.net.
 
 Dina regler, scheman, fokuspass, XP, nivå, streak, troféer, Pips hälsa, skälen du anger när du tar en paus och dina svar i introduktionen (förnamn, åldersgrupp, ungefärlig skärmtid, appar och mål) sparas bara lokalt på telefonen. Vilka appar du blockerar och hur länge du använder dem hanteras av Apples Skärmtid. Paus ser bara anonyma symboler för apparna, och den informationen lämnar aldrig telefonen. Skärmtidsrapporten räknas ut i ett tillägg som iOS stänger in, så siffrorna kan bara visas för dig och sparas eller skickas aldrig.
 
+## Steg från Hälsa
+
+Om du slår på Gå för att låsa upp läser Paus hur många steg du gått i dag från Apples Hälsa, efter att du gett tillåtelse. Paus läser bara antalet steg, skriver aldrig något i Hälsa, och stegen sparas inte, skickas inte till oss och används aldrig till reklam. Du kan ta bort tillåtelsen när som helst i Hälsa-appen.
+
 ## Konto
 
-Du kan skapa ett konto med Logga in med Apple, men allt fungerar även utan. Apple ger då Paus en anonym identifierare och, om du väljer det, ditt namn och din e-post (som kan vara en dold vidarebefordringsadress). Paus har ingen server, så kontot sparas bara på din telefon och används för att Pip ska kunna hälsa på dig. Du loggar ut under Regler > Konto, och Radera all min data tar bort kontot. Du kan också sluta använda Logga in med Apple för Paus under Inställningar > [ditt namn] > Logga in med Apple.
+Du kan skapa ett konto med Logga in med Apple eller med din e-post, men allt fungerar även utan. Med Apple får Paus en anonym identifierare och, om du väljer det, ditt namn och din e-post (som kan vara en dold vidarebefordringsadress); det kontot sparas bara på din telefon. Med e-post sparas din e-postadress och ditt lösenord (krypterat) hos Google Firebase Authentication, som kontrollerar inloggningen. Ditt förnamn stannar på telefonen. Kontot används för att Pip ska kunna hälsa på dig. Du loggar ut under Mitt konto, och Radera konto och all data tar bort kontot, även hos Firebase. Du kan också sluta använda Logga in med Apple för Paus under Inställningar > [ditt namn] > Logga in med Apple.
 
 ## Ligan
 

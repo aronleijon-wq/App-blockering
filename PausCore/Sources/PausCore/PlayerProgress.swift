@@ -553,6 +553,7 @@ extension PausRules {
         rules.dailyLimitMinutes = nil
         rules.strictFocus = false
         rules.preventUninstall = false
+        rules.steps.isEnabled = false
         return rules
     }
 }

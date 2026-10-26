@@ -20,6 +20,9 @@ struct HomeView: View {
                         dailyRewardCard(at: context.date)
                         if model.hasSelection {
                             statusCard(at: context.date)
+                            if model.effectiveRules.steps.isEnabled {
+                                StepsCard(date: context.date)
+                            }
                             focusCard(at: context.date)
                         }
                         ScreenTimeCard()
@@ -376,5 +379,77 @@ struct StreakPill: View {
         .background(Theme.cardRaised, in: Capsule())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(L("Streak: \(streak) dagar"))
+    }
+}
+
+/// Today's steps and the minutes they have earned in the blocked apps.
+private struct StepsCard: View {
+    @Environment(AppModel.self) private var model
+    let date: Date
+
+    var body: some View {
+        let rules = model.effectiveRules.steps
+        let unlock = model.stepUnlock
+        let walked = model.stepsToday ?? 0
+        let available = unlock.availableMinutes(walked: walked, at: date)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label(L("Gå för att låsa upp"), systemImage: "figure.walk")
+                    .font(.headline)
+                Spacer()
+                Text(L("\(Format.number(walked)) steg"))
+                    .font(.headline.monospacedDigit())
+                    .foregroundStyle(Theme.mint)
+            }
+
+            if let toNext = unlock.stepsToNext(walked: walked, at: date) {
+                GradientBar(fraction: Double(rules.stepsPerUnlock - toNext) / Double(max(rules.stepsPerUnlock, 1)))
+                Text(L("\(Format.number(toNext)) steg kvar till \(rules.minutesPerUnlock) min till"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text(L("Du har gått ihop dagens max på \(Format.minutes(rules.maxMinutesPerDay)). Snyggt!"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if available > 0 {
+                if model.engine.canSpendSteps(at: date) {
+                    HStack(spacing: 10) {
+                        ForEach(unlock.choices(walked: walked, at: date), id: \.self) { minutes in
+                            Button(L("\(minutes) min")) {
+                                Task { await model.spendSteps(minutes: minutes) }
+                            }
+                            .buttonStyle(ChipButtonStyle())
+                        }
+                    }
+                    Text(L("Du har \(available) min att använda i de blockerade apparna."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(L("Du har \(available) min sparade. Använd dem när apparna är blockerade."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if model.stepsToday == 0 {
+                Text(L("Ser du 0 steg? Öppna Hälsa, tryck på din profilbild och välj Appar > Paus. Slå på Steg."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if model.stepsToday == nil {
+                Text(L("Stegen kunde inte läsas från Hälsa just nu."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .card()
+        .task {
+            // Keep the count fresh while the card is on screen.
+            while !Task.isCancelled {
+                await model.refreshSteps()
+                try? await Task.sleep(for: .seconds(30))
+            }
+        }
     }
 }

@@ -36,6 +36,10 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         if earnsXP {
             subtitle += L(" Stäng nu och få +\(PlayerProgress.XP.close) XP.")
         }
+        let steps = SharedStore.effectiveRules.steps
+        if engine.canSpendSteps(at: now) {
+            subtitle += L(" Gå \(Format.number(steps.stepsPerUnlock)) steg för \(steps.minutesPerUnlock) min i Paus-appen.")
+        }
         let stage = progress.healthStage
         if stage <= .down {
             subtitle += L("\n\nPip mår \(stage == .wrecked ? L("jättedåligt") : stage == .sick ? L("dåligt") : L("lite sådär")) (\(progress.health) %). En paus gör Pip ledsnare.")
