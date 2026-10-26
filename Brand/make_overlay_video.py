@@ -221,6 +221,22 @@ def effects(length):
 
 # MARK: Output
 
+# Plain HD video, converted from RGB with the matching matrix and labelled as such, so players don't guess.
+SDR_OUTPUT = ["-vf", "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p", "-color_primaries", "bt709",
+              "-color_trc", "bt709", "-colorspace", "bt709"]
+
+
+def to_sdr(source):
+    """iPhones film in HDR. Read as ordinary video it looks grey and flat, so tone map it to standard colours first."""
+    probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=color_transfer",
+                            "-of", "csv=p=0", source], capture_output=True, text=True, check=True)
+    transfer = probe.stdout.strip()
+    if transfer not in ("arib-std-b67", "smpte2084"):
+        return ""
+    return (f"zscale=tin={transfer}:min=bt2020nc:pin=bt2020:rin=tv:t=linear:npl=203,format=gbrpf32le,"
+            "zscale=p=bt709,tonemap=tonemap=mobius:desat=0,zscale=t=bt709:m=bt709:r=tv,")
+
+
 def main():
     source, out = sys.argv[1], sys.argv[2]
     probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", source],
@@ -229,14 +245,15 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         sfx = os.path.join(tmp, "effects.wav")
         write_wav(sfx, effects(length))
-        decoder = subprocess.Popen(["ffmpeg", "-v", "error", "-i", source, "-vf", f"scale={W}:{H},fps={FPS}",
+        decoder = subprocess.Popen(["ffmpeg", "-v", "error", "-i", source, "-vf", f"{to_sdr(source)}scale={W}:{H},fps={FPS}",
                                     "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
         encoder = subprocess.Popen(
             ["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS),
              "-i", "-", "-i", source, "-i", sfx, "-filter_complex",
-             f"[1:a]aresample={RATE},apad,afade=t=out:st={END_CARD:.2f}:d=0.4[voice];"
+             f"[1:a]aresample={RATE},acompressor=threshold=0.1:ratio=3:attack=10:release=200,"
+             f"loudnorm=I=-14:TP=-1.5:LRA=9,aresample={RATE},apad,afade=t=out:st={END_CARD:.2f}:d=0.4[voice];"
              f"[voice][2:a]amix=inputs=2:duration=shortest:normalize=0[a]",
-             "-map", "0:v", "-map", "[a]", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
+             "-map", "0:v", "-map", "[a]", "-c:v", "libx264", "-preset", "medium", "-crf", "18", *SDR_OUTPUT,
              "-c:a", "aac", "-b:a", "192k", "-t", f"{length:.2f}", "-movflags", "+faststart", out],
             stdin=subprocess.PIPE)
         size = W * H * 3
