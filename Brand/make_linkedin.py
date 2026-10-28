@@ -1,8 +1,9 @@
 """Draws the cover image for the Paus company page on LinkedIn.
 
-LinkedIn shows a company cover at 1128 x 191 and puts the logo over its bottom left corner, so that corner
-is left empty. The image is drawn at four times that size and scaled down, which keeps every edge and
-letter sharp, and is saved at 2x and 1x.
+A clean, technical look: black, hairline grid, restrained type, one chart. LinkedIn shows a company cover
+at 1128 x 191 and puts the logo over its bottom left corner, so that corner stays empty. The image is
+drawn at four times that size and scaled down, which keeps hairlines and letters sharp, and is saved at
+2x and 1x.
 
 Run from the repository root: python3 Brand/make_linkedin.py
 """
@@ -11,19 +12,26 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
-from make_brand import BLACK, BOLD, MINT, ORANGE, OUT, PINK, SEMI, VIOLET, WHITE, app_icon, font, gradient_text, pip, rounded
+from make_brand import FONTS, MINT, ORANGE, OUT, PINK, VIOLET, font
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MONO = os.path.join(HERE, "fonts", "JetBrainsMono-Medium.ttf")
 MONO_BOLD = os.path.join(HERE, "fonts", "JetBrainsMono-Bold.ttf")
+DISPLAY = f"{FONTS}/InterDisplay-SemiBold.otf"
+DISPLAY_MEDIUM = f"{FONTS}/InterDisplay-Medium.otf"
 
 BASE_W, BASE_H = 1128, 191
 K = 4  # Drawing scale: four times LinkedIn's size.
 W, H = BASE_W * K, BASE_H * K
+HAIR = 0.5  # A hairline: one pixel in the 2x image.
 
-INK = (7, 6, 15)
-GREY = (185, 180, 214)
-DIM = (120, 115, 150)
+BG = (5, 5, 8)
+WHITE = (242, 242, 246)
+GREY = (128, 128, 140)
+FAINT = (88, 88, 100)
+
+# The illustrated 8-week goal: from 6h 12m a day down to 3h 04m, half the screen time.
+WEEKS = [6.2, 5.95, 5.4, 4.85, 4.3, 3.8, 3.4, 3.07]
 
 
 def u(value):
@@ -35,177 +43,169 @@ def layer():
     return Image.new("RGBA", (W, H), (0, 0, 0, 0))
 
 
-def blurred_ellipse(img, cx, cy, rx, ry, color, alpha, blur):
-    glow = layer()
-    ImageDraw.Draw(glow).ellipse([u(cx - rx), u(cy - ry), u(cx + rx), u(cy + ry)], fill=(*color, alpha))
-    img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(u(blur))))
-
-
-def background():
-    img = Image.new("RGBA", (W, H), (*INK, 255))
-    # Aurora: violet behind the words, pink and orange behind the product, a touch of mint by Pip.
-    blurred_ellipse(img, 330, 30, 260, 120, VIOLET, 95, 70)
-    blurred_ellipse(img, 880, 175, 230, 110, PINK, 80, 70)
-    blurred_ellipse(img, 1080, 20, 150, 90, ORANGE, 50, 60)
-    blurred_ellipse(img, 1040, 70, 70, 50, MINT, 45, 40)
-
-    # A dot grid that fades out towards the edges.
-    dots = layer()
-    d = ImageDraw.Draw(dots)
-    step, r = 12, 0.7
-    for y in range(6, BASE_H, step):
-        for x in range(6, BASE_W, step):
-            d.ellipse([u(x - r), u(y - r), u(x + r), u(y + r)], fill=(255, 255, 255, 255))
-    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-    distance = np.sqrt(((xx - u(720)) / u(560)) ** 2 + ((yy - u(95)) / u(150)) ** 2)
-    fade = np.clip(1 - distance, 0, 1) ** 1.4 * 0.16
-    alpha = np.array(dots.getchannel("A"), np.float32) * fade
-    dots.putalpha(Image.fromarray(alpha.astype(np.uint8)))
-    img.alpha_composite(dots)
-
-    # A thin line of light along the top edge.
-    line = np.zeros((u(1.2), W, 4), np.uint8)
-    t = np.linspace(0, 1, W)
-    colors = np.stack([np.interp(t, [0, 0.5, 1], [VIOLET[c], PINK[c], ORANGE[c]]) for c in range(3)], -1)
-    line[..., :3] = colors.astype(np.uint8)
-    line[..., 3] = (np.sin(np.pi * t) * 170).astype(np.uint8)
-    img.alpha_composite(Image.fromarray(line, "RGBA"), (0, 0))
-    return img
-
-
-def text(img, xy, s, path, size, fill, anchor="la", spacing=0):
+def text(img, xy, s, path, size, fill, anchor="la", spacing=0.0):
+    """Draws `s`, letter-spaced by `spacing` base units when given, and returns its width in base units."""
     d = ImageDraw.Draw(img)
     f = font(path, u(size))
     if not spacing:
         d.text((u(xy[0]), u(xy[1])), s, font=f, fill=fill, anchor=anchor)
         return d.textlength(s, font=f) / K
-    # Letter-spaced, for small capitals.
-    x = u(xy[0])
+    width = sum(d.textlength(ch, font=f) for ch in s) + u(spacing) * (len(s) - 1)
+    x = u(xy[0]) - (width if anchor[0] == "r" else 0)
     for ch in s:
-        d.text((x, u(xy[1])), ch, font=f, fill=fill, anchor=anchor)
+        d.text((x, u(xy[1])), ch, font=f, fill=fill, anchor="l" + anchor[1])
         x += d.textlength(ch, font=f) + u(spacing)
-    return (x - u(xy[0])) / K
+    return width / K
 
 
-def headline(img, x, y):
-    # A pill above the headline.
-    pill = layer()
-    d = ImageDraw.Draw(pill)
-    label = "NOW ON THE APP STORE"
-    f = font(MONO_BOLD, u(9))
-    width = sum(d.textlength(ch, font=f) + u(1.6) for ch in label) / K + 34
-    d.rounded_rectangle([u(x), u(y), u(x + width), u(y + 21)], u(10.5), fill=(255, 255, 255, 14), outline=(255, 255, 255, 46), width=u(0.8))
-    img.alpha_composite(pill)
-    blurred_ellipse(img, x + 13, y + 10.5, 6, 6, MINT, 160, 3)
-    ImageDraw.Draw(img).ellipse([u(x + 10), u(y + 7.5), u(x + 16), u(y + 13.5)], fill=MINT)
-    text(img, (x + 23, y + 10.8), label, MONO_BOLD, 9, (225, 222, 240), anchor="lm", spacing=1.6)
-
-    # The headline: white, then the brand gradient.
-    text(img, (x - 1.5, y + 29), "The off switch", BLACK, 38, WHITE)
-    word = gradient_text("for doomscrolling.", u(38))
-    img.alpha_composite(word, (u(x - 1.5), u(y + 74)))
-
-    # What it is built on, in monospace for the engineers.
-    tags = ["on-device AI", "zero tracking", "built in Stockholm"]
-    cx = x
-    ty = y + 128
-    for i, tag in enumerate(tags):
-        if i:
-            cx += text(img, (cx, ty), "  /  ", MONO, 11.5, (95, 90, 130))
-        cx += text(img, (cx, ty), tag, MONO, 11.5, GREY)
+def radial_fade(cx, cy, rx, ry, power=1.6):
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    distance = np.sqrt(((xx - u(cx)) / u(rx)) ** 2 + ((yy - u(cy)) / u(ry)) ** 2)
+    return np.clip(1 - distance, 0, 1) ** power
 
 
-def shadow(img, box, radius, alpha=150, blur=14, offset=8):
-    s = layer()
-    x0, y0, x1, y1 = box
-    ImageDraw.Draw(s).rounded_rectangle([u(x0), u(y0 + offset), u(x1), u(y1 + offset)], u(radius), fill=(0, 0, 0, alpha))
-    img.alpha_composite(s.filter(ImageFilter.GaussianBlur(u(blur))))
-
-
-def terminal(img, x, y, w, h):
-    shadow(img, (x, y, x + w, y + h), 12, alpha=170, blur=16, offset=10)
-    card = layer()
-    d = ImageDraw.Draw(card)
-    d.rounded_rectangle([u(x), u(y), u(x + w), u(y + h)], u(12), fill=(14, 12, 28, 238), outline=(255, 255, 255, 34), width=u(0.8))
-    img.alpha_composite(card)
-    # Title bar, rounded only at the top.
-    bar = layer()
-    d = ImageDraw.Draw(bar)
-    d.rounded_rectangle([u(x + 0.8), u(y + 0.8), u(x + w - 0.8), u(y + 23)], u(11.5), fill=(255, 255, 255, 11))
-    d.rectangle([u(x + 0.8), u(y + 12), u(x + w - 0.8), u(y + 23)], fill=(255, 255, 255, 11))
-    d.line([u(x + 0.8), u(y + 23), u(x + w - 0.8), u(y + 23)], fill=(255, 255, 255, 26), width=u(0.6))
-    img.alpha_composite(bar)
-    d = ImageDraw.Draw(img)
-    for i, color in enumerate([(255, 95, 87), (254, 188, 46), (40, 200, 64)]):
-        cx = x + 14 + i * 13
-        d.ellipse([u(cx - 3.8), u(y + 11.5 - 3.8), u(cx + 3.8), u(y + 11.5 + 3.8)], fill=color)
-    text(img, (x + w / 2, y + 11.8), "~/paus — zsh", MONO, 8.5, DIM, anchor="mm")
-
-    lx, ly, lh = x + 15, y + 33, 21
-    size = 12.5
-    cx = lx + text(img, (lx, ly), "$ ", MONO_BOLD, size, MINT)
-    cx += text(img, (cx, ly), "paus focus ", MONO, size, WHITE)
-    text(img, (cx, ly), "--steps 2000", MONO, size, (255, 180, 120))
-    cx = lx + text(img, (lx, ly + lh), "✓ ", MONO_BOLD, size, MINT)
-    text(img, (cx, ly + lh), "6 apps paused", MONO, size, GREY)
-    cx = lx + text(img, (lx, ly + 2 * lh), "→ ", MONO_BOLD, size, (255, 120, 190))
-    cx += text(img, (cx, ly + 2 * lh), "walk to unlock", MONO, size, WHITE)
-    d = ImageDraw.Draw(img)
-    d.rectangle([u(cx + 3), u(ly + 2 * lh + 1), u(cx + 10), u(ly + 2 * lh + 16)], fill=(255, 255, 255, 220))
-
-
-def live_activity(img, x, y, w, h):
-    """The step session as it shows on the Lock Screen."""
-    shadow(img, (x, y, x + w, y + h), 18, alpha=190, blur=14, offset=8)
-    # Frosted glass: blur what is behind the card.
-    box = (u(x), u(y), u(x + w), u(y + h))
-    behind = img.crop(box).filter(ImageFilter.GaussianBlur(u(8)))
-    mask = Image.new("L", behind.size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, behind.width - 1, behind.height - 1], u(18), fill=255)
-    img.paste(behind, box[:2], mask)
-    card = layer()
-    d = ImageDraw.Draw(card)
-    d.rounded_rectangle([u(x), u(y), u(x + w), u(y + h)], u(18), fill=(30, 26, 52, 200), outline=(255, 255, 255, 52), width=u(0.8))
-    img.alpha_composite(card)
-
-    icon = rounded(app_icon(u(42)).convert("RGB"))
-    img.alpha_composite(icon, (u(x + 13), u(y + (h - 42) / 2)))
-    tx = x + 66
-    text(img, (tx, y + 12), "Step session", BOLD, 14, WHITE)
-    text(img, (tx, y + 32), "450 of 2,000 steps", SEMI, 10.5, GREY)
-    # Progress.
-    bar = layer()
-    d = ImageDraw.Draw(bar)
-    bx0, by, bx1 = tx, y + 52, tx + 112
-    d.rounded_rectangle([u(bx0), u(by), u(bx1), u(by + 5.5)], u(2.75), fill=(255, 255, 255, 30))
-    img.alpha_composite(bar)
-    fill = gradient_bar(u(bx1 - bx0) * 450 // 2000 + u(5), u(5.5))
-    img.alpha_composite(fill, (u(bx0), u(by)))
-    number = gradient_text("1,550", u(27))
-    img.alpha_composite(number, (u(x + w - 15) - number.width, u(y + 11)))
-    text(img, (x + w - 15, y + 46), "steps left", SEMI, 10, GREY, anchor="ra")
-
-
-def gradient_bar(width, height):
-    t = np.linspace(0, 1, max(width, 1))
-    colors = np.stack([np.interp(t, [0, 0.55, 1], [VIOLET[c], PINK[c], ORANGE[c]]) for c in range(3)], -1)
-    bar = np.zeros((height, max(width, 1), 4), np.uint8)
-    bar[..., :3] = colors.astype(np.uint8)
-    bar[..., 3] = 255
-    img = Image.fromarray(bar, "RGBA")
-    mask = Image.new("L", img.size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, img.width - 1, img.height - 1], height // 2, fill=255)
-    img.putalpha(mask)
+def with_alpha(img, fade, strength):
+    alpha = np.array(img.getchannel("A"), np.float32) * fade * strength
+    img.putalpha(Image.fromarray(np.clip(alpha, 0, 255).astype(np.uint8)))
     return img
 
 
-def pip_on_top(img, cx, cy, size):
-    blurred_ellipse(img, cx, cy, size * 0.75, size * 0.6, MINT, 90, size * 0.35)
-    p = pip(u(size))
-    img.alpha_composite(p, (u(cx) - p.width // 2, u(cy) - p.height // 2))
+def background():
+    img = Image.new("RGBA", (W, H), (*BG, 255))
+
+    # An engineering grid, strongest behind the chart and fading towards the edges.
+    grid = layer()
+    d = ImageDraw.Draw(grid)
+    step = 24
+    for x in range(0, BASE_W + 1, step):
+        d.line([(u(x), 0), (u(x), H)], fill=(255, 255, 255, 255), width=u(HAIR))
+    for y in range(-1, BASE_H + 1, step):
+        d.line([(0, u(y)), (W, u(y))], fill=(255, 255, 255, 255), width=u(HAIR))
+    img.alpha_composite(with_alpha(grid, radial_fade(820, 95, 520, 170, 1.2), 0.07))
+
+    # Registration crosses on a few grid points.
+    marks = layer()
+    d = ImageDraw.Draw(marks)
+    for x, y in [(96, 23), (672, 23), (672, 167)]:
+        d.line([(u(x - 4), u(y)), (u(x + 4), u(y))], fill=(255, 255, 255, 120), width=u(HAIR))
+        d.line([(u(x), u(y - 4)), (u(x), u(y + 4))], fill=(255, 255, 255, 120), width=u(HAIR))
+    # Corner brackets, like the frame of an instrument.
+    for cx, cy, sx, sy in [(10, 10, 1, 1), (BASE_W - 10, 10, -1, 1), (BASE_W - 10, BASE_H - 10, -1, -1)]:
+        d.line([(u(cx), u(cy)), (u(cx + 10 * sx), u(cy))], fill=(255, 255, 255, 110), width=u(HAIR))
+        d.line([(u(cx), u(cy)), (u(cx), u(cy + 10 * sy))], fill=(255, 255, 255, 110), width=u(HAIR))
+    img.alpha_composite(marks)
+
+    # A barely-there light from above the headline, so the black has depth.
+    light = layer()
+    ImageDraw.Draw(light).ellipse([u(150), u(-140), u(760), u(120)], fill=(120, 110, 200, 40))
+    img.alpha_composite(light.filter(ImageFilter.GaussianBlur(u(60))))
+
+    # The only colour in the frame: a hairline of the brand gradient along the top.
+    t = np.linspace(0, 1, W)
+    line = np.zeros((u(HAIR), W, 4), np.uint8)
+    line[..., :3] = np.stack([np.interp(t, [0, 0.5, 1], [VIOLET[c], PINK[c], ORANGE[c]]) for c in range(3)], -1).astype(np.uint8)
+    line[..., 3] = (np.clip(np.sin(np.pi * t) * 1.4, 0, 1) * 200).astype(np.uint8)
+    img.alpha_composite(Image.fromarray(line, "RGBA"), (0, 0))
+    return img
 
 
-def grain(img, amount=5):
+def headline(img, x, y):
+    # Status line.
+    glow = layer()
+    ImageDraw.Draw(glow).ellipse([u(x - 1), u(y + 1), u(x + 7), u(y + 9)], fill=(*MINT, 150))
+    img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(u(2.5))))
+    d = ImageDraw.Draw(img)
+    d.ellipse([u(x + 0.8), u(y + 2.8), u(x + 5.2), u(y + 7.2)], fill=MINT)
+    cx = x + 12
+    cx += text(img, (cx, y + 5), "LIVE ON THE APP STORE", MONO_BOLD, 9, (210, 210, 220), anchor="lm", spacing=1.7)
+    cx += text(img, (cx + 10, y + 5), "/", MONO, 9, FAINT, anchor="lm") + 20
+    text(img, (cx, y + 5), "STOCKHOLM, SE", MONO_BOLD, 9, GREY, anchor="lm", spacing=1.7)
+
+    # Two lines, white then grey: confident, quiet type.
+    text(img, (x - 1.5, y + 20), "The off switch", DISPLAY, 37, WHITE)
+    text(img, (x - 1.5, y + 62), "for doomscrolling.", DISPLAY, 37, (108, 108, 122))
+
+    # What it is built on.
+    tags = ["Screen Time API", "On-device intelligence", "Zero tracking"]
+    cx = x
+    for i, tag in enumerate(tags):
+        if i:
+            cx += text(img, (cx, y + 121), "  ·  ", MONO, 10.5, FAINT)
+        cx += text(img, (cx, y + 121), tag, MONO, 10.5, GREY)
+
+
+def smooth(points, samples=24):
+    """A Catmull-Rom curve through `points`."""
+    pts = [points[0]] + points + [points[-1]]
+    out = []
+    for i in range(1, len(pts) - 2):
+        p0, p1, p2, p3 = (np.array(p, float) for p in pts[i - 1:i + 3])
+        for s in range(samples):
+            t = s / samples
+            out.append(0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t ** 2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t ** 3))
+    out.append(np.array(points[-1], float))
+    return [tuple(p) for p in out]
+
+
+def chart(img, x0, y0, x1, y1):
+    top_hours = 7.0
+
+    def py(hours):
+        return y1 - hours / top_hours * (y1 - y0)
+
+    # Gridlines and their labels.
+    rules = layer()
+    rd = ImageDraw.Draw(rules)
+    for hours in (2, 4, 6):
+        rd.line([(u(x0), u(py(hours))), (u(x1), u(py(hours)))], fill=(255, 255, 255, 22), width=u(HAIR))
+        text(img, (x0 - 8, py(hours)), f"{hours}h", MONO, 8.5, FAINT, anchor="rm")
+    rd.line([(u(x0), u(y1)), (u(x1), u(y1))], fill=(255, 255, 255, 60), width=u(HAIR))
+    img.alpha_composite(rules)
+    text(img, (x0, y1 + 9), "W1", MONO, 8.5, FAINT, anchor="lm")
+    text(img, (x1, y1 + 9), "W8", MONO, 8.5, FAINT, anchor="rm")
+
+    xs = np.linspace(x0, x1, len(WEEKS))
+    points = [(float(x), py(h)) for x, h in zip(xs, WEEKS)]
+    curve = smooth(points)
+
+    # A soft fill under the line, fading towards the axis.
+    fill = layer()
+    ImageDraw.Draw(fill).polygon([(u(px), u(qy)) for px, qy in curve] + [(u(x1), u(y1)), (u(x0), u(y1))], fill=(255, 255, 255, 255))
+    rows = np.arange(H, dtype=np.float32)[:, None]
+    vertical = np.clip((u(y1) - rows) / (u(y1) - u(y0)), 0, 1) * np.ones((1, W), np.float32)
+    img.alpha_composite(with_alpha(fill, vertical, 0.07))
+
+    # The line itself.
+    line = layer()
+    ImageDraw.Draw(line).line([(u(px), u(qy)) for px, qy in curve], fill=WHITE, width=u(1.2), joint="curve")
+    img.alpha_composite(line)
+
+    # Week ticks along the line.
+    d = ImageDraw.Draw(img)
+    for px, qy in points[1:-1]:
+        d.ellipse([u(px - 1.3), u(qy - 1.3), u(px + 1.3), u(qy + 1.3)], fill=BG, outline=(200, 200, 210), width=u(HAIR))
+
+    # Start: a hollow point and today's number.
+    sx, sy = points[0]
+    d.ellipse([u(sx - 2.2), u(sy - 2.2), u(sx + 2.2), u(sy + 2.2)], fill=BG, outline=WHITE, width=u(0.8))
+    text(img, (sx + 7, sy - 9), "6h 12m", MONO, 9, GREY, anchor="lm")
+
+    # End: the goal, marked in the brand pink.
+    ex, ey = points[-1]
+    halo = layer()
+    ImageDraw.Draw(halo).ellipse([u(ex - 9), u(ey - 9), u(ex + 9), u(ey + 9)], fill=(*PINK, 70))
+    img.alpha_composite(halo.filter(ImageFilter.GaussianBlur(u(3))))
+    d = ImageDraw.Draw(img)
+    d.ellipse([u(ex - 6), u(ey - 6), u(ex + 6), u(ey + 6)], outline=(*PINK, 200), width=u(HAIR))
+    d.ellipse([u(ex - 2.6), u(ey - 2.6), u(ex + 2.6), u(ey + 2.6)], fill=PINK)
+    text(img, (ex - 12, ey - 13), "3h 04m", MONO_BOLD, 9, WHITE, anchor="rm")
+
+    # The headline number, above the plot on the right.
+    text(img, (x1, y0 - 62), "−50%", DISPLAY_MEDIUM, 30, WHITE, anchor="ra")
+    text(img, (x1, y0 - 20), "DAILY SCREEN TIME · 8-WEEK GOAL", MONO_BOLD, 7.5, GREY, anchor="rm", spacing=1.2)
+
+
+def grain(img, amount=3.0):
     rgb = np.array(img.convert("RGB"), np.int16)
     noise = np.random.default_rng(7).normal(0, amount, rgb.shape[:2])[..., None]
     return Image.fromarray(np.clip(rgb + noise, 0, 255).astype(np.uint8), "RGB")
@@ -213,10 +213,9 @@ def grain(img, amount=5):
 
 def company_cover():
     img = background()
-    headline(img, 248, 14)
-    terminal(img, 694, 14, 262, 112)
-    live_activity(img, 806, 112, 300, 72)
-    pip_on_top(img, 950, 26, 46)
+    headline(img, 248, 26)
+    chart(img, 742, 76, 1080, 150)
+    text(img, (BASE_W - 24, BASE_H - 15), "59.3293° N  18.0686° E", MONO, 7.5, FAINT, anchor="rm", spacing=0.6)
     return grain(img)
 
 
