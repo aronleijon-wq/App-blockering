@@ -22,6 +22,8 @@ final class Store {
     private(set) var yearlySavingsPercent: Int?
     /// The products from the App Store, yearly first, once loaded.
     private(set) var products: [Product] = []
+    /// False once the App Store has been asked and returned no products, or couldn't be reached.
+    private(set) var canLoadProducts = true
     /// Whether this Apple ID can still get the free week.
     private(set) var isEligibleForTrial = true
     /// Called when the entitlement changes, so rules can be re-applied.
@@ -48,10 +50,7 @@ final class Store {
                 active = true
             }
         }
-        if products.isEmpty, let loaded = try? await Product.products(for: Self.proProductIDs) {
-            products = Self.proProductIDs.compactMap { id in loaded.first { $0.id == id } }
-            loadPrices(from: loaded)
-        }
+        await loadProducts()
         if let subscription = products.first?.subscription {
             isEligibleForTrial = await subscription.isEligibleForIntroOffer
         }
@@ -59,6 +58,21 @@ final class Store {
         isPro = active
         SharedStore.isPro = active
         onChange?(active)
+    }
+
+    /// Fetches the products and their prices unless they are already here. The App Store returns no products
+    /// when they aren't approved or for sale in this country, so an empty answer counts as a failure too.
+    func loadProducts() async {
+        guard products.isEmpty else { return }
+        canLoadProducts = true
+        do {
+            let loaded = try await Product.products(for: Self.proProductIDs)
+            products = Self.proProductIDs.compactMap { id in loaded.first { $0.id == id } }
+            loadPrices(from: loaded)
+        } catch {
+            products = []
+        }
+        canLoadProducts = !products.isEmpty
     }
 
     /// Buys `product` and returns the verified transaction, or nil if the user cancelled or it awaits approval.

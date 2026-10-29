@@ -12,6 +12,8 @@ struct PaywallView: View {
     @State private var isPurchasing = false
     @State private var isPrivacyPresented = false
     @State private var errorMessage: String?
+    /// True while the prices are being fetched, the automatic retries included.
+    @State private var isLoadingPrices = true
 
     /// How long the offer shows before it can be closed.
     private static let closeDelay: Duration = .seconds(3)
@@ -39,7 +41,23 @@ struct PaywallView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 4)
 
-                if store.products.isEmpty {
+                if store.products.isEmpty, !store.canLoadProducts, !isLoadingPrices {
+                    VStack(spacing: 12) {
+                        Text(L("Priserna kunde inte hämtas från App Store just nu. Kontrollera internet och försök igen."))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        Button(L("Försök igen")) {
+                            Task {
+                                isLoadingPrices = true
+                                await store.loadProducts()
+                                isLoadingPrices = false
+                            }
+                        }
+                        .buttonStyle(ChipButtonStyle())
+                    }
+                    .padding(.vertical, 18)
+                } else if store.products.isEmpty {
                     ProgressView(L("Laddar priser…"))
                         .padding(.vertical, 30)
                 } else {
@@ -110,6 +128,12 @@ struct PaywallView: View {
         .interactiveDismissDisabled(!showsClose)
         .task {
             await store.refresh()
+            // A slow or briefly unreachable App Store gets a few more tries before the user is asked to retry.
+            for _ in 0..<3 where store.products.isEmpty {
+                try? await Task.sleep(for: .seconds(3))
+                await store.loadProducts()
+            }
+            isLoadingPrices = false
         }
         .task {
             try? await Task.sleep(for: Self.closeDelay)
