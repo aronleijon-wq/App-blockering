@@ -581,7 +581,7 @@ private struct RevealCard: View {
     @State private var shownYears = 0.0
 
     private var years: Double {
-        LifeMath.wakingYears(hoursPerDay: answers.hoursPerDay, age: answers.ageGroup.typicalAge)
+        LifeMath.wakingYears(hoursPerDay: answers.hoursPerDay, age: answers.ageGroup.youngestAge)
     }
 
     var body: some View {
@@ -747,7 +747,7 @@ private struct PlanStep: View {
     @State private var isBumping = false
 
     private var years: Double {
-        Plan.yearsBack(hoursPerDay: answers.hoursPerDay, age: answers.ageGroup.typicalAge)
+        Plan.yearsBack(hoursPerDay: answers.hoursPerDay, age: answers.ageGroup.youngestAge)
     }
 
     var body: some View {

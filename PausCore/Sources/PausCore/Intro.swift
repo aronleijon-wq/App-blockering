@@ -1,6 +1,6 @@
 import Foundation
 
-/// The age question in the intro, with an age that stands for the whole group in the life math.
+/// The age question in the intro. The life math counts from the youngest age in the group.
 enum AgeGroup: String, Codable, CaseIterable, Identifiable {
     case under18, from18, from25, from35, from45, from55
 
@@ -17,14 +17,15 @@ enum AgeGroup: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    var typicalAge: Int {
+    /// The youngest age in the group. Paus is for 13 and up, so that is where under 18 starts.
+    var youngestAge: Int {
         switch self {
-        case .under18: return 16
-        case .from18: return 21
-        case .from25: return 30
-        case .from35: return 40
-        case .from45: return 50
-        case .from55: return 60
+        case .under18: return 13
+        case .from18: return 18
+        case .from25: return 25
+        case .from35: return 35
+        case .from45: return 45
+        case .from55: return 55
         }
     }
 }

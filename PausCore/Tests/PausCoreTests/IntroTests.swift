@@ -12,6 +12,12 @@ final class IntroTests: XCTestCase {
         XCTAssertEqual(LifeMath.wakingYears(hoursPerDay: 4, age: 90), 0)
     }
 
+    func testCountsFromTheYoungestAgeInTheGroup() {
+        XCTAssertEqual(AgeGroup.under18.youngestAge, 13)
+        XCTAssertEqual(AgeGroup.from18.youngestAge, 18)
+        XCTAssertEqual(AgeGroup.from55.youngestAge, 55)
+    }
+
     func testYearlyNumbers() {
         XCTAssertEqual(LifeMath.hoursPerYear(hoursPerDay: 4.5), 1643)
         XCTAssertEqual(LifeMath.daysPerYear(hoursPerDay: 4.5), 68)
