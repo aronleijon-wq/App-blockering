@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import StoreKit
 
-/// Paus Pro, sold monthly (29 kr) or yearly (219 kr), both after a free week. Prices and the trial are set
+/// Paus Pro, sold monthly (29 kr) or yearly (249 kr), both after a free week. Prices and the trial are set
 /// in App Store Connect, and in `Config/Paus.storekit` for testing in Xcode.
 @MainActor
 @Observable
@@ -102,15 +102,20 @@ final class Store {
         yearlyPrice = yearly?.displayPrice
         guard let yearly else { return }
 
-        let perMonth = NSDecimalNumber(decimal: yearly.price / 12).rounding(accordingToBehavior: Self.roundDown).decimalValue
-        yearlyPerMonth = perMonth.formatted(yearly.priceFormatStyle.precision(.fractionLength(0)))
+        // Whole units where they mean something (20 kr), cents where they don't ($1.66 rather than $1).
+        let monthly12 = yearly.price / 12
+        let decimals: Int16 = monthly12 >= 10 ? 0 : 2
+        let perMonth = NSDecimalNumber(decimal: monthly12).rounding(accordingToBehavior: Self.roundDown(scale: decimals)).decimalValue
+        yearlyPerMonth = perMonth.formatted(yearly.priceFormatStyle.precision(.fractionLength(Int(decimals))))
         if let monthly, monthly.price > 0 {
             let ratio = NSDecimalNumber(decimal: yearly.price / (monthly.price * 12)).doubleValue
             yearlySavingsPercent = Int(((1 - ratio) * 100).rounded(.down))
         }
     }
 
-    private static let roundDown = NSDecimalNumberHandler(
-        roundingMode: .down, scale: 0, raiseOnExactness: false, raiseOnOverflow: false, raiseOnUnderflow: false, raiseOnDivideByZero: false
-    )
+    private static func roundDown(scale: Int16) -> NSDecimalNumberHandler {
+        NSDecimalNumberHandler(
+            roundingMode: .down, scale: scale, raiseOnExactness: false, raiseOnOverflow: false, raiseOnUnderflow: false, raiseOnDivideByZero: false
+        )
+    }
 }
