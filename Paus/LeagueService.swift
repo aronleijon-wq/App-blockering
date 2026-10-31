@@ -17,13 +17,13 @@ struct LeaderboardEntry: Identifiable, Equatable {
 @Observable
 final class LeagueService {
     enum Scope: String, CaseIterable, Identifiable {
-        case group, sweden, world
+        case friends, sweden, world
 
         var id: Self { self }
 
         var title: String {
             switch self {
-            case .group: return L("Min grupp")
+            case .friends: return L("Vänner")
             case .sweden: return L("Sverige")
             case .world: return L("Världen")
             }
@@ -37,6 +37,13 @@ final class LeagueService {
     private enum Keys {
         static let nickname = "league.nickname"
         static let blocked = "league.blocked"
+        static let friendCode = "league.friendCode"
+        static let friends = "league.friends"
+        static let unfriended = "league.unfriended"
+    }
+
+    enum FriendError: Error {
+        case notFound, ownCode
     }
 
     private enum Field {
@@ -49,6 +56,8 @@ final class LeagueService {
         static let groupID = "groupID"
         static let country = "country"
         static let joinedAt = "joinedAt"
+        static let friendCode = "friendCode"
+        static let friends = "friends"
     }
 
     private(set) var accountState: AccountState = .unknown
@@ -56,6 +65,12 @@ final class LeagueService {
     private(set) var loadingScope: Scope?
     private(set) var nickname: String?
     private(set) var blockedIDs: Set<String>
+    /// The code friends type in to add this player. Made once per phone and kept.
+    let friendCode: String
+    /// Record names of the players this player added. Players who added this player are found in CloudKit.
+    private(set) var friendIDs: Set<String>
+    /// Players removed from the friends list, so they stay gone even though they still have this player.
+    private var unfriendedIDs: Set<String>
 
     var canCompete: Bool { accountState == .available && nickname != nil }
 
@@ -63,7 +78,6 @@ final class LeagueService {
     @ObservationIgnored private var playerRecordName: String?
     @ObservationIgnored private var uploadedSignature: String?
     @ObservationIgnored private var uploadedGroupID: String?
-    @ObservationIgnored private var uploadedNickname: String?
 
     private var database: CKDatabase { container.publicCloudDatabase }
 
@@ -72,6 +86,14 @@ final class LeagueService {
         container = CKContainer(identifier: identifier)
         nickname = UserDefaults.standard.string(forKey: Keys.nickname)
         blockedIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.blocked) ?? [])
+        friendIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.friends) ?? [])
+        unfriendedIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.unfriended) ?? [])
+        if let code = UserDefaults.standard.string(forKey: Keys.friendCode) {
+            friendCode = code
+        } else {
+            friendCode = FriendCode.make()
+            UserDefaults.standard.set(friendCode, forKey: Keys.friendCode)
+        }
     }
 
     func refreshAccount() async {
@@ -93,7 +115,6 @@ final class LeagueService {
         UserDefaults.standard.removeObject(forKey: Keys.nickname)
         uploadedSignature = nil
         uploadedGroupID = nil
-        uploadedNickname = nil
         entries = [:]
     }
 
@@ -105,100 +126,128 @@ final class LeagueService {
         return (index + 1, records.count)
     }
 
-    /// The newest group in the division with room left, or a new one. Groups fill up as players become active,
-    /// so nobody waits for a server to sort them.
-    func findGroup(weekKey: String, division: Division) async throws -> String {
-        let newest = try await query(
-            NSPredicate(format: "%K == %@ AND %K == %d", Field.weekKey, weekKey, Field.division, division.rawValue),
-            sortedBy: Field.joinedAt,
-            limit: 1
-        )
-        if let groupID = newest.first?[Field.groupID] as? String, !groupID.isEmpty {
-            let members = try await query(NSPredicate(format: "%K == %@ AND %K == %@", Field.weekKey, weekKey, Field.groupID, groupID), limit: League.groupSize)
-            if members.count < League.groupSize { return groupID }
-        }
-        return "\(weekKey)-\(division.rawValue)-\(UUID().uuidString.prefix(8))"
-    }
-
-    /// Publishes the player's week. Skips the upload when nothing visible changed.
+    /// Publishes the player's nickname, friend code and friends, and their week once it has points.
+    /// Skips the upload when nothing visible changed.
     func upload(_ progress: PlayerProgress) async throws {
         guard let nickname else { return }
-        guard let weekKey = progress.weekKey, let groupID = progress.leagueGroupID else {
-            // Not in a group yet, but a record from earlier this week, or from another device on the
-            // same iCloud account, may still show the old name.
-            try await uploadNickname(nickname)
-            return
-        }
-        let signature = "\(nickname)|\(weekKey)|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)|\(groupID)"
+        let friends = friendIDs.sorted()
+        let week = progress.weekKey.flatMap { progress.weeklyPoints > 0 ? $0 : nil }
+        let signature = "\(nickname)|\(friendCode)|\(friends)|\(week ?? "")|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)"
         guard signature != uploadedSignature else { return }
 
         let record = CKRecord(recordType: Field.type, recordID: try await myRecordID())
         record[Field.nickname] = nickname
-        record[Field.weekKey] = weekKey
-        record[Field.weeklyPoints] = progress.weeklyPoints
-        record[Field.level] = progress.level
-        record[Field.division] = progress.division.rawValue
-        record[Field.groupID] = groupID
-        record[Field.country] = Locale.current.region?.identifier ?? "SE"
-        if groupID != uploadedGroupID {
-            record[Field.joinedAt] = Date.now
+        record[Field.friendCode] = friendCode
+        // CloudKit can't store an empty list, so a player without friends gets none.
+        if friends.isEmpty {
+            record[Field.friends] = nil
+        } else {
+            record[Field.friends] = friends
+        }
+        if let week {
+            record[Field.weekKey] = week
+            record[Field.weeklyPoints] = progress.weeklyPoints
+            record[Field.level] = progress.level
+            record[Field.division] = progress.division.rawValue
+            record[Field.country] = Locale.current.region?.identifier ?? "SE"
+            // Kept for players who joined a group before friends replaced groups, so last week can be settled.
+            if let groupID = progress.leagueGroupID, groupID != uploadedGroupID {
+                record[Field.groupID] = groupID
+                record[Field.joinedAt] = Date.now
+            }
         }
         // Changed keys only, so the record can be saved without fetching it first.
         let (results, _) = try await database.modifyRecords(saving: [record], deleting: [], savePolicy: .changedKeys, atomically: false)
         if case .failure(let error) = results[record.recordID] { throw error }
         uploadedSignature = signature
-        uploadedGroupID = groupID
-        uploadedNickname = nickname
+        uploadedGroupID = progress.leagueGroupID
     }
 
-    private func uploadNickname(_ nickname: String) async throws {
-        guard nickname != uploadedNickname else { return }
-        let record = CKRecord(recordType: Field.type, recordID: try await myRecordID())
-        record[Field.nickname] = nickname
-        let (results, _) = try await database.modifyRecords(saving: [record], deleting: [], savePolicy: .changedKeys, atomically: false)
-        if case .failure(let error) = results[record.recordID] { throw error }
-        uploadedNickname = nickname
+    // MARK: Friends
+
+    /// Adds the player with `code` as a friend. They see this player too, without adding back.
+    func addFriend(code: String) async throws {
+        let code = FriendCode.normalized(code)
+        guard code != friendCode else { throw FriendError.ownCode }
+        let me = try await myRecordID().recordName
+        let matches = try await query(NSPredicate(format: "%K == %@", Field.friendCode, code), sortedBy: nil, limit: 1)
+        guard let id = matches.first?.recordID.recordName, id != me else { throw FriendError.notFound }
+        friendIDs.insert(id)
+        unfriendedIDs.remove(id)
+        saveFriends()
+        uploadedSignature = nil
+    }
+
+    func removeFriend(_ entry: LeaderboardEntry) {
+        friendIDs.remove(entry.id)
+        unfriendedIDs.insert(entry.id)
+        saveFriends()
+        uploadedSignature = nil
+        entries[.friends]?.removeAll { $0.id == entry.id }
+    }
+
+    private func saveFriends() {
+        UserDefaults.standard.set(Array(friendIDs), forKey: Keys.friends)
+        UserDefaults.standard.set(Array(unfriendedIDs), forKey: Keys.unfriended)
     }
 
     func load(_ scope: Scope, progress: PlayerProgress) async {
         guard let weekKey = progress.weekKey else { return }
-        let predicate: NSPredicate
-        switch scope {
-        case .group:
-            guard let groupID = progress.leagueGroupID else {
-                entries[scope] = []
-                return
-            }
-            predicate = NSPredicate(format: "%K == %@ AND %K == %@", Field.weekKey, weekKey, Field.groupID, groupID)
-        case .sweden:
-            predicate = NSPredicate(format: "%K == %@ AND %K == %@", Field.weekKey, weekKey, Field.country, "SE")
-        case .world:
-            predicate = NSPredicate(format: "%K == %@", Field.weekKey, weekKey)
-        }
         loadingScope = scope
         defer { loadingScope = nil }
         do {
-            let records = try await query(predicate, limit: scope == .group ? League.groupSize + 10 : 100)
+            let records: [CKRecord]
+            switch scope {
+            case .friends:
+                records = try await friendRecords()
+            case .sweden:
+                records = try await query(NSPredicate(format: "%K == %@ AND %K == %@", Field.weekKey, weekKey, Field.country, "SE"), limit: 100)
+            case .world:
+                records = try await query(NSPredicate(format: "%K == %@", Field.weekKey, weekKey), limit: 100)
+            }
             let me = try? await myRecordID().recordName
-            entries[scope] = records.compactMap { record -> LeaderboardEntry? in
+            var rows = records.compactMap { record -> LeaderboardEntry? in
                 guard !blockedIDs.contains(record.recordID.recordName) else { return nil }
                 let isMe = record.recordID.recordName == me
+                // A friend who hasn't scored this week still shows last week's numbers in CloudKit.
+                let thisWeek = record[Field.weekKey] as? String == weekKey
                 // CloudKit can take a while to return a record that was just saved, so the player's own
                 // row always shows what this phone knows.
                 return LeaderboardEntry(
                     id: record.recordID.recordName,
                     nickname: isMe ? nickname ?? "?" : record[Field.nickname] as? String ?? "?",
-                    points: isMe ? progress.weeklyPoints : record[Field.weeklyPoints] as? Int ?? 0,
+                    points: isMe ? progress.weeklyPoints : thisWeek ? record[Field.weeklyPoints] as? Int ?? 0 : 0,
                     level: isMe ? progress.level : record[Field.level] as? Int ?? 1,
                     division: isMe ? progress.division : Division(rawValue: record[Field.division] as? Int ?? 0) ?? .brons,
                     isMe: isMe
                 )
             }
-            .sorted { $0.points > $1.points }
+            if scope == .friends, let me, !rows.contains(where: \.isMe) {
+                rows.append(LeaderboardEntry(id: me, nickname: nickname ?? "?", points: progress.weeklyPoints,
+                                             level: progress.level, division: progress.division, isMe: true))
+            }
+            entries[scope] = rows.sorted { $0.points > $1.points }
         } catch {
             // A brand-new league has no Player records yet, which CloudKit reports as an error.
             entries[scope] = []
         }
+    }
+
+    /// The players this player added, and the players who added this player.
+    private func friendRecords() async throws -> [CKRecord] {
+        let me = try await myRecordID()
+        var records: [String: CKRecord] = [:]
+        let added = friendIDs.map { CKRecord.ID(recordName: $0) }
+        if !added.isEmpty {
+            for (id, result) in try await database.records(for: added) {
+                if let record = try? result.get() { records[id.recordName] = record }
+            }
+        }
+        let addedMe = try await query(NSPredicate(format: "%K CONTAINS %@", Field.friends, me.recordName), sortedBy: nil, limit: 100)
+        for record in addedMe where !unfriendedIDs.contains(record.recordID.recordName) {
+            records[record.recordID.recordName] = record
+        }
+        return Array(records.values)
     }
 
     /// Reports a player for review and hides them.
@@ -227,9 +276,12 @@ final class LeagueService {
         return CKRecord.ID(recordName: name)
     }
 
-    private func query(_ predicate: NSPredicate, sortedBy key: String = Field.weeklyPoints, limit: Int) async throws -> [CKRecord] {
+    /// Records matching `predicate`, best first when sorted. Lookups pass no sort key, which needs no sortable index.
+    private func query(_ predicate: NSPredicate, sortedBy key: String? = Field.weeklyPoints, limit: Int) async throws -> [CKRecord] {
         let query = CKQuery(recordType: Field.type, predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: key, ascending: false)]
+        if let key {
+            query.sortDescriptors = [NSSortDescriptor(key: key, ascending: false)]
+        }
         let (results, _) = try await database.records(matching: query, resultsLimit: limit)
         return results.compactMap { try? $0.1.get() }
     }

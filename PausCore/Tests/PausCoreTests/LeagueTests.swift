@@ -77,6 +77,13 @@ final class LeagueTests: XCTestCase {
         XCTAssertEqual(progress.settleFinishedWeek(rank: 1, groupSize: 20), [])
     }
 
+    func testFriendCodes() {
+        let code = FriendCode.make()
+        XCTAssertEqual(code.count, FriendCode.length)
+        XCTAssertTrue(code.allSatisfy { FriendCode.alphabet.contains($0) })
+        XCTAssertEqual(FriendCode.normalized(" k7p-2qx "), "K7P2QX")
+    }
+
     func testNicknameRules() {
         XCTAssertNil(Nickname.problem(with: "Scrollfri_Elsa"))
         XCTAssertNil(Nickname.problem(with: "Åsa.92"))

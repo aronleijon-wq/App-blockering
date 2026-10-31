@@ -2,7 +2,8 @@ import SwiftUI
 
 struct LeagueView: View {
     @Environment(AppModel.self) private var model
-    @State private var scope: LeagueService.Scope = .group
+    @State private var scope: LeagueService.Scope = .friends
+    @State private var isAddFriendPresented = false
     @State private var isNicknamePresented = false
     @State private var reporting: LeaderboardEntry?
 
@@ -55,6 +56,12 @@ struct LeagueView: View {
             }
             .sheet(isPresented: $isNicknamePresented) {
                 NicknameSheet()
+            }
+            .sheet(isPresented: $isAddFriendPresented) {
+                AddFriendSheet {
+                    await model.syncLeague(force: true)
+                    await league.load(.friends, progress: model.progress)
+                }
             }
             .confirmationDialog(
                 L("Anmäl \(reporting?.nickname ?? "")?"),
@@ -116,13 +123,15 @@ struct LeagueView: View {
     }
 
     private func rulesText(for division: Division) -> String {
-        switch division {
-        case .brons:
-            return L("De bästa i din grupp går upp till \(division.higher.title) på söndag kväll.")
-        case .legend:
-            return L("Du är i toppen! De sämsta i gruppen åker ner till \(division.lower.title).")
-        default:
-            return L("De bästa går upp till \(division.higher.title), de sämsta åker ner till \(division.lower.title).")
+        switch (division.promotionPoints, division.relegationPoints) {
+        case let (up?, down?):
+            return L("Nå \(up) poäng för att gå upp till \(division.higher.title). Under \(down) åker du ner till \(division.lower.title).")
+        case let (up?, nil):
+            return L("Nå \(up) poäng den här veckan för att gå upp till \(division.higher.title).")
+        case let (nil, down?):
+            return L("Du är i toppen! Under \(down) poäng åker du ner till \(division.lower.title).")
+        case (nil, nil):
+            return ""
         }
     }
 
@@ -134,6 +143,10 @@ struct LeagueView: View {
                 ForEach(LeagueService.Scope.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
+
+            if scope == .friends {
+                friendCodeRow
+            }
 
             let rows = league.entries[scope] ?? []
             if league.loadingScope == scope && rows.isEmpty {
@@ -148,9 +161,12 @@ struct LeagueView: View {
                     .padding(.vertical, 20)
             } else {
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, entry in
-                    LeaderboardRow(rank: index + 1, entry: entry, movesUp: scope == .group && index < movingCount(rows.count))
+                    LeaderboardRow(rank: index + 1, entry: entry)
                         .contextMenu {
                             if !entry.isMe {
+                                if scope == .friends {
+                                    Button(L("Ta bort vän"), systemImage: "person.badge.minus") { league.removeFriend(entry) }
+                                }
                                 Button(L("Anmäl"), systemImage: "exclamationmark.bubble") { reporting = entry }
                                 Button(L("Blockera"), systemImage: "hand.raised") { league.block(entry) }
                             }
@@ -161,14 +177,41 @@ struct LeagueView: View {
         .card()
     }
 
-    private func movingCount(_ size: Int) -> Int {
-        max(1, size / League.movingShare)
+    /// The player's own code, and the way to add someone else's.
+    private var friendCodeRow: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L("Din vänkod"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(league.friendCode)
+                    .font(.title3.bold().monospaced())
+                    .textSelection(.enabled)
+            }
+            Spacer()
+            Button {
+                UIPasteboard.general.string = league.friendCode
+            } label: {
+                Image(systemName: "doc.on.doc")
+            }
+            .accessibilityLabel(L("Kopiera koden"))
+            Button {
+                isAddFriendPresented = true
+            } label: {
+                Label(L("Lägg till"), systemImage: "person.badge.plus")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.violet)
+        }
+        .padding(12)
+        .background(Theme.cardRaised, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private var emptyText: String {
         switch scope {
-        case .group:
-            return L("Du hamnar i en grupp när du har fått dina första poäng den här veckan. Hämta dagens belöning eller kör ett fokuspass!")
+        case .friends:
+            return L("Lägg till en vän med deras kod, eller skicka din. Den som scrollar minst vinner veckan.")
         case .sweden, .world:
             return L("Ingen har fått poäng den här veckan än. Bli först!")
         }
@@ -178,7 +221,7 @@ struct LeagueView: View {
         ShareLink(
             item: AppInfo.inviteURL,
             subject: Text(L("Utmana mig i Paus")),
-            message: Text(AppInfo.inviteMessage(nickname: league.nickname))
+            message: Text(AppInfo.inviteMessage(nickname: league.nickname, code: league.friendCode))
         ) {
             HStack(spacing: 14) {
                 Image(systemName: "person.2.fill")
@@ -189,7 +232,7 @@ struct LeagueView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L("Utmana dina vänner"))
                         .font(.headline)
-                    Text(L("Skicka en länk. Den som scrollar minst vinner veckan."))
+                    Text(L("Skicka din kod. Den som scrollar minst vinner veckan."))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -210,7 +253,7 @@ struct LeagueView: View {
                 .foregroundStyle(Theme.brand)
             Text(L("Tävla mot andra"))
                 .font(.title3.bold())
-            Text(L("Varje vecka hamnar du i en grupp med upp till \(League.groupSize) andra i din division. De bästa går upp, de sämsta åker ner."))
+            Text(L("Tävla mot dina vänner och resten av Sverige. Samla poäng varje vecka och klättra i divisionerna."))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
             Button(L("Välj smeknamn")) { isNicknamePresented = true }
@@ -251,7 +294,6 @@ struct LeagueView: View {
 private struct LeaderboardRow: View {
     let rank: Int
     let entry: LeaderboardEntry
-    let movesUp: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -270,11 +312,6 @@ private struct LeaderboardRow: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            if movesUp {
-                Image(systemName: "arrow.up.circle.fill")
-                    .foregroundStyle(Theme.mint)
-                    .accessibilityLabel(L("Går upp"))
-            }
             Text("\(entry.points)")
                 .font(.headline.monospacedDigit())
         }

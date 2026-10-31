@@ -294,16 +294,6 @@ final class AppModel {
                 SharedStore.updateProgress { $0.settleFinishedWeek(rank: standing?.rank, groupSize: standing?.size) }
             }
 
-            let current = SharedStore.progress
-            if current.leagueGroupID == nil, current.weeklyPoints > 0, let weekKey = current.weekKey {
-                let groupID = try await league.findGroup(weekKey: weekKey, division: current.division)
-                SharedStore.updateProgress { progress in
-                    if progress.weekKey == weekKey, progress.leagueGroupID == nil {
-                        progress.leagueGroupID = groupID
-                    }
-                    return []
-                }
-            }
             progress = SharedStore.progress
             try await league.upload(progress)
             showPendingCelebrations()

@@ -24,7 +24,7 @@ Du kan skapa ett konto med Logga in med Apple eller med din e-post, men allt fun
 
 ## Ligan
 
-Om du väljer ett smeknamn och går med i ligan sparas följande i Apples iCloud-tjänst CloudKit: smeknamn, veckopoäng, nivå, division, ligagrupp, land och en anonym identifierare som iCloud skapar för appen. Uppgifterna syns för andra spelare i topplistorna. Ditt Apple-ID, namn eller e-post delas aldrig. Rättslig grund är att du själv valt att gå med (avtal). Uppgifterna finns kvar tills du lämnar ligan.
+Om du väljer ett smeknamn och går med i ligan sparas följande i Apples iCloud-tjänst CloudKit: smeknamn, veckopoäng, nivå, division, ligagrupp, land, din vänkod, vilka spelare du har lagt till som vänner och en anonym identifierare som iCloud skapar för appen. Uppgifterna syns för andra spelare i topplistorna. Ditt Apple-ID, namn eller e-post delas aldrig. Rättslig grund är att du själv valt att gå med (avtal). Uppgifterna finns kvar tills du lämnar ligan.
 
 ## Anmälningar
 

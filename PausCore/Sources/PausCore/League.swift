@@ -174,3 +174,19 @@ enum Nickname {
         "rape", "porn", "dick", "pussy", "cock", "admin", "moderator", "paus",
     ]
 }
+
+/// The short code friends type in to find each other in the league.
+enum FriendCode {
+    /// No 0/O or 1/I, so a code read out loud or off a screen can't be mistyped.
+    static let alphabet = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
+    static let length = 6
+
+    static func make() -> String {
+        String((0..<length).map { _ in alphabet.randomElement()! })
+    }
+
+    /// What the player typed, without spaces or dashes and in capitals, ready to look up.
+    static func normalized(_ input: String) -> String {
+        String(input.uppercased().filter { $0.isLetter || $0.isNumber })
+    }
+}

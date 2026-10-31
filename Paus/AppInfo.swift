@@ -11,13 +11,13 @@ enum AppInfo {
 
     static let websiteURL = URL(string: "https://pausewebb.lovable.app")!
     static let helpURL = URL(string: "https://pausewebb.lovable.app/support")!
-    /// Where invited friends land. Switch to the App Store link once Paus is out.
-    static let inviteURL = websiteURL
+    /// Where invited friends land.
+    static let inviteURL = URL(string: "https://apps.apple.com/app/id6825835642")!
 
-    /// The text that goes with an invite, naming the player so friends can find them in the league.
-    static func inviteMessage(nickname: String?) -> String {
+    /// The text that goes with an invite, with the player's friend code so the friend can add them in the league.
+    static func inviteMessage(nickname: String?, code: String) -> String {
         let name = nickname.map { L(" Mitt smeknamn är \($0).") } ?? ""
-        return L("Jag kör Paus för att scrolla mindre 📵 Utmana mig i ligan – den som scrollar minst vinner veckan!\(name)")
+        return L("Jag kör Paus för att scrolla mindre 📵 Utmana mig i ligan – den som scrollar minst vinner veckan!\(name) Lägg till mig med koden \(code) under Liga > Vänner.")
     }
 
     /// "0.1.0 (1)", from the bundle.
