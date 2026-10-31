@@ -6,3 +6,6 @@ build/
 .build/
 .swiftpm/
 __pycache__/
+
+# Ad videos are kept outside the repository.
+Brand/ads/**/real-life/*.mp4
