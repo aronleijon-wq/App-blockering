@@ -34,6 +34,8 @@ final class AppModel {
     }
     private(set) var coachMessage = ""
     var isPauseSheetPresented = false
+    /// Asks whether to unblock everything, from the home screen or the SOS quick action on the app icon.
+    var isSOSPresented = false
     var isPaywallPresented = false
     /// Rewards to celebrate on screen; cleared when the celebration is dismissed.
     var celebration: [Reward] = []
@@ -464,6 +466,7 @@ final class AppModel {
         // Apple's own screens, such as the purchase sheet, follow this from the next launch.
         UserDefaults.standard.set([newLanguage.rawValue], forKey: "AppleLanguages")
         coachKey = ""
+        QuickAction.install()
         refreshShield()
         scheduleReminder()
         Task { await refreshCoach() }
@@ -675,6 +678,32 @@ final class AppModel {
         sessionSteps = nil
         refreshShield()
         Task { await refreshCoach() }
+    }
+
+    /// What SOS would do right now, for its confirmation, or nil when nothing is blocked.
+    var sosExplanation: String? {
+        let now = Date.now
+        guard engine.canSOS(at: now), let reason = engine.reason(at: now) else { return nil }
+        let cost = progress.nextSOSPenalty(at: now, calendar: .current)
+        let what: String
+        switch reason {
+        case .focus: what = L("Fokuspasset avslutas och allt låses upp direkt.")
+        case .stepFocus: what = L("Stegpasset avslutas och allt låses upp direkt.")
+        case .schedule, .dailyLimit: what = L("Allt låses upp i \(SOS.minutes) min. Sedan blockeras apparna igen.")
+        }
+        return L("\(what) Det kostar \(cost) XP, lika många veckopoäng och lite av Pips hälsa, och mer för varje SOS idag.")
+    }
+
+    var sosCost: Int {
+        progress.nextSOSPenalty(at: .now, calendar: .current)
+    }
+
+    /// Opens what a quick action on the app icon asks for.
+    func handleQuickAction(_ type: String) {
+        guard type == QuickAction.sos else { return }
+        reload()
+        selectedTab = .home
+        isSOSPresented = true
     }
 
     func endSOS() {

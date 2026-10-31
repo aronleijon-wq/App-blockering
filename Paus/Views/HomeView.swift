@@ -5,7 +5,6 @@ struct HomeView: View {
     @State private var isHealthInfoPresented = false
     @State private var isSettingsPresented = false
     @State private var isStopFocusConfirming = false
-    @State private var isSOSConfirming = false
     /// The step goal waiting for the user to confirm, since a step session can't be undone.
     @State private var confirmingStepGoal: Int?
 
@@ -214,7 +213,7 @@ struct HomeView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    sosButton(at: date, reason: reason)
+                    sosButton
                 } else if engine.isSOS(at: date), let sosUntil = model.runtime.sosUntil {
                     StatusRow(
                         symbol: "sos",
@@ -239,30 +238,17 @@ struct HomeView: View {
         }
     }
 
-    /// The way out of every block, strict focus and step sessions included. One confirmation, no waiting.
-    private func sosButton(at date: Date, reason: BlockReason) -> some View {
-        let cost = model.progress.nextSOSPenalty(at: date, calendar: .current)
-        let what: String = {
-            switch reason {
-            case .focus: return L("Fokuspasset avslutas och allt låses upp direkt.")
-            case .stepFocus: return L("Stegpasset avslutas och allt låses upp direkt.")
-            case .schedule, .dailyLimit: return L("Allt låses upp i \(SOS.minutes) min. Sedan blockeras apparna igen.")
-            }
-        }()
-        return Button {
-            isSOSConfirming = true
+    /// The way out of every block, strict focus and step sessions included. The confirmation lives in `RootView`,
+    /// shared with the SOS quick action on the app icon.
+    private var sosButton: some View {
+        Button {
+            model.isSOSPresented = true
         } label: {
             Label(L("SOS – lås upp"), systemImage: "sos")
                 .font(.subheadline.weight(.semibold))
         }
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)
-        .confirmationDialog(L("Lås upp allt?"), isPresented: $isSOSConfirming, titleVisibility: .visible) {
-            Button(L("Lås upp (−\(cost) XP och poäng)"), role: .destructive) { model.useSOS() }
-            Button(L("Avbryt"), role: .cancel) {}
-        } message: {
-            Text(L("\(what) Det kostar \(cost) XP, lika många veckopoäng och lite av Pips hälsa, och mer för varje SOS idag."))
-        }
     }
 
     // MARK: Focus

@@ -42,6 +42,25 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { model.reload() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: QuickAction.performed)) { note in
+            if let type = note.object as? String { model.handleQuickAction(type) }
+        }
+        .task {
+            if let type = QuickAction.takePending() { model.handleQuickAction(type) }
+        }
+        .alert(
+            model.sosExplanation == nil ? L("Inget är blockerat just nu") : L("Lås upp allt?"),
+            isPresented: $model.isSOSPresented
+        ) {
+            if model.sosExplanation != nil {
+                Button(L("Lås upp (−\(model.sosCost) XP och poäng)"), role: .destructive) { model.useSOS() }
+                Button(L("Avbryt"), role: .cancel) {}
+            } else {
+                Button(L("Okej"), role: .cancel) {}
+            }
+        } message: {
+            Text(model.sosExplanation ?? L("Du kan använda appar som vanligt."))
+        }
         .sheet(isPresented: $model.isPauseSheetPresented) {
             PauseView()
         }
