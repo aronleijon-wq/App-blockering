@@ -69,6 +69,23 @@ final class BlockEngineTests: XCTestCase {
         XCTAssertFalse(engine(rules: PausRules(strictFocus: false), runtime: runtime).shouldShield(at: monday10))
     }
 
+    func testSOSLiftsSchedulesAndLimitButNotALaterFocusSession() {
+        let sosEnd = monday10.addingTimeInterval(TimeInterval(SOS.minutes * 60))
+        let rules = PausRules(dailyLimitMinutes: 30, schedules: [school])
+        let lifted = engine(rules: rules, runtime: PausRuntime(sosUntil: sosEnd, limitReachedDay: "2026-10-19"))
+        XCTAssertFalse(lifted.shouldShield(at: monday10))
+        XCTAssertTrue(lifted.shouldShield(at: sosEnd.addingTimeInterval(1)), "the schedule is back once the SOS is over")
+        let focus = engine(rules: rules, runtime: PausRuntime(focusEndsAt: monday10.addingTimeInterval(1500), sosUntil: sosEnd))
+        XCTAssertTrue(focus.shouldShield(at: monday10), "a focus session started after the SOS still blocks")
+    }
+
+    func testSOSNeedsAConfirmingTapWithinAMinute() {
+        let sut = engine(runtime: PausRuntime(sosRequestedAt: monday10))
+        XCTAssertTrue(sut.isSOSRequested(at: monday10.addingTimeInterval(30)))
+        XCTAssertFalse(sut.isSOSRequested(at: monday10.addingTimeInterval(SOS.confirmSeconds + 1)))
+        XCTAssertFalse(engine().isSOSRequested(at: monday10))
+    }
+
     func testCanPauseRequiresAnActiveNonStrictBlock() {
         let focus = PausRuntime(focusEndsAt: monday10.addingTimeInterval(1500))
         XCTAssertFalse(engine().canPause(at: monday10), "nothing is blocked")

@@ -15,6 +15,8 @@ enum ProgressEvent: Equatable {
     case abandonedFocus
     /// Turned off a block while it was on, by changing the rules or the apps.
     case escapedBlock
+    /// Unblocked everything with SOS. Costs more each time the same day.
+    case usedSOS
     /// The guarded apps have been used for `minutes` today. Only makes Pip sadder.
     case scrolled(minutes: Int)
     /// Used up the daily limit. Only makes Pip sadder.
@@ -52,8 +54,9 @@ struct DailyCounts: Codable, Equatable {
     var pauses: Int
     /// The highest usage threshold of the guarded apps already reported today.
     var scrolledMinutes: Int
+    var sosUses: Int
 
-    init(day: String? = nil, focusSessions: Int = 0, focusMinutes: Int = 0, closes: Int = 0, declines: Int = 0, completedQuests: Set<String> = [], focusPoints: Int = 0, pauses: Int = 0, scrolledMinutes: Int = 0) {
+    init(day: String? = nil, focusSessions: Int = 0, focusMinutes: Int = 0, closes: Int = 0, declines: Int = 0, completedQuests: Set<String> = [], focusPoints: Int = 0, pauses: Int = 0, scrolledMinutes: Int = 0, sosUses: Int = 0) {
         self.day = day
         self.focusSessions = focusSessions
         self.focusMinutes = focusMinutes
@@ -63,6 +66,7 @@ struct DailyCounts: Codable, Equatable {
         self.focusPoints = focusPoints
         self.pauses = pauses
         self.scrolledMinutes = scrolledMinutes
+        self.sosUses = sosUses
     }
 
     init(from decoder: Decoder) throws {
@@ -76,6 +80,7 @@ struct DailyCounts: Codable, Equatable {
         focusPoints = try container.decodeIfPresent(Int.self, forKey: .focusPoints) ?? 0
         pauses = try container.decodeIfPresent(Int.self, forKey: .pauses) ?? 0
         scrolledMinutes = try container.decodeIfPresent(Int.self, forKey: .scrolledMinutes) ?? 0
+        sosUses = try container.decodeIfPresent(Int.self, forKey: .sosUses) ?? 0
     }
 }
 
@@ -315,6 +320,11 @@ struct PlayerProgress: Codable, Equatable {
             lost = XP.escapedBlock
             points = -League.Points.escapedBlock
             healthChange = -PipHealth.escapedBlock
+        case .usedSOS:
+            today.sosUses += 1
+            lost = League.sosPenalty(forUse: today.sosUses)
+            points = -lost
+            healthChange = -PipHealth.sosCost(forUse: today.sosUses)
         }
         health = min(PipHealth.maximum, max(0, health + healthChange))
         weeklyPoints = max(0, weeklyPoints + points)
@@ -377,6 +387,11 @@ struct PlayerProgress: Codable, Equatable {
     }
 
     /// League points the next pause today would cost.
+    /// League points (and XP) the next SOS today would cost.
+    func nextSOSPenalty(at date: Date, calendar: Calendar) -> Int {
+        League.sosPenalty(forUse: counts(at: date, calendar: calendar).sosUses + 1)
+    }
+
     func nextPausePenalty(at date: Date, calendar: Calendar) -> Int {
         League.pausePenalty(forPause: counts(at: date, calendar: calendar).pauses + 1)
     }

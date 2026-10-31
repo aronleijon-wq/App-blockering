@@ -26,6 +26,9 @@ struct PausStatus: Codable, Hashable {
     static func at(_ date: Date, rules: PausRules, runtime: PausRuntime, calendar: Calendar) -> PausStatus {
         let engine = BlockEngine(rules: rules, runtime: runtime, calendar: calendar)
         guard let reason = engine.reason(at: date) else { return .free }
+        if !engine.shouldShield(at: date), engine.isSOS(at: date), let sosUntil = runtime.sosUntil {
+            return PausStatus(kind: .pause, title: "SOS", start: sosUntil.addingTimeInterval(-TimeInterval(SOS.minutes * 60)), end: sosUntil)
+        }
         if !engine.shouldShield(at: date), let pausedUntil = runtime.pausedUntil {
             let start = pausedUntil.addingTimeInterval(-TimeInterval(rules.pause.minutes * 60))
             return PausStatus(kind: .pause, title: "Paus", start: start, end: pausedUntil)

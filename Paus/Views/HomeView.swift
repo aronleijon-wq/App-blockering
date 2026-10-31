@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var isHealthInfoPresented = false
     @State private var isSettingsPresented = false
     @State private var isStopFocusConfirming = false
+    @State private var isSOSConfirming = false
     /// The step goal waiting for the user to confirm, since a step session can't be undone.
     @State private var confirmingStepGoal: Int?
 
@@ -213,6 +214,16 @@ struct HomeView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    sosButton(at: date, reason: reason)
+                } else if engine.isSOS(at: date), let sosUntil = model.runtime.sosUntil {
+                    StatusRow(
+                        symbol: "sos",
+                        tint: Theme.orange,
+                        title: L("SOS – \(Format.countdown(to: sosUntil, from: date)) kvar"),
+                        detail: L("Sedan blockeras apparna igen.")
+                    )
+                    Button(L("Blockera igen nu")) { model.endSOS() }
+                        .buttonStyle(ChipButtonStyle())
                 } else if let pausedUntil = model.runtime.pausedUntil {
                     StatusRow(
                         symbol: "cup.and.saucer.fill",
@@ -225,6 +236,32 @@ struct HomeView: View {
                 }
             }
             .card()
+        }
+    }
+
+    /// The way out of every block, strict focus and step sessions included. One confirmation, no waiting.
+    private func sosButton(at date: Date, reason: BlockReason) -> some View {
+        let cost = model.progress.nextSOSPenalty(at: date, calendar: .current)
+        let what: String = {
+            switch reason {
+            case .focus: return L("Fokuspasset avslutas och allt låses upp direkt.")
+            case .stepFocus: return L("Stegpasset avslutas och allt låses upp direkt.")
+            case .schedule, .dailyLimit: return L("Allt låses upp i \(SOS.minutes) min. Sedan blockeras apparna igen.")
+            }
+        }()
+        return Button {
+            isSOSConfirming = true
+        } label: {
+            Label(L("SOS – lås upp"), systemImage: "sos")
+                .font(.subheadline.weight(.semibold))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .confirmationDialog(L("Lås upp allt?"), isPresented: $isSOSConfirming, titleVisibility: .visible) {
+            Button(L("Lås upp (−\(cost) XP och poäng)"), role: .destructive) { model.useSOS() }
+            Button(L("Avbryt"), role: .cancel) {}
+        } message: {
+            Text(L("\(what) Det kostar \(cost) XP, lika många veckopoäng och lite av Pips hälsa, och mer för varje SOS idag."))
         }
     }
 
@@ -317,7 +354,7 @@ struct HomeView: View {
                     .font(.title3.bold())
                 Text(L("Gå \(Format.number(goal - walked)) steg till, så låses apparna upp."))
                     .foregroundStyle(.secondary)
-                Label(L("Går inte att avbryta"), systemImage: "lock.fill")
+                Label(L("Bara SOS stoppar det"), systemImage: "lock.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.pink)
             }
@@ -368,7 +405,7 @@ struct HomeView: View {
             }
             Button(L("Inte nu"), role: .cancel) {}
         } message: { goal in
-            Text(L("Apparna låses tills du har gått \(Format.number(goal)) steg. Det går inte att avbryta, pausa eller ta bort Paus under tiden. Öppna Paus när du har gått klart."))
+            Text(L("Apparna låses tills du har gått \(Format.number(goal)) steg. Det går inte att pausa eller ta bort Paus under tiden, bara att avbryta med SOS. Öppna Paus när du har gått klart."))
         }
     }
 

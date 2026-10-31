@@ -3,7 +3,8 @@ import ManagedSettings
 import UserNotifications
 
 /// Handles the shield's buttons. "Stäng" closes the blocked app; "Ta en paus" can't open Paus directly,
-/// so it posts a notification that does, and Paus shows the pause screen when it opens.
+/// so it posts a notification that does, and Paus shows the pause screen when it opens. Where no pause is
+/// possible the second button is SOS: the first tap asks for confirmation, the second unblocks right here.
 final class ShieldActionExtension: ShieldActionDelegate {
     override func handle(action: ShieldAction, for application: ApplicationToken, completionHandler: @escaping (ShieldActionResponse) -> Void) {
         handle(action, completionHandler: completionHandler)
@@ -24,8 +25,20 @@ final class ShieldActionExtension: ShieldActionDelegate {
             ProgressRecorder.record(.closedBlockedApp)
             completionHandler(.close)
         } else if action == .secondaryButtonPressed {
-            SharedStore.updateRuntime { $0.pauseRequestedAt = .now }
-            postPauseNotification { completionHandler(.close) }
+            let now = Date.now
+            let engine = BlockEngine(rules: SharedStore.effectiveRules, runtime: SharedStore.runtime)
+            if engine.canPause(at: now) {
+                SharedStore.updateRuntime { $0.pauseRequestedAt = now }
+                postPauseNotification { completionHandler(.close) }
+            } else if engine.isSOSRequested(at: now) {
+                SharedStore.updateRuntime { $0.sosRequestedAt = nil }
+                SOSUnlock.activate(at: now)
+                // Deferring redraws the shield, which is gone now, so the app opens.
+                completionHandler(.defer)
+            } else {
+                SharedStore.updateRuntime { $0.sosRequestedAt = now }
+                completionHandler(.defer)
+            }
         } else {
             completionHandler(.close)
         }

@@ -578,7 +578,7 @@ final class AppModel {
         Task { await refreshCoach() }
     }
 
-    /// Blocks the apps until `goal` steps are walked. It can't be stopped or paused, so it only starts once
+    /// Blocks the apps until `goal` steps are walked. Only SOS stops it and it can't be paused, so it only starts once
     /// Paus can read steps from Health; otherwise it would stay locked until the backstop.
     func startStepFocus(goal: Int) async {
         guard hasSelection, isPro, runtime.focusStepGoal == nil, !(runtime.focusEndsAt.map { $0 > .now } ?? false) else { return }
@@ -663,6 +663,23 @@ final class AppModel {
         Notifier.schedulePauseEnd(at: end)
         ProgressRecorder.record(.tookPause)
         progress = SharedStore.progress
+        refreshShield()
+    }
+
+    /// Unblocks everything at once: ends a focus or step session and lifts schedules and the daily limit
+    /// for `SOS.minutes`. It always works, and costs more each time the same day.
+    func useSOS() {
+        SOSUnlock.activate()
+        runtime = SharedStore.runtime
+        progress = SharedStore.progress
+        sessionSteps = nil
+        refreshShield()
+        Task { await refreshCoach() }
+    }
+
+    func endSOS() {
+        SOSUnlock.end()
+        runtime = SharedStore.runtime
         refreshShield()
     }
 

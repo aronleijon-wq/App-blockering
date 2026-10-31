@@ -77,6 +77,16 @@ final class LeagueTests: XCTestCase {
         XCTAssertEqual(progress.settleFinishedWeek(rank: 1, groupSize: 20), [])
     }
 
+    func testSOSCostsMoreEachTimeTheSameDay() {
+        XCTAssertEqual((1...5).map(League.sosPenalty(forUse:)), [20, 40, 80, 160, 160])
+        XCTAssertEqual((1...5).map(PipHealth.sosCost(forUse:)), [5, 10, 15, 20, 20])
+        var progress = PlayerProgress(xp: 1000, weekKey: League.weekKey(for: monday, calendar: calendar), weeklyPoints: 100)
+        XCTAssertEqual(progress.nextSOSPenalty(at: monday, calendar: calendar), 20)
+        progress.record(.usedSOS, at: monday, calendar: calendar)
+        XCTAssertEqual(progress.weeklyPoints, 80)
+        XCTAssertEqual(progress.nextSOSPenalty(at: monday, calendar: calendar), 40)
+    }
+
     func testFriendCodes() {
         let code = FriendCode.make()
         XCTAssertEqual(code.count, FriendCode.length)

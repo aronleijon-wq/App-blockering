@@ -34,6 +34,11 @@ enum PipHealth {
         }
     }
 
+    /// Health the `number`th SOS of a day costs: 5, then 10, 15 and at most 20.
+    static func sosCost(forUse number: Int) -> Int {
+        5 * min(4, max(1, number))
+    }
+
     /// Usage thresholds, in minutes, that the monitor extension reports.
     static var scrollThresholds: [Int] {
         Array(stride(from: scrollStepMinutes, through: scrollMaxMinutes, by: scrollStepMinutes))

@@ -69,6 +69,11 @@ enum League {
         static let escapedBlock = 20
     }
 
+    /// Points and XP the `number`th SOS of a day costs: 20, doubling each time, at most 160.
+    static func sosPenalty(forUse number: Int) -> Int {
+        20 << min(3, max(0, number - 1))
+    }
+
     /// League points the `number`th pause of a day costs: the first is free, then 10, 20 and 40.
     static func pausePenalty(forPause number: Int) -> Int {
         switch number {

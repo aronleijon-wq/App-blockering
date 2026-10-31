@@ -7,6 +7,8 @@ import Foundation
 extension DeviceActivityName {
     static let focus = Self("paus.focus")
     static let pause = Self("paus.pause")
+    /// Ends an SOS, so schedules and the daily limit block again.
+    static let sos = Self("paus.sos")
     static let dailyLimit = Self("paus.limit")
     /// Follows how long the guarded apps are used each day, for Pip's health.
     static let usage = Self("paus.usage")
@@ -129,6 +131,14 @@ enum ActivityScheduler {
 
     static func stopPause() {
         center.stopMonitoring([.pause])
+    }
+
+    static func startSOS(until end: Date) throws {
+        try startOneShot(.sos, until: end)
+    }
+
+    static func stopSOS() {
+        center.stopMonitoring([.sos])
     }
 
     /// How often the monitor counts the steps of a step session. The interval behind each check is backdated

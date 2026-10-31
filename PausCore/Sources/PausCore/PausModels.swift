@@ -87,6 +87,10 @@ struct PausRuntime: Codable, Equatable {
     var focusStepsWalked: Int?
     var focusStepsCheckedAt: Date?
     var pausedUntil: Date?
+    /// Schedules and the daily limit rest until this date after an SOS. Focus sessions started later still block.
+    var sosUntil: Date?
+    /// When SOS was first tapped on the shield. A second tap within `SOS.confirmSeconds` unblocks.
+    var sosRequestedAt: Date?
     /// Day key of the day the daily limit was reached.
     var limitReachedDay: String?
     /// When the shield's pause button was last pressed, so the app can open the pause screen.
@@ -103,6 +107,8 @@ struct PausRuntime: Codable, Equatable {
         focusStepsWalked: Int? = nil,
         focusStepsCheckedAt: Date? = nil,
         pausedUntil: Date? = nil,
+        sosUntil: Date? = nil,
+        sosRequestedAt: Date? = nil,
         limitReachedDay: String? = nil,
         pauseRequestedAt: Date? = nil,
         statsDay: String? = nil,
@@ -115,6 +121,8 @@ struct PausRuntime: Codable, Equatable {
         self.focusStepsWalked = focusStepsWalked
         self.focusStepsCheckedAt = focusStepsCheckedAt
         self.pausedUntil = pausedUntil
+        self.sosUntil = sosUntil
+        self.sosRequestedAt = sosRequestedAt
         self.limitReachedDay = limitReachedDay
         self.pauseRequestedAt = pauseRequestedAt
         self.statsDay = statsDay
@@ -130,6 +138,8 @@ struct PausRuntime: Codable, Equatable {
         focusStepsWalked = try container.decodeIfPresent(Int.self, forKey: .focusStepsWalked)
         focusStepsCheckedAt = try container.decodeIfPresent(Date.self, forKey: .focusStepsCheckedAt)
         pausedUntil = try container.decodeIfPresent(Date.self, forKey: .pausedUntil)
+        sosUntil = try container.decodeIfPresent(Date.self, forKey: .sosUntil)
+        sosRequestedAt = try container.decodeIfPresent(Date.self, forKey: .sosRequestedAt)
         limitReachedDay = try container.decodeIfPresent(String.self, forKey: .limitReachedDay)
         pauseRequestedAt = try container.decodeIfPresent(Date.self, forKey: .pauseRequestedAt)
         statsDay = try container.decodeIfPresent(String.self, forKey: .statsDay)

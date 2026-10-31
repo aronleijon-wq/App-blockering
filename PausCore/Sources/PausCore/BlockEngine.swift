@@ -1,5 +1,13 @@
 import Foundation
 
+/// The emergency way out of every block. It ends a running focus or step session and lifts schedules
+/// and the daily limit for a while, at a price in points, XP and Pip's health that rises with each use.
+enum SOS {
+    static let minutes = 15
+    /// How long the shield waits for the second tap that confirms an SOS.
+    static let confirmSeconds: TimeInterval = 60
+}
+
 enum BlockReason: Equatable {
     case focus(until: Date)
     /// A focus session that ends once enough steps are walked rather than at a time.
@@ -45,11 +53,29 @@ struct BlockEngine {
         return end > date
     }
 
-    /// Whether the shield should be up at `date`. A pause lifts every block except strict focus.
+    func isSOS(at date: Date) -> Bool {
+        guard let end = runtime.sosUntil else { return false }
+        return end > date
+    }
+
+    /// Whether the shield should be up at `date`. A pause lifts every block except strict focus. An SOS lifts
+    /// schedules and the daily limit; it ends the focus session that was running, so a later one still blocks.
     func shouldShield(at date: Date, scheduleOverrides: [UUID: Bool] = [:]) -> Bool {
         guard let reason = reason(at: date, scheduleOverrides: scheduleOverrides) else { return false }
+        if isSOS(at: date), !isFocus(reason) { return false }
         guard isPaused(at: date) else { return true }
         return isStrictFocus(reason)
+    }
+
+    /// Whether SOS can lift anything right now: always, while something is shielded.
+    func canSOS(at date: Date) -> Bool {
+        shouldShield(at: date)
+    }
+
+    /// Whether SOS was tapped once on the shield and waits for the confirming tap.
+    func isSOSRequested(at date: Date) -> Bool {
+        guard let requested = runtime.sosRequestedAt else { return false }
+        return date.timeIntervalSince(requested) < SOS.confirmSeconds && requested <= date
     }
 
     func pausesLeft(at date: Date) -> Int {
@@ -64,6 +90,13 @@ struct BlockEngine {
             let reason = reason(at: date)
         else { return false }
         return !isStrictFocus(reason)
+    }
+
+    private func isFocus(_ reason: BlockReason) -> Bool {
+        switch reason {
+        case .focus, .stepFocus: return true
+        default: return false
+        }
     }
 
     private func isStrictFocus(_ reason: BlockReason) -> Bool {

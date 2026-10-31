@@ -44,6 +44,17 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             subtitle += L("\n\nPip mår \(stage == .wrecked ? L("jättedåligt") : stage == .sick ? L("dåligt") : L("lite sådär")) (\(progress.health) %). En paus gör Pip ledsnare.")
         }
 
+        // A pause is the gentle way out. Where there is none, SOS takes its place: one tap asks, the second unblocks.
+        let secondary: ShieldConfiguration.Label?
+        if canPause {
+            secondary = ShieldConfiguration.Label(text: penalty == 0 ? L("Ta en paus (gratis)") : L("Ta en paus (−\(penalty) XP)"), color: pink)
+        } else if engine.isSOSRequested(at: now) {
+            let cost = progress.nextSOSPenalty(at: now, calendar: .current)
+            secondary = ShieldConfiguration.Label(text: L("Tryck igen: lås upp allt (−\(cost) p)"), color: pink)
+        } else {
+            secondary = ShieldConfiguration.Label(text: L("SOS – lås upp"), color: UIColor.white.withAlphaComponent(0.6))
+        }
+
         return ShieldConfiguration(
             backgroundBlurStyle: .systemUltraThinMaterialDark,
             backgroundColor: background,
@@ -52,9 +63,7 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             subtitle: ShieldConfiguration.Label(text: subtitle, color: UIColor.white.withAlphaComponent(0.75)),
             primaryButtonLabel: ShieldConfiguration.Label(text: earnsXP ? L("Stäng (+\(PlayerProgress.XP.close) XP)") : L("Stäng"), color: .white),
             primaryButtonBackgroundColor: pink,
-            secondaryButtonLabel: canPause
-                ? ShieldConfiguration.Label(text: penalty == 0 ? L("Ta en paus (gratis)") : L("Ta en paus (−\(penalty) XP)"), color: pink)
-                : nil
+            secondaryButtonLabel: secondary
         )
     }
 }
