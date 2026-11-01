@@ -169,6 +169,11 @@ struct LeagueView: View {
                     .multilineTextAlignment(.center)
                     .padding(.vertical, 20)
             } else {
+                if scope == .country && !rows.contains(where: { !$0.isMe }) {
+                    Text(L("Du är ensam från \(LeagueService.countryName) hittills. Bjud in vänner så får du konkurrens."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, entry in
                     LeaderboardRow(rank: index + 1, entry: entry)
                         .contextMenu {
@@ -264,7 +269,9 @@ struct LeagueView: View {
         switch scope {
         case .friends:
             return L("Lägg till en vän med deras kod, eller skicka din. Den som scrollar minst vinner veckan.")
-        case .sweden, .world:
+        case .country:
+            return L("Ingen från \(LeagueService.countryName) har fått poäng den här veckan än. Bli först, och bjud in en vän!")
+        case .world:
             return L("Ingen har fått poäng den här veckan än. Bli först!")
         }
     }
@@ -312,7 +319,7 @@ struct LeagueView: View {
                 .foregroundStyle(Theme.brand)
             Text(L("Tävla mot andra"))
                 .font(.title3.bold())
-            Text(L("Tävla mot dina vänner och resten av Sverige. Samla poäng varje vecka och klättra i divisionerna."))
+            Text(L("Tävla mot dina vänner, ditt land och hela världen. Samla poäng varje vecka och klättra i divisionerna."))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
             Button(L("Välj smeknamn")) { isNicknamePresented = true }

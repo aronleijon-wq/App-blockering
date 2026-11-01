@@ -2,6 +2,15 @@ import XCTest
 @testable import PausCore
 
 final class LeagueTests: XCTestCase {
+    func testCountryComesFromTheRegion() {
+        XCTAssertEqual(Country.code(from: "no"), "NO")
+        XCTAssertEqual(Country.code(from: "GB"), "GB")
+        XCTAssertEqual(Country.code(from: nil), "SE")
+        XCTAssertEqual(Country.code(from: "001"), "SE")
+        XCTAssertEqual(Country.flag("SE"), "🇸🇪")
+        XCTAssertEqual(Country.flag("gb"), "🇬🇧")
+    }
+
     private let calendar = TestCalendar.stockholm
     private let monday = TestCalendar.date(2026, 10, 19, 10, 0)
 

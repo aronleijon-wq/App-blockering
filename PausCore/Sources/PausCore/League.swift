@@ -197,6 +197,20 @@ enum FriendCode {
 }
 
 /// A one-on-one challenge with a friend over a league week: whoever earns more points wins.
+/// The country a player competes for in the league: the region the phone is set to.
+enum Country {
+    /// The two-letter region code, or Sweden when the phone's region isn't a country (such as "001" for the world).
+    static func code(from region: String?) -> String {
+        guard let code = region?.uppercased(), code.count == 2, code.allSatisfy({ $0.isASCII && $0.isLetter }) else { return "SE" }
+        return code
+    }
+
+    /// The country's flag, such as 🇸🇪 for SE.
+    static func flag(_ code: String) -> String {
+        String(String.UnicodeScalarView(code.uppercased().unicodeScalars.compactMap { Unicode.Scalar(127_397 + $0.value) }))
+    }
+}
+
 enum Duel {
     static let winXP = 100
     static let winSeeds = 20

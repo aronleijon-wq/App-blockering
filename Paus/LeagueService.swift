@@ -26,17 +26,25 @@ struct LeaderboardEntry: Identifiable, Equatable {
 @Observable
 final class LeagueService {
     enum Scope: String, CaseIterable, Identifiable {
-        case friends, sweden, world
+        case friends, country, world
 
         var id: Self { self }
 
         var title: String {
             switch self {
             case .friends: return L("Vänner")
-            case .sweden: return L("Sverige")
+            case .country: return "\(Country.flag(LeagueService.countryCode)) " + L("Mitt land")
             case .world: return L("Världen")
             }
         }
+    }
+
+    /// The country this player competes for: the phone's region, so it matches what was uploaded.
+    nonisolated static var countryCode: String { Country.code(from: Locale.current.region?.identifier) }
+
+    /// The player's country in the app's language, such as "Norge" or "Norway".
+    nonisolated static var countryName: String {
+        Language.current.locale.localizedString(forRegionCode: countryCode) ?? countryCode
     }
 
     enum AccountState {
@@ -210,7 +218,7 @@ final class LeagueService {
             record[Field.weeklyPoints] = progress.weeklyPoints
             record[Field.level] = progress.level
             record[Field.division] = progress.division.rawValue
-            record[Field.country] = Locale.current.region?.identifier ?? "SE"
+            record[Field.country] = Self.countryCode
             // Kept for players who joined a group before friends replaced groups, so last week can be settled.
             if let groupID = progress.leagueGroupID, groupID != uploadedGroupID {
                 record[Field.groupID] = groupID
@@ -370,8 +378,8 @@ final class LeagueService {
             switch scope {
             case .friends:
                 records = try await friendRecords()
-            case .sweden:
-                records = try await query(NSPredicate(format: "%K == %@ AND %K == %@", Field.weekKey, weekKey, Field.country, "SE"), limit: 100)
+            case .country:
+                records = try await query(NSPredicate(format: "%K == %@ AND %K == %@", Field.weekKey, weekKey, Field.country, Self.countryCode), limit: 100)
             case .world:
                 records = try await query(NSPredicate(format: "%K == %@", Field.weekKey, weekKey), limit: 100)
             }
