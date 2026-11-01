@@ -156,6 +156,30 @@ final class PlayerProgressTests: XCTestCase {
         XCTAssertEqual(progress.buy(crown, isPro: true), .bought)
     }
 
+    func testFocusScoreAndHistory() {
+        XCTAssertEqual(FocusScore.compute(DailyCounts()), 30, "an empty day only has the no-scrolling points")
+        var busy = DailyCounts()
+        busy.focusMinutes = 90
+        busy.closes = 6
+        busy.completedQuests = ["a", "b", "c"]
+        XCTAssertEqual(FocusScore.compute(busy), 100)
+        busy.pauses = 2
+        XCTAssertEqual(FocusScore.compute(busy), 90)
+
+        var progress = PlayerProgress()
+        progress.record(.focusCompleted(minutes: 30), at: monday, calendar: calendar)
+        progress.record(.closedBlockedApp, at: day(1, from: monday), calendar: calendar)
+        XCTAssertEqual(progress.history["2026-10-19"]?.focusMinutes, 30, "the finished day is archived")
+        let all = progress.dayHistory(at: day(1, from: monday), calendar: calendar)
+        XCTAssertEqual(all["2026-10-20"]?.closes, 1, "today is included as it stands")
+
+        let report = WeekReport.make(from: all, weekStarting: monday, calendar: calendar)
+        XCTAssertEqual(report.focusMinutes, 30)
+        XCTAssertEqual(report.days, 2)
+        XCTAssertEqual(WeekReport.change(130, from: 100), 30)
+        XCTAssertNil(WeekReport.change(10, from: 0))
+    }
+
     func testCountersResetOnNewDay() {
         var progress = PlayerProgress()
         progress.record(.closedBlockedApp, at: monday, calendar: calendar)

@@ -197,6 +197,8 @@ struct PlayerProgress: Codable, Equatable {
     var seeds = 0
     var ownedItems: Set<String> = []
     var outfit = Outfit.none
+    /// Finished days, by day key, for the focus calendar and the weekly report.
+    var history: [String: DaySummary] = [:]
 
     init(
         xp: Int = 0,
@@ -275,6 +277,7 @@ struct PlayerProgress: Codable, Equatable {
         seeds = try container.decodeIfPresent(Int.self, forKey: .seeds) ?? 0
         ownedItems = try container.decodeIfPresent(Set<String>.self, forKey: .ownedItems) ?? []
         outfit = try container.decodeIfPresent(Outfit.self, forKey: .outfit) ?? .none
+        history = try container.decodeIfPresent([String: DaySummary].self, forKey: .history) ?? [:]
     }
 
     var level: Int { Level.level(forXP: xp) }
@@ -310,7 +313,10 @@ struct PlayerProgress: Codable, Equatable {
     mutating func record(_ event: ProgressEvent, at date: Date, calendar: Calendar) -> [Reward] {
         let day = DayKey.string(for: date, calendar: calendar)
         if firstDay == nil { firstDay = day }
-        if today.day != day { today = DailyCounts(day: day) }
+        if today.day != day {
+            archive(today)
+            today = DailyCounts(day: day)
+        }
         rollWeek(at: date, calendar: calendar)
         if week.key != weekKey { week = WeeklyCounts(key: weekKey) }
         recoverOvernight(at: date, calendar: calendar)

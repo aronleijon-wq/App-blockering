@@ -6,6 +6,7 @@ struct HomeView: View {
     @State private var isSettingsPresented = false
     @State private var isStopFocusConfirming = false
     @State private var isWardrobePresented = false
+    @State private var isStatsPresented = false
     /// The step goal waiting for the user to confirm, since a step session can't be undone.
     @State private var confirmingStepGoal: Int?
 
@@ -25,6 +26,7 @@ struct HomeView: View {
                             statusCard(at: context.date)
                             focusCard(at: context.date)
                         }
+                        scoreCard(at: context.date)
                         ScreenTimeCard()
                         questsCard(at: context.date)
                     }
@@ -404,6 +406,35 @@ struct HomeView: View {
     }
 
     // MARK: Quests
+
+    /// Today's focus score, opening the stats with the calendar and the weekly report.
+    private func scoreCard(at date: Date) -> some View {
+        let score = FocusScore.compute(model.progress.counts(at: date, calendar: .current))
+        return Button {
+            isStatsPresented = true
+        } label: {
+            HStack(spacing: 16) {
+                FocusScoreRing(score: score, size: 58)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(L("Fokuspoäng i dag"))
+                        .font(.headline)
+                    Text(FocusScoreRing.verdict(for: score))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.secondary)
+            }
+            .foregroundStyle(.white)
+            .card()
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $isStatsPresented) {
+            StatsView()
+        }
+    }
 
     private func questsCard(at date: Date) -> some View {
         let progress = model.progress
