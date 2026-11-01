@@ -6,6 +6,7 @@ struct LeagueView: View {
     @State private var isAddFriendPresented = false
     @State private var isNicknamePresented = false
     @State private var reporting: LeaderboardEntry?
+    @State private var profile: LeaderboardEntry?
 
     private var league: LeagueService { model.league }
 
@@ -58,6 +59,9 @@ struct LeagueView: View {
             }
             .sheet(isPresented: $isNicknamePresented) {
                 NicknameSheet()
+            }
+            .sheet(item: $profile) { entry in
+                PlayerProfileSheet(entry: entry)
             }
             .sheet(isPresented: $isAddFriendPresented) {
                 AddFriendSheet {
@@ -176,6 +180,8 @@ struct LeagueView: View {
                 }
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, entry in
                     LeaderboardRow(rank: index + 1, entry: entry)
+                        .contentShape(Rectangle())
+                        .onTapGesture { profile = entry }
                         .contextMenu {
                             if !entry.isMe {
                                 if scope == .friends {
@@ -207,6 +213,9 @@ struct LeagueView: View {
                 .font(.headline)
             ForEach(league.duels) { duel in
                 HStack(spacing: 10) {
+                    PipAvatar(outfit: model.progress.outfit, level: model.progress.level, size: 24)
+                        .frame(width: 32, height: 32)
+                        .scaleEffect(duel.mine > duel.theirs ? 1.15 : 1)
                     Text(L("Du"))
                         .font(.subheadline.weight(.bold))
                     Text("\(duel.mine)")
@@ -220,6 +229,9 @@ struct LeagueView: View {
                     Text(duel.opponentName)
                         .font(.subheadline.weight(.bold))
                         .lineLimit(1)
+                    PipAvatar(outfit: duel.opponentOutfit, level: duel.opponentLevel, size: 24)
+                        .frame(width: 32, height: 32)
+                        .scaleEffect(duel.theirs > duel.mine ? 1.15 : 1)
                     Spacer()
                     Text(duel.mine > duel.theirs ? L("Leder") : duel.mine < duel.theirs ? L("Ligger efter") : L("Lika"))
                         .font(.caption.weight(.bold))
@@ -367,8 +379,8 @@ private struct LeaderboardRow: View {
                 .font(.headline.monospacedDigit())
                 .foregroundStyle(rank <= 3 ? AnyShapeStyle(Theme.brand) : AnyShapeStyle(Color.secondary))
                 .frame(width: 32)
-            MiniPip(level: entry.level)
-                .frame(width: 34, height: 34)
+            PipAvatar(outfit: entry.outfit, level: entry.level, size: 30)
+                .frame(width: 42, height: 42)
             VStack(alignment: .leading, spacing: 1) {
                 Text(entry.isMe ? "\(entry.nickname) (du)" : entry.nickname)
                     .font(.subheadline.weight(entry.isMe ? .bold : .semibold))
@@ -405,35 +417,6 @@ private struct PointRow: View {
                 .foregroundStyle(.secondary)
         }
         .font(.subheadline)
-    }
-}
-
-/// A still, tiny Pip for lists, where dozens of animated ones would be too heavy.
-struct MiniPip: View {
-    let level: Int
-
-    var body: some View {
-        GeometryReader { proxy in
-            let size = min(proxy.size.width, proxy.size.height)
-            ZStack {
-                Circle().fill(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing))
-                HStack(spacing: size * 0.16) {
-                    Circle().fill(.white).frame(width: size * 0.22)
-                    Circle().fill(.white).frame(width: size * 0.22)
-                }
-                .offset(y: -size * 0.06)
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
-    private var colors: [Color] {
-        switch level {
-        case ..<3: return [Theme.mint, Color(red: 0.2, green: 0.75, blue: 0.95)]
-        case 3..<5: return [Theme.violet, Theme.pink]
-        case 5..<8: return [Theme.pink, Theme.orange]
-        default: return [Theme.orange, Color(red: 1, green: 0.9, blue: 0.35)]
-        }
     }
 }
 

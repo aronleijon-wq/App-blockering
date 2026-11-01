@@ -387,6 +387,7 @@ final class AppModel {
             return []
         }
         progress = SharedStore.progress
+        showOutfitInLeague()
     }
 
     /// Puts an owned item on Pip, or takes it off.
@@ -396,6 +397,13 @@ final class AppModel {
             return []
         }
         progress = SharedStore.progress
+        showOutfitInLeague()
+    }
+
+    /// Uploads the new outfit, so the league sees what Pip wears.
+    private func showOutfitInLeague() {
+        guard league.nickname != nil else { return }
+        Task { await syncLeague(force: true) }
     }
 
     // MARK: Rewards

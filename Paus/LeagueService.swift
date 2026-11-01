@@ -9,6 +9,8 @@ struct DuelStanding: Identifiable, Equatable {
     let opponentName: String
     let mine: Int
     let theirs: Int
+    var opponentLevel = 1
+    var opponentOutfit: Outfit = .none
 }
 
 struct LeaderboardEntry: Identifiable, Equatable {
@@ -18,6 +20,8 @@ struct LeaderboardEntry: Identifiable, Equatable {
     let level: Int
     let division: Division
     let isMe: Bool
+    /// What the player's Pip wears, so everyone in the league sees it.
+    var outfit: Outfit = .none
 }
 
 /// The league in CloudKit's public database. Each player owns one `Player` record per device account,
@@ -81,6 +85,8 @@ final class LeagueService {
         static let division = "division"
         static let groupID = "groupID"
         static let country = "country"
+        /// The player's Pip outfit, as `Outfit.code`.
+        static let outfit = "outfit"
         static let joinedAt = "joinedAt"
         static let friendCode = "friendCode"
         static let friends = "friends"
@@ -120,6 +126,8 @@ final class LeagueService {
     @ObservationIgnored private var playerRecordName: String?
     @ObservationIgnored private var uploadedSignature: String?
     @ObservationIgnored private var uploadedGroupID: String?
+    /// False once CloudKit has refused the outfit field, which happens until it is deployed to Production.
+    @ObservationIgnored private var sendsOutfit = true
 
     private var database: CKDatabase { container.publicCloudDatabase }
 
@@ -191,10 +199,35 @@ final class LeagueService {
         let week = progress.weekKey.flatMap { progress.weeklyPoints > 0 ? $0 : nil }
         let qualified = progress.focusSessions > 0
         let lastWeek = progress.lastWeek
-        let signature = "\(lastWeek?.weekKey ?? "")|\(lastWeek?.points ?? 0)|\(nickname ?? "")|\(friendCode)|\(friends)|\(invitedBy ?? "")|\(qualified)|\(week ?? "")|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)"
+        let signature = "\(lastWeek?.weekKey ?? "")|\(lastWeek?.points ?? 0)|\(nickname ?? "")|\(friendCode)|\(friends)|\(invitedBy ?? "")|\(qualified)|\(week ?? "")|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)|\(progress.outfit.code)"
         guard signature != uploadedSignature else { return }
 
-        let record = CKRecord(recordType: Field.type, recordID: try await myRecordID())
+        let recordID = try await myRecordID()
+        do {
+            try await savePlayer(playerRecord(recordID, progress: progress, outfit: sendsOutfit))
+        } catch {
+            // Until the outfit field is deployed to the Production schema, CloudKit refuses records that carry it.
+            // The league keeps working without outfits then.
+            guard sendsOutfit else { throw error }
+            try await savePlayer(playerRecord(recordID, progress: progress, outfit: false))
+            sendsOutfit = false
+        }
+        uploadedSignature = signature
+        uploadedGroupID = progress.leagueGroupID
+    }
+
+    private func savePlayer(_ record: CKRecord) async throws {
+        // Changed keys only, so the record can be saved without fetching it first.
+        let (results, _) = try await database.modifyRecords(saving: [record], deleting: [], savePolicy: .changedKeys, atomically: false)
+        if case .failure(let error) = results[record.recordID] { throw error }
+    }
+
+    private func playerRecord(_ recordID: CKRecord.ID, progress: PlayerProgress, outfit: Bool) -> CKRecord {
+        let friends = friendIDs.sorted()
+        let week = progress.weekKey.flatMap { progress.weeklyPoints > 0 ? $0 : nil }
+        let qualified = progress.focusSessions > 0
+        let lastWeek = progress.lastWeek
+        let record = CKRecord(recordType: Field.type, recordID: recordID)
         if let nickname {
             record[Field.nickname] = nickname
         }
@@ -225,11 +258,10 @@ final class LeagueService {
                 record[Field.joinedAt] = Date.now
             }
         }
-        // Changed keys only, so the record can be saved without fetching it first.
-        let (results, _) = try await database.modifyRecords(saving: [record], deleting: [], savePolicy: .changedKeys, atomically: false)
-        if case .failure(let error) = results[record.recordID] { throw error }
-        uploadedSignature = signature
-        uploadedGroupID = progress.leagueGroupID
+        if outfit, nickname != nil {
+            record[Field.outfit] = progress.outfit.code
+        }
+        return record
     }
 
     // MARK: Duels
@@ -258,7 +290,8 @@ final class LeagueService {
             guard !blockedIDs.contains(id) else { return nil }
             let record = records[id]
             let theirs = record?[Field.weekKey] as? String == weekKey ? record?[Field.weeklyPoints] as? Int ?? 0 : 0
-            return DuelStanding(id: "\(weekKey)-\(id)", opponentID: id, opponentName: record?[Field.nickname] as? String ?? L("Ny spelare"), mine: mine, theirs: theirs)
+            return DuelStanding(id: "\(weekKey)-\(id)", opponentID: id, opponentName: record?[Field.nickname] as? String ?? L("Ny spelare"), mine: mine, theirs: theirs,
+                                opponentLevel: record?[Field.level] as? Int ?? 1, opponentOutfit: Outfit(code: record?[Field.outfit] as? String))
         }
         .sorted { $0.opponentName < $1.opponentName }
     }
@@ -397,12 +430,13 @@ final class LeagueService {
                     points: isMe ? progress.weeklyPoints : thisWeek ? record[Field.weeklyPoints] as? Int ?? 0 : 0,
                     level: isMe ? progress.level : record[Field.level] as? Int ?? 1,
                     division: isMe ? progress.division : Division(rawValue: record[Field.division] as? Int ?? 0) ?? .brons,
-                    isMe: isMe
+                    isMe: isMe,
+                    outfit: isMe ? progress.outfit : Outfit(code: record[Field.outfit] as? String)
                 )
             }
             if scope == .friends, let me, !rows.contains(where: \.isMe) {
                 rows.append(LeaderboardEntry(id: me, nickname: nickname ?? "?", points: progress.weeklyPoints,
-                                             level: progress.level, division: progress.division, isMe: true))
+                                             level: progress.level, division: progress.division, isMe: true, outfit: progress.outfit))
             }
             entries[scope] = rows.sorted { $0.points > $1.points }
         } catch {

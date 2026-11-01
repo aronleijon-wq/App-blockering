@@ -136,3 +136,25 @@ extension PlayerProgress {
         outfit.set(outfit.item(for: item.kind) == item.id ? nil : item.id, for: item.kind)
     }
 }
+
+extension Outfit {
+    private static let order: [WardrobeItem.Kind] = [.hat, .glasses, .neck, .back, .color]
+
+    /// The outfit as one short string for the league, such as "hat-cap|glasses-sun|||color-neon".
+    var code: String {
+        Self.order.map { item(for: $0) ?? "" }.joined(separator: "|")
+    }
+
+    /// The outfit in `code`, keeping only items that exist and sit where they belong, so an old app or a tampered
+    /// record can't make Pip draw something unknown.
+    init(code: String?) {
+        self.init()
+        guard let code else { return }
+        let ids = code.split(separator: "|", omittingEmptySubsequences: false).map(String.init)
+        for (kind, id) in zip(Self.order, ids) {
+            if let item = WardrobeItem.with(id: id), item.kind == kind {
+                set(id, for: kind)
+            }
+        }
+    }
+}

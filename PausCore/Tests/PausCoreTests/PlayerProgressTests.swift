@@ -2,6 +2,16 @@ import XCTest
 @testable import PausCore
 
 final class PlayerProgressTests: XCTestCase {
+    func testOutfitCodeRoundTrips() {
+        let outfit = Outfit(hat: "hat-halo", glasses: nil, neck: "neck-chain", back: "back-wings", color: "color-neon")
+        XCTAssertEqual(outfit.code, "hat-halo||neck-chain|back-wings|color-neon")
+        XCTAssertEqual(Outfit(code: outfit.code), outfit)
+        XCTAssertEqual(Outfit(code: nil), .none)
+        XCTAssertEqual(Outfit(code: "||||"), .none)
+        // Unknown items and items in the wrong place are dropped.
+        XCTAssertEqual(Outfit(code: "hat-unknown|hat-cap|||color-gold"), Outfit(color: "color-gold"))
+    }
+
     private let calendar = TestCalendar.stockholm
     private let monday = TestCalendar.date(2026, 10, 19, 10, 0)
 

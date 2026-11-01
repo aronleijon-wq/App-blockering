@@ -78,17 +78,20 @@ struct MascotView: View {
     }
 
     private var bodyGradient: LinearGradient {
+        LinearGradient(colors: Self.bodyColors(level: level, outfit: outfit), startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    /// Pip's colors: the outfit's color, or the colors Pip grows into with the level.
+    static func bodyColors(level: Int, outfit: Outfit) -> [Color] {
         if let colors = PipColors.colors(for: outfit.color) {
-            return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+            return colors
         }
-        let colors: [Color]
         switch level {
-        case ..<3: colors = [Theme.mint, Color(red: 0.2, green: 0.75, blue: 0.95)]
-        case 3..<5: colors = [Theme.violet, Theme.pink]
-        case 5..<8: colors = [Theme.pink, Theme.orange]
-        default: colors = [Theme.orange, Color(red: 1, green: 0.9, blue: 0.35), Theme.pink]
+        case ..<3: return [Theme.mint, Color(red: 0.2, green: 0.75, blue: 0.95)]
+        case 3..<5: return [Theme.violet, Theme.pink]
+        case 5..<8: return [Theme.pink, Theme.orange]
+        default: return [Theme.orange, Color(red: 1, green: 0.9, blue: 0.35), Theme.pink]
         }
-        return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
     private func face(time: Double) -> some View {
