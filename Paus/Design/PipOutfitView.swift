@@ -1,9 +1,11 @@
 import SwiftUI
 
-/// Draws one wardrobe item where it sits on Pip, sized for a Pip `size` points wide.
+/// Draws one wardrobe item where it sits on Pip, sized for a Pip `size` points wide. `time` drives the items that move
+/// (flames, wings, a fluttering headband); it stays 0 in the wardrobe grid, where the items stand still.
 struct PipItemView: View {
     let id: String
     let size: CGFloat
+    var time: Double = 0
 
     var body: some View {
         switch id {
@@ -13,12 +15,30 @@ struct PipItemView: View {
         case "hat-party": partyHat
         case "hat-chef": chefHat
         case "hat-crown": crown
+        case "hat-headphones": headphones
+        case "hat-ninja": headband
+        case "hat-devil": devilHorns
+        case "hat-viking": vikingHelmet
+        case "hat-wizard": wizardHat
+        case "hat-halo": halo
+        case "hat-fire": fireHair
         case "glasses-round": roundGlasses
         case "glasses-sun": sunglasses
         case "glasses-heart": heartGlasses
+        case "glasses-3d": glasses3D
+        case "glasses-star": starGlasses
+        case "glasses-pixel": pixelShades
+        case "glasses-visor": visor
         case "neck-scarf": scarf
         case "neck-bow": bowTie
         case "neck-medal": medal
+        case "neck-tie": tie
+        case "neck-lei": lei
+        case "neck-chain": goldChain
+        case "back-cape": cape
+        case "back-bat": wings(angel: false)
+        case "back-wings": wings(angel: true)
+        case "back-jetpack": jetpack
         default: EmptyView()
         }
     }
@@ -29,9 +49,14 @@ struct PipItemView: View {
         case .hat: return CGSize(width: 0, height: -size * 0.42)
         case .glasses: return CGSize(width: 0, height: -size * 0.07)
         case .neck: return CGSize(width: 0, height: size * 0.38)
-        case .color: return .zero
+        case .back, .color: return .zero
         }
     }
+
+    private static let gold = LinearGradient(colors: [Color(red: 1, green: 0.9, blue: 0.45), Color(red: 0.85, green: 0.6, blue: 0.15)],
+                                             startPoint: .top, endPoint: .bottom)
+    private static let flame = LinearGradient(colors: [Color(red: 1, green: 0.96, blue: 0.5), Color(red: 1, green: 0.6, blue: 0.2), Color(red: 1, green: 0.25, blue: 0.2)],
+                                              startPoint: .bottom, endPoint: .top)
 
     // MARK: Hats
 
@@ -117,6 +142,147 @@ struct PipItemView: View {
             .shadow(color: Theme.orange.opacity(0.6), radius: 6)
     }
 
+    /// Over-ear headphones: a band over the top and a cup on each side.
+    private var headphones: some View {
+        let band = Color(red: 0.16, green: 0.14, blue: 0.3)
+        return ZStack {
+            Circle()
+                .trim(from: 0.53, to: 0.97)
+                .stroke(band, style: StrokeStyle(lineWidth: size * 0.06, lineCap: .round))
+                .frame(width: size * 1.0, height: size * 1.0)
+                .offset(y: size * 0.4)
+            ForEach([-1.0, 1.0], id: \.self) { side in
+                ZStack {
+                    RoundedRectangle(cornerRadius: size * 0.07, style: .continuous)
+                        .fill(LinearGradient(colors: [Theme.pink, Theme.violet], startPoint: .top, endPoint: .bottom))
+                        .frame(width: size * 0.17, height: size * 0.27)
+                    RoundedRectangle(cornerRadius: size * 0.04, style: .continuous)
+                        .fill(band)
+                        .frame(width: size * 0.06, height: size * 0.2)
+                        .offset(x: -CGFloat(side) * size * 0.075)
+                    Circle()
+                        .fill(.white.opacity(0.35))
+                        .frame(width: size * 0.05)
+                        .offset(x: CGFloat(side) * size * 0.02, y: -size * 0.06)
+                }
+                .offset(x: CGFloat(side) * size * 0.49, y: size * 0.38)
+            }
+        }
+    }
+
+    /// A red ninja headband across the forehead, its tails fluttering.
+    private var headband: some View {
+        let red = Color(red: 0.92, green: 0.15, blue: 0.22)
+        let flutter = sin(time * 6) * 9
+        return ZStack {
+            Capsule()
+                .fill(red)
+                .frame(width: size * 0.88, height: size * 0.09)
+            RoundedRectangle(cornerRadius: size * 0.015, style: .continuous)
+                .fill(LinearGradient(colors: [Color(white: 0.95), Color(white: 0.7)], startPoint: .top, endPoint: .bottom))
+                .frame(width: size * 0.16, height: size * 0.065)
+            Capsule()
+                .fill(red)
+                .frame(width: size * 0.26, height: size * 0.05)
+                .rotationEffect(.degrees(18 + flutter), anchor: .leading)
+                .offset(x: size * 0.54, y: size * 0.02)
+            Capsule()
+                .fill(Color(red: 0.8, green: 0.1, blue: 0.18))
+                .frame(width: size * 0.22, height: size * 0.045)
+                .rotationEffect(.degrees(42 - flutter), anchor: .leading)
+                .offset(x: size * 0.52, y: size * 0.03)
+        }
+        .offset(y: size * 0.15)
+    }
+
+    private var devilHorns: some View {
+        let red = LinearGradient(colors: [Color(red: 1, green: 0.32, blue: 0.3), Color(red: 0.7, green: 0.05, blue: 0.15)], startPoint: .top, endPoint: .bottom)
+        return HStack(spacing: size * 0.24) {
+            Triangle().fill(red).frame(width: size * 0.12, height: size * 0.17).rotationEffect(.degrees(-20))
+            Triangle().fill(red).frame(width: size * 0.12, height: size * 0.17).rotationEffect(.degrees(20))
+        }
+        .offset(y: size * 0.07)
+    }
+
+    private var vikingHelmet: some View {
+        let bone = Color(red: 0.98, green: 0.94, blue: 0.84)
+        let leather = Color(red: 0.72, green: 0.5, blue: 0.28)
+        return ZStack {
+            Horn().fill(bone).frame(width: size * 0.2, height: size * 0.3).offset(x: -size * 0.34, y: -size * 0.04)
+            Horn().fill(bone).frame(width: size * 0.2, height: size * 0.3).scaleEffect(x: -1, y: 1).offset(x: size * 0.34, y: -size * 0.04)
+            Ellipse()
+                .trim(from: 0.5, to: 1)
+                .fill(LinearGradient(colors: [Color(white: 0.9), Color(white: 0.55)], startPoint: .top, endPoint: .bottom))
+                .frame(width: size * 0.62, height: size * 0.5)
+                .offset(y: size * 0.13)
+            Capsule().fill(leather).frame(width: size * 0.66, height: size * 0.08).offset(y: size * 0.13)
+            Capsule().fill(leather).frame(width: size * 0.06, height: size * 0.24).offset(y: size * 0.01)
+            ForEach([-0.2, 0.0, 0.2], id: \.self) { x in
+                Circle().fill(Color(white: 0.95)).frame(width: size * 0.03).offset(x: size * CGFloat(x), y: size * 0.13)
+            }
+        }
+    }
+
+    private var wizardHat: some View {
+        let deep = Color(red: 0.25, green: 0.12, blue: 0.6)
+        let star = Color(red: 1, green: 0.88, blue: 0.3)
+        return ZStack {
+            WizardCone()
+                .fill(LinearGradient(colors: [Color(red: 0.5, green: 0.3, blue: 1), deep], startPoint: .top, endPoint: .bottom))
+                .frame(width: size * 0.42, height: size * 0.52)
+                .offset(y: -size * 0.17)
+            Ellipse()
+                .fill(deep)
+                .frame(width: size * 0.7, height: size * 0.13)
+                .offset(y: size * 0.09)
+            Capsule()
+                .fill(Theme.orange)
+                .frame(width: size * 0.4, height: size * 0.05)
+                .offset(y: size * 0.04)
+            Image(systemName: "star.fill")
+                .font(.system(size: size * 0.08))
+                .foregroundStyle(star)
+                .offset(x: -size * 0.05, y: -size * 0.12)
+            Image(systemName: "moon.fill")
+                .font(.system(size: size * 0.065))
+                .foregroundStyle(star)
+                .offset(x: size * 0.06, y: -size * 0.25)
+        }
+    }
+
+    /// A glowing ring floating above Pip.
+    private var halo: some View {
+        let glow = Color(red: 1, green: 0.85, blue: 0.3)
+        return Ellipse()
+            .stroke(Color(red: 1, green: 0.93, blue: 0.55), lineWidth: size * 0.045)
+            .frame(width: size * 0.44, height: size * 0.12)
+            .shadow(color: glow, radius: size * 0.04)
+            .shadow(color: glow.opacity(0.6), radius: size * 0.1)
+            .offset(y: -size * 0.1 + CGFloat(sin(time * 2.4)) * size * 0.025)
+    }
+
+    /// Flames for hair, flickering.
+    private var fireHair: some View {
+        ZStack {
+            ForEach(0..<5, id: \.self) { i in
+                FlameShape()
+                    .fill(Self.flame)
+                    .frame(width: size * 0.17, height: size * flameHeight(i))
+                    .scaleEffect(x: 1, y: 1 + 0.16 * CGFloat(sin(time * 9 + Double(i) * 1.7)), anchor: .bottom)
+                    .offset(x: size * CGFloat(i - 2) * 0.1, y: -size * flameHeight(i) / 2 + size * 0.12)
+            }
+        }
+        .shadow(color: Theme.orange.opacity(0.75), radius: size * 0.05)
+    }
+
+    private func flameHeight(_ i: Int) -> CGFloat {
+        switch i {
+        case 2: return 0.36
+        case 1, 3: return 0.29
+        default: return 0.21
+        }
+    }
+
     // MARK: Glasses
 
     private func glasses<Lens: View>(@ViewBuilder lens: () -> Lens) -> some View {
@@ -149,6 +315,75 @@ struct PipItemView: View {
                 .font(.system(size: size * 0.2))
                 .foregroundStyle(Theme.pink)
         }
+    }
+
+    private var glasses3D: some View {
+        HStack(spacing: size * 0.05) {
+            RoundedRectangle(cornerRadius: size * 0.02, style: .continuous)
+                .fill(Color(red: 1, green: 0.2, blue: 0.25).opacity(0.85))
+                .frame(width: size * 0.22, height: size * 0.15)
+            RoundedRectangle(cornerRadius: size * 0.02, style: .continuous)
+                .fill(Color(red: 0.2, green: 0.85, blue: 1).opacity(0.85))
+                .frame(width: size * 0.22, height: size * 0.15)
+        }
+        .padding(size * 0.025)
+        .background(RoundedRectangle(cornerRadius: size * 0.035, style: .continuous).fill(.white))
+    }
+
+    private var starGlasses: some View {
+        glasses {
+            Image(systemName: "star.fill")
+                .font(.system(size: size * 0.24))
+                .foregroundStyle(LinearGradient(colors: [Color(red: 1, green: 0.92, blue: 0.35), Theme.orange], startPoint: .top, endPoint: .bottom))
+                .overlay {
+                    Image(systemName: "star")
+                        .font(.system(size: size * 0.24))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+        }
+    }
+
+    /// 8-bit shades: a bar on top and two lenses that step in towards the bottom, with white pixels for shine.
+    private static let pixelRows = [
+        "111111111111111111111111",
+        "011221111110011221111110",
+        "011211111110011211111110",
+        "001111111100001111111100",
+        "000111111000000111111000",
+    ]
+
+    private var pixelShades: some View {
+        Canvas { context, canvas in
+            let px = canvas.width / 24
+            for (y, row) in Self.pixelRows.enumerated() {
+                for (x, c) in row.enumerated() where c != "0" {
+                    let rect = CGRect(x: CGFloat(x) * px, y: CGFloat(y) * px, width: px + 0.5, height: px + 0.5)
+                    context.fill(Path(rect), with: .color(c == "2" ? .white : .black))
+                }
+            }
+        }
+        .frame(width: size * 0.76, height: size * 0.76 / 24 * 5)
+        .offset(y: size * 0.02)
+    }
+
+    /// A neon visor with a shine sweeping across it.
+    private var visor: some View {
+        let cyan = Color(red: 0.2, green: 0.95, blue: 1)
+        let sweep = CGFloat((time * 0.6).truncatingRemainder(dividingBy: 1))
+        return ZStack {
+            Capsule()
+                .fill(LinearGradient(colors: [cyan, Theme.violet, Theme.pink], startPoint: .leading, endPoint: .trailing))
+                .opacity(0.92)
+            Capsule()
+                .fill(LinearGradient(colors: [.clear, .white.opacity(0.85), .clear], startPoint: .leading, endPoint: .trailing))
+                .frame(width: size * 0.14)
+                .offset(x: size * (sweep * 1.0 - 0.5))
+            Capsule()
+                .stroke(.white.opacity(0.7), lineWidth: size * 0.012)
+        }
+        .frame(width: size * 0.82, height: size * 0.2)
+        .clipShape(Capsule())
+        .shadow(color: cyan.opacity(0.8), radius: size * 0.05)
     }
 
     // MARK: Neck
@@ -189,6 +424,108 @@ struct PipItemView: View {
         }
         .offset(y: size * 0.04)
     }
+
+    private var tie: some View {
+        VStack(spacing: -size * 0.01) {
+            Triangle()
+                .fill(Color(red: 0.2, green: 0.3, blue: 0.85))
+                .frame(width: size * 0.1, height: size * 0.05)
+                .rotationEffect(.degrees(180))
+            TieShape()
+                .fill(LinearGradient(colors: [Color(red: 0.3, green: 0.45, blue: 1), Color(red: 0.15, green: 0.22, blue: 0.7)], startPoint: .top, endPoint: .bottom))
+                .frame(width: size * 0.12, height: size * 0.15)
+        }
+    }
+
+    /// A ring of flowers.
+    private var lei: some View {
+        let colors: [Color] = [Theme.pink, Theme.orange, Color(red: 1, green: 0.88, blue: 0.3), Theme.mint, Theme.violet]
+        return ZStack {
+            ForEach(0..<9, id: \.self) { i in
+                Image(systemName: "camera.macro")
+                    .font(.system(size: size * 0.09, weight: .bold))
+                    .foregroundStyle(colors[i % colors.count])
+                    .offset(x: size * 0.3 * CGFloat(cos(leiAngle(i))), y: size * 0.12 * CGFloat(sin(leiAngle(i))) - size * 0.07)
+            }
+        }
+    }
+
+    private func leiAngle(_ i: Int) -> Double {
+        Double.pi * (0.08 + 0.84 * Double(i) / 8)
+    }
+
+    private var goldChain: some View {
+        ZStack {
+            Circle()
+                .trim(from: 0.08, to: 0.42)
+                .stroke(Self.gold, style: StrokeStyle(lineWidth: size * 0.03, lineCap: .round, dash: [size * 0.035, size * 0.012]))
+                .frame(width: size * 0.62, height: size * 0.62)
+                .offset(y: -size * 0.33)
+            ZStack {
+                Circle().fill(Self.gold).frame(width: size * 0.16)
+                Text(verbatim: "P")
+                    .font(.system(size: size * 0.1, weight: .black, design: .rounded))
+                    .foregroundStyle(Color(red: 0.62, green: 0.42, blue: 0.05))
+            }
+            .shadow(color: Color(red: 1, green: 0.85, blue: 0.3).opacity(0.8), radius: size * 0.03)
+            .offset(y: -size * 0.02)
+        }
+    }
+
+    // MARK: Back, drawn behind Pip
+
+    private var cape: some View {
+        CapeShape(wave: CGFloat(sin(time * 3)) * size * 0.03)
+            .fill(LinearGradient(colors: [Color(red: 0.95, green: 0.15, blue: 0.25), Color(red: 0.6, green: 0.05, blue: 0.15)], startPoint: .top, endPoint: .bottom))
+            .frame(width: size * 1.25, height: size * 0.95)
+            .offset(y: size * 0.12)
+    }
+
+    private func wings(angel: Bool) -> some View {
+        let flap = sin(time * (angel ? 4 : 5)) * 10
+        let fill = angel
+            ? LinearGradient(colors: [.white, Color(red: 0.85, green: 0.9, blue: 1)], startPoint: .top, endPoint: .bottom)
+            : LinearGradient(colors: [Color(red: 0.45, green: 0.2, blue: 0.7), Color(red: 0.2, green: 0.08, blue: 0.35)], startPoint: .top, endPoint: .bottom)
+        return ZStack {
+            WingShape(spiky: !angel)
+                .fill(fill)
+                .frame(width: size * 0.52, height: size * 0.6)
+                .rotationEffect(.degrees(-flap), anchor: .trailing)
+                .offset(x: -size * 0.5, y: -size * 0.06)
+            WingShape(spiky: !angel)
+                .fill(fill)
+                .frame(width: size * 0.52, height: size * 0.6)
+                .scaleEffect(x: -1, y: 1)
+                .rotationEffect(.degrees(flap), anchor: .leading)
+                .offset(x: size * 0.5, y: -size * 0.06)
+        }
+        .shadow(color: angel ? .white.opacity(0.6) : Theme.violet.opacity(0.5), radius: size * 0.04)
+    }
+
+    private var jetpack: some View {
+        let flicker = 1 + 0.25 * CGFloat(sin(time * 20))
+        return ZStack {
+            ForEach([-1.0, 1.0], id: \.self) { side in
+                ZStack {
+                    FlameShape()
+                        .fill(Self.flame)
+                        .frame(width: size * 0.13, height: size * 0.3)
+                        .rotationEffect(.degrees(180))
+                        .scaleEffect(x: 1, y: flicker, anchor: .top)
+                        .offset(y: size * 0.32)
+                    RoundedRectangle(cornerRadius: size * 0.07, style: .continuous)
+                        .fill(LinearGradient(colors: [Color(white: 0.9), Color(white: 0.5)], startPoint: .leading, endPoint: .trailing))
+                        .frame(width: size * 0.19, height: size * 0.44)
+                    Capsule()
+                        .fill(Theme.pink)
+                        .frame(width: size * 0.19, height: size * 0.05)
+                        .offset(y: -size * 0.1)
+                }
+                .offset(x: CGFloat(side) * size * 0.47, y: size * 0.04)
+            }
+        }
+        .shadow(color: Theme.orange.opacity(0.5), radius: size * 0.04)
+    }
 }
 
 /// Pip's body colors for a color item, or nil for Pip's own colors.
@@ -201,6 +538,11 @@ enum PipColors {
         case "color-lava": return [Color(red: 1, green: 0.3, blue: 0.2), Theme.orange]
         case "color-galaxy": return [Theme.violet, Color(red: 0.2, green: 0.1, blue: 0.5)]
         case "color-gold": return [Color(red: 1, green: 0.88, blue: 0.35), Theme.orange]
+        case "color-ice": return [Color(red: 0.93, green: 0.98, blue: 1), Color(red: 0.55, green: 0.8, blue: 1)]
+        case "color-candy": return [Color(red: 1, green: 0.6, blue: 0.85), Color(red: 0.6, green: 0.8, blue: 1)]
+        case "color-toxic": return [Color(red: 0.78, green: 1, blue: 0.2), Color(red: 0.1, green: 0.7, blue: 0.3)]
+        case "color-neon": return [Color(red: 0.2, green: 0.95, blue: 1), Color(red: 1, green: 0.2, blue: 0.85)]
+        case "color-midnight": return [Color(red: 0.16, green: 0.13, blue: 0.42), Color(red: 0.48, green: 0.22, blue: 0.92)]
         default: return nil
         }
     }
@@ -214,5 +556,108 @@ struct Triangle: Shape {
         path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
         path.closeSubpath()
         return path
+    }
+}
+
+/// A cone whose tip bends over to the right.
+struct WizardCone: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: r.minX, y: r.maxY))
+        p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.minY + r.height * 0.08),
+                       control: CGPoint(x: r.midX - r.width * 0.05, y: r.minY + r.height * 0.05))
+        p.addQuadCurve(to: CGPoint(x: r.maxX - r.width * 0.08, y: r.maxY),
+                       control: CGPoint(x: r.midX + r.width * 0.12, y: r.midY))
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// A horn curving up and out from its base at the bottom right.
+struct Horn: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: r.maxX, y: r.maxY))
+        p.addQuadCurve(to: CGPoint(x: r.minX + r.width * 0.15, y: r.minY), control: CGPoint(x: r.minX, y: r.maxY))
+        p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.maxY - r.height * 0.45),
+                       control: CGPoint(x: r.minX + r.width * 0.4, y: r.midY + r.height * 0.1))
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// A flame: a point on top, a round bottom.
+struct FlameShape: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        let radius = r.width / 2
+        let center = CGPoint(x: r.midX, y: r.maxY - radius)
+        p.move(to: CGPoint(x: r.midX, y: r.minY))
+        p.addQuadCurve(to: CGPoint(x: r.maxX, y: center.y), control: CGPoint(x: r.maxX, y: r.midY))
+        p.addArc(center: center, radius: radius, startAngle: .degrees(0), endAngle: .degrees(180), clockwise: false)
+        p.addQuadCurve(to: CGPoint(x: r.midX, y: r.minY), control: CGPoint(x: r.minX, y: r.midY))
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// A tie: narrow under the knot, widest low down, then a point.
+struct TieShape: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: r.midX - r.width * 0.25, y: r.minY))
+        p.addLine(to: CGPoint(x: r.midX + r.width * 0.25, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.maxY - r.height * 0.2))
+        p.addLine(to: CGPoint(x: r.midX, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX, y: r.maxY - r.height * 0.2))
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// A cape hanging from Pip's shoulders, its hem waving with `wave`.
+struct CapeShape: Shape {
+    var wave: CGFloat
+
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: r.midX - r.width * 0.22, y: r.minY))
+        p.addLine(to: CGPoint(x: r.midX + r.width * 0.22, y: r.minY))
+        p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.maxY + wave), control: CGPoint(x: r.maxX - r.width * 0.05, y: r.midY))
+        p.addQuadCurve(to: CGPoint(x: r.midX, y: r.maxY - r.height * 0.06 - wave),
+                       control: CGPoint(x: r.midX + r.width * 0.25, y: r.maxY + r.height * 0.05 + wave))
+        p.addQuadCurve(to: CGPoint(x: r.minX, y: r.maxY + wave),
+                       control: CGPoint(x: r.midX - r.width * 0.25, y: r.maxY + r.height * 0.05 - wave))
+        p.addQuadCurve(to: CGPoint(x: r.midX - r.width * 0.22, y: r.minY), control: CGPoint(x: r.minX + r.width * 0.05, y: r.midY))
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// A left wing attached at its right edge: feathered (round scallops) or bat-like (`spiky`, pointed scallops).
+struct WingShape: Shape {
+    var spiky = false
+
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: r.maxX, y: r.minY + r.height * 0.3))
+        let tip = CGPoint(x: r.minX, y: r.minY + r.height * 0.05)
+        p.addQuadCurve(to: tip, control: CGPoint(x: r.midX, y: r.minY - r.height * 0.05))
+        let points = [
+            CGPoint(x: r.minX + r.width * 0.12, y: r.minY + r.height * 0.42),
+            CGPoint(x: r.minX + r.width * 0.35, y: r.minY + r.height * 0.66),
+            CGPoint(x: r.minX + r.width * 0.62, y: r.minY + r.height * 0.84),
+            CGPoint(x: r.maxX, y: r.maxY - r.height * 0.05),
+        ]
+        var previous = tip
+        for point in points {
+            let control = spiky
+                ? CGPoint(x: max(previous.x, point.x) - r.width * 0.02, y: min(previous.y, point.y) + r.height * 0.02)
+                : CGPoint(x: min(previous.x, point.x) - r.width * 0.06, y: max(previous.y, point.y) + r.height * 0.06)
+            p.addQuadCurve(to: point, control: control)
+            previous = point
+        }
+        p.closeSubpath()
+        return p
     }
 }

@@ -115,6 +115,9 @@ private struct ItemPreview: View {
         GeometryReader { proxy in
             let size = min(proxy.size.width, proxy.size.height) * 0.78
             ZStack {
+                if item.kind == .back {
+                    PipItemView(id: item.id, size: size)
+                }
                 Ellipse()
                     .fill(LinearGradient(colors: PipColors.colors(for: item.kind == .color ? item.id : nil) ?? [Theme.mint, Color(red: 0.2, green: 0.75, blue: 0.95)],
                                          startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -124,7 +127,7 @@ private struct ItemPreview: View {
                     Circle().fill(.white).frame(width: size * 0.17)
                 }
                 .offset(y: -size * 0.07)
-                if item.kind != .color {
+                if item.kind != .color && item.kind != .back {
                     PipItemView(id: item.id, size: size)
                         .offset(PipItemView.offset(for: item.kind, size: size))
                 }
@@ -155,6 +158,7 @@ extension WardrobeItem.Kind {
         case .hat: return L("Hattar")
         case .glasses: return L("Glasögon")
         case .neck: return L("Hals")
+        case .back: return L("Rygg")
         case .color: return L("Färger")
         }
     }

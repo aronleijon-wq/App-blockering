@@ -19,6 +19,10 @@ struct MascotView: View {
                     .blur(radius: size * 0.2)
                     .opacity(0.5)
 
+                if let back = outfit.back {
+                    PipItemView(id: back, size: size, time: time)
+                }
+
                 BlobShape(phase: time * 1.6, wobble: mood == .hyped ? 0.055 : 0.03)
                     .fill(bodyGradient)
                     .overlay {
@@ -36,11 +40,11 @@ struct MascotView: View {
 
                 face(time: time)
                 if let neck = outfit.neck {
-                    PipItemView(id: neck, size: size)
+                    PipItemView(id: neck, size: size, time: time)
                         .offset(PipItemView.offset(for: .neck, size: size))
                 }
                 if let glasses = outfit.glasses, mood != .wrecked {
-                    PipItemView(id: glasses, size: size)
+                    PipItemView(id: glasses, size: size, time: time)
                         .offset(PipItemView.offset(for: .glasses, size: size))
                 }
                 accessories(time: time)
@@ -204,7 +208,7 @@ struct MascotView: View {
                 .offset(x: size * 0.2, y: -size * 0.3)
         } else if let hat = outfit.hat {
             // A hat from the wardrobe replaces the level accessory.
-            PipItemView(id: hat, size: size)
+            PipItemView(id: hat, size: size, time: time)
                 .offset(PipItemView.offset(for: .hat, size: size))
         } else if level >= 8 {
             Image(systemName: "crown.fill")

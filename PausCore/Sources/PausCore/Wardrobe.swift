@@ -3,7 +3,7 @@ import Foundation
 /// Things Pip can wear, bought with seeds earned from quests, focus sessions and daily rewards.
 struct WardrobeItem: Identifiable, Equatable {
     enum Kind: String, CaseIterable, Codable {
-        case hat, glasses, neck, color
+        case hat, glasses, neck, back, color
     }
 
     let id: String
@@ -18,20 +18,43 @@ struct WardrobeItem: Identifiable, Equatable {
         WardrobeItem(id: "hat-cap", name: L("Keps"), kind: .hat, price: 40),
         WardrobeItem(id: "hat-flower", name: L("Blomma"), kind: .hat, price: 50),
         WardrobeItem(id: "hat-beanie", name: L("Mössa"), kind: .hat, price: 60),
+        WardrobeItem(id: "hat-ninja", name: L("Ninjapannband"), kind: .hat, price: 70),
         WardrobeItem(id: "hat-party", name: L("Partyhatt"), kind: .hat, price: 80),
+        WardrobeItem(id: "hat-headphones", name: L("Hörlurar"), kind: .hat, price: 90),
+        WardrobeItem(id: "hat-devil", name: L("Djävulshorn"), kind: .hat, price: 100),
         WardrobeItem(id: "hat-chef", name: L("Kockmössa"), kind: .hat, price: 120),
+        WardrobeItem(id: "hat-viking", name: L("Vikingahjälm"), kind: .hat, price: 130),
+        WardrobeItem(id: "hat-wizard", name: L("Trollkarlshatt"), kind: .hat, price: 140),
+        WardrobeItem(id: "hat-halo", name: L("Gloria"), kind: .hat, price: 180, needsPro: true),
         WardrobeItem(id: "hat-crown", name: L("Krona"), kind: .hat, price: 300, needsPro: true),
+        WardrobeItem(id: "hat-fire", name: L("Eldfrisyr"), kind: .hat, price: 350, needsPro: true),
         WardrobeItem(id: "glasses-round", name: L("Runda glasögon"), kind: .glasses, price: 60),
+        WardrobeItem(id: "glasses-3d", name: L("3D-glasögon"), kind: .glasses, price: 60),
         WardrobeItem(id: "glasses-sun", name: L("Solglasögon"), kind: .glasses, price: 70),
+        WardrobeItem(id: "glasses-star", name: L("Stjärnglasögon"), kind: .glasses, price: 90),
+        WardrobeItem(id: "glasses-pixel", name: L("Pixelbrillor"), kind: .glasses, price: 110),
         WardrobeItem(id: "glasses-heart", name: L("Hjärtglasögon"), kind: .glasses, price: 120, needsPro: true),
+        WardrobeItem(id: "glasses-visor", name: L("Cybervisir"), kind: .glasses, price: 200, needsPro: true),
         WardrobeItem(id: "neck-scarf", name: L("Halsduk"), kind: .neck, price: 50),
+        WardrobeItem(id: "neck-tie", name: L("Slips"), kind: .neck, price: 50),
         WardrobeItem(id: "neck-bow", name: L("Fluga"), kind: .neck, price: 70),
+        WardrobeItem(id: "neck-lei", name: L("Blomkrans"), kind: .neck, price: 80),
         WardrobeItem(id: "neck-medal", name: L("Medalj"), kind: .neck, price: 150),
+        WardrobeItem(id: "neck-chain", name: L("Guldkedja"), kind: .neck, price: 160),
+        WardrobeItem(id: "back-cape", name: L("Superhjältemantel"), kind: .back, price: 120),
+        WardrobeItem(id: "back-bat", name: L("Fladdermusvingar"), kind: .back, price: 150),
+        WardrobeItem(id: "back-wings", name: L("Änglavingar"), kind: .back, price: 220, needsPro: true),
+        WardrobeItem(id: "back-jetpack", name: L("Jetpack"), kind: .back, price: 260, needsPro: true),
         WardrobeItem(id: "color-mint", name: L("Mint"), kind: .color, price: 0),
+        WardrobeItem(id: "color-ice", name: L("Is"), kind: .color, price: 90),
         WardrobeItem(id: "color-ocean", name: L("Hav"), kind: .color, price: 100),
         WardrobeItem(id: "color-sunset", name: L("Solnedgång"), kind: .color, price: 100),
+        WardrobeItem(id: "color-candy", name: L("Sockervadd"), kind: .color, price: 110),
         WardrobeItem(id: "color-lava", name: L("Lava"), kind: .color, price: 120),
+        WardrobeItem(id: "color-toxic", name: L("Toxic"), kind: .color, price: 120),
+        WardrobeItem(id: "color-neon", name: L("Neon"), kind: .color, price: 140),
         WardrobeItem(id: "color-galaxy", name: L("Galax"), kind: .color, price: 150, needsPro: true),
+        WardrobeItem(id: "color-midnight", name: L("Midnatt"), kind: .color, price: 180, needsPro: true),
         WardrobeItem(id: "color-gold", name: L("Guld"), kind: .color, price: 400, needsPro: true),
     ] }
 
@@ -45,6 +68,8 @@ struct Outfit: Codable, Equatable {
     var hat: String?
     var glasses: String?
     var neck: String?
+    /// Wings, a cape or a jetpack, drawn behind Pip.
+    var back: String?
     var color: String?
 
     static let none = Outfit()
@@ -54,6 +79,7 @@ struct Outfit: Codable, Equatable {
         case .hat: return hat
         case .glasses: return glasses
         case .neck: return neck
+        case .back: return back
         case .color: return color
         }
     }
@@ -63,6 +89,7 @@ struct Outfit: Codable, Equatable {
         case .hat: hat = id
         case .glasses: glasses = id
         case .neck: neck = id
+        case .back: back = id
         case .color: color = id
         }
     }
