@@ -384,18 +384,47 @@ struct HomeView: View {
     // MARK: Quests
 
     private func questsCard(at date: Date) -> some View {
-        let counts = model.progress.counts(at: date, calendar: .current)
+        let progress = model.progress
+        let counts = progress.counts(at: date, calendar: .current)
+        let week = progress.weekCounts(at: date, calendar: .current)
+        let day = DayKey.string(for: date, calendar: .current)
+        let daily = Quest.daily(for: day, includesPro: model.isPro)
+        let doneDaily = daily.filter { counts.completedQuests.contains($0.id) }.count
+        let weekKey = League.weekKey(for: date, calendar: .current)
         return VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text(L("Dagens uppdrag"))
                     .font(.title3.bold())
                 Spacer()
-                Text("\(counts.completedQuests.count)/3")
+                Text("\(doneDaily)/\(daily.count)")
                     .font(.headline.monospacedDigit())
                     .foregroundStyle(Theme.brand)
             }
-            ForEach(Quest.daily(for: DayKey.string(for: date, calendar: .current))) { quest in
-                QuestRow(quest: quest, progress: quest.progress(in: counts), isDone: counts.completedQuests.contains(quest.id))
+            ForEach(daily) { quest in
+                QuestRow(quest: quest, progress: quest.progress(today: counts, week: week), isDone: counts.completedQuests.contains(quest.id))
+            }
+            if let bonus = Quest.bonus(for: day, includesPro: model.isPro) {
+                if doneDaily == daily.count {
+                    QuestRow(quest: bonus, progress: bonus.progress(today: counts, week: week), isDone: counts.completedQuests.contains(bonus.id), label: L("Bonus"))
+                } else {
+                    HStack(spacing: 14) {
+                        Image(systemName: "lock.fill")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 42, height: 42)
+                            .background(Theme.cardRaised, in: Circle())
+                        Text(L("Klara alla tre för att låsa upp bonusuppdraget"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Divider().overlay(Color.white.opacity(0.08))
+            Text(L("Veckans uppdrag"))
+                .font(.headline)
+            ForEach(Quest.weekly(for: weekKey, includesPro: model.isPro)) { quest in
+                QuestRow(quest: quest, progress: quest.progress(today: counts, week: week), isDone: week.completedQuests.contains(quest.id))
             }
         }
         .card()
@@ -406,6 +435,7 @@ private struct QuestRow: View {
     let quest: Quest
     let progress: Int
     let isDone: Bool
+    var label: String?
 
     var body: some View {
         HStack(spacing: 14) {
@@ -417,9 +447,18 @@ private struct QuestRow: View {
             }
             .frame(width: 42, height: 42)
             VStack(alignment: .leading, spacing: 6) {
-                Text(quest.title)
-                    .font(.subheadline.weight(.semibold))
-                    .strikethrough(isDone, color: .secondary)
+                HStack(spacing: 6) {
+                    if let label {
+                        Text(label.uppercased())
+                            .font(.caption2.weight(.heavy))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Theme.brand, in: Capsule())
+                    }
+                    Text(quest.title)
+                        .font(.subheadline.weight(.semibold))
+                        .strikethrough(isDone, color: .secondary)
+                }
                 GradientBar(fraction: Double(min(progress, quest.target)) / Double(quest.target), height: 6)
             }
             Text("+\(quest.xp)")

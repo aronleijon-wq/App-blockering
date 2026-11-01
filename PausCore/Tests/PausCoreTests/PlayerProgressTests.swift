@@ -80,17 +80,54 @@ final class PlayerProgressTests: XCTestCase {
 
     func testQuestCompletesOnceAndAddsXP() {
         let quests = Quest.daily(for: "2026-10-19")
-        XCTAssertEqual(Set(quests.map(\.id)).count, 3, "three distinct quests")
+        XCTAssertEqual(quests.map(\.tier), [.easy, .medium, .hard], "one quest of each tier")
 
         var progress = PlayerProgress()
-        progress.record(.focusCompleted(minutes: 50), at: monday, calendar: calendar)
-        progress.record(.focusCompleted(minutes: 50), at: monday, calendar: calendar)
-        let focusQuests = quests.filter { [Quest.Metric.focusSessions, .focusMinutes].contains($0.metric) }
+        for _ in 0..<3 {
+            progress.record(.focusCompleted(minutes: 60), at: monday, calendar: calendar)
+        }
+        let focusQuests = quests.filter { [Quest.Metric.focusSessions, .focusMinutes, .longestSession].contains($0.metric) }
         for quest in focusQuests {
             XCTAssertTrue(progress.today.completedQuests.contains(quest.id), quest.id)
         }
-        let completedCount = progress.pendingRewards.filter { if case .quest = $0 { return true }; return false }.count
-        XCTAssertEqual(completedCount, focusQuests.count)
+        let before = progress.pendingRewards.count
+        progress.record(.focusCompleted(minutes: 60), at: monday, calendar: calendar)
+        let again = progress.pendingRewards.dropFirst(before).filter { reward in
+            if case .quest(let id) = reward { return focusQuests.contains { $0.id == id } }
+            return false
+        }
+        XCTAssertTrue(again.isEmpty, "a quest completes once")
+    }
+
+    func testBonusAndWeeklyQuestsAreDistinct() {
+        for offset in 0..<30 {
+            let day = DayKey.string(for: self.day(offset, from: monday), calendar: calendar)
+            let daily = Quest.daily(for: day)
+            let bonus = Quest.bonus(for: day)
+            XCTAssertNotNil(bonus)
+            XCTAssertFalse(daily.contains { $0.id == bonus?.id }, day)
+            let weekly = Quest.weekly(for: day)
+            XCTAssertEqual(Set(weekly.map(\.id)).count, 2, day)
+        }
+    }
+
+    func testFreeUsersOnlyGetQuestsTheyCanDo() {
+        for offset in 0..<60 {
+            let day = DayKey.string(for: self.day(offset, from: monday), calendar: calendar)
+            let quests = Quest.daily(for: day) + Quest.weekly(for: day) + [Quest.bonus(for: day)].compactMap { $0 }
+            XCTAssertFalse(quests.contains(where: \.needsPro), day)
+        }
+    }
+
+    func testWeeklyQuestsCountTheWholeWeek() {
+        var progress = PlayerProgress()
+        for offset in 0..<5 {
+            progress.record(.focusCompleted(minutes: 70), at: day(offset, from: monday), calendar: calendar)
+        }
+        let week = progress.weekCounts(at: day(4, from: monday), calendar: calendar)
+        XCTAssertEqual(week.focusMinutes, 350)
+        XCTAssertEqual(week.focusDays, 5)
+        XCTAssertEqual(progress.weekCounts(at: day(7, from: monday), calendar: calendar).focusMinutes, 0, "a new week starts empty")
     }
 
     func testCountersResetOnNewDay() {

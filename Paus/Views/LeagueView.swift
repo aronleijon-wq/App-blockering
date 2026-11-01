@@ -250,6 +250,7 @@ struct LeagueView: View {
             .card()
         }
         .buttonStyle(.plain)
+        .simultaneousGesture(TapGesture().onEnded { model.prepareInvite() })
     }
 
     private var joinCard: some View {

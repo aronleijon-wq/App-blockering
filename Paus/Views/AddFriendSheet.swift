@@ -41,6 +41,7 @@ struct AddFriendSheet: View {
                     ) {
                         Label(L("Skicka din kod"), systemImage: "square.and.arrow.up")
                     }
+                    .simultaneousGesture(TapGesture().onEnded { model.prepareInvite() })
                 } footer: {
                     Text(model.league.invitedBy == nil
                         ? L("Den första koden du lägger till räknas som din inbjudan. Din vän får \(Referral.bonusDays) dagar gratis Pro när du har kört ditt första fokuspass.")

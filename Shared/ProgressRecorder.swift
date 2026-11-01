@@ -4,7 +4,11 @@ import Foundation
 enum ProgressRecorder {
     @discardableResult
     static func record(_ event: ProgressEvent, at date: Date = .now) -> [Reward] {
-        SharedStore.updateProgress { $0.record(event, at: date, calendar: .current) }
+        let isPro = SharedStore.isPro
+        return SharedStore.updateProgress { progress in
+            progress.includesProQuests = isPro
+            return progress.record(event, at: date, calendar: .current)
+        }
     }
 
     /// DeviceActivity can report the end of an interval a little early.
@@ -52,6 +56,6 @@ enum ProgressRecorder {
             runtime.focusStepsCheckedAt = nil
         }
         guard minutes > 0 else { return [] }
-        return record(.focusCompleted(minutes: minutes), at: date)
+        return record(.stepFocusCompleted(minutes: minutes), at: date)
     }
 }

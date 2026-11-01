@@ -317,6 +317,7 @@ final class AppModel {
     /// Makes the player's code findable before they send it, so the friend can add it straight away.
     func prepareInvite() {
         league.shareCode()
+        recordFriendQuest()
         Task { await syncLeague(force: true) }
     }
 
@@ -334,6 +335,14 @@ final class AppModel {
     /// once this player has finished a focus session.
     func addFriend(code: String) async throws {
         try await league.addFriend(code: code)
+        recordFriendQuest()
+    }
+
+    /// Counts toward the "challenge a friend" quest.
+    private func recordFriendQuest() {
+        let rewards = ProgressRecorder.record(.challengedFriend)
+        progress = SharedStore.progress
+        if rewards.contains(where: \.isCelebration) { showPendingCelebrations() }
     }
 
     // MARK: Rewards
