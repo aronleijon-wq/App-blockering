@@ -28,6 +28,28 @@ struct RulesView: View {
                 }
 
                 Section {
+                    if model.isPro {
+                        Picker(L("Öppningsgräns"), selection: binding(\.openLimit)) {
+                            Text(L("Ingen")).tag(Int?.none)
+                            ForEach([1, 3, 5, 10], id: \.self) { opens in
+                                Text(L("\(opens) per dag")).tag(Int?.some(opens))
+                            }
+                        }
+                        if model.rules.openLimit != nil {
+                            Picker(L("Öppen i"), selection: binding(\.openMinutes)) {
+                                ForEach([2, 5, 10, 15], id: \.self) { minutes in
+                                    Text(Format.minutes(minutes)).tag(minutes)
+                                }
+                            }
+                        }
+                    } else {
+                        LockedRow(title: L("Öppningsgräns")) { model.isPaywallPresented = true }
+                    }
+                } footer: {
+                    Text(L("De valda apparna är blockerade hela dagen. På spärrskärmen kan du öppna en app så här många gånger per dag, en kort stund åt gången."))
+                }
+
+                Section {
                     ForEach(Array(model.rules.schedules.enumerated()), id: \.element.id) { index, schedule in
                         Button {
                             editing = schedule

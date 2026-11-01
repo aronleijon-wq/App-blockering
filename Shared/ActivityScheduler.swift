@@ -9,6 +9,8 @@ extension DeviceActivityName {
     static let pause = Self("paus.pause")
     /// Ends an SOS, so schedules and the daily limit block again.
     static let sos = Self("paus.sos")
+    /// Closes an app opened from the shield under the open limit.
+    static let openWindow = Self("paus.open")
     static let dailyLimit = Self("paus.limit")
     /// Follows how long the guarded apps are used each day, for Pip's health.
     static let usage = Self("paus.usage")
@@ -131,6 +133,10 @@ enum ActivityScheduler {
 
     static func stopPause() {
         center.stopMonitoring([.pause])
+    }
+
+    static func startOpenWindow(until end: Date) throws {
+        try startOneShot(.openWindow, until: end)
     }
 
     static func startSOS(until end: Date) throws {

@@ -770,6 +770,7 @@ extension PausRules {
         var rules = self
         rules.schedules = Array(schedules.prefix(1))
         rules.dailyLimitMinutes = nil
+        rules.openLimit = nil
         rules.strictFocus = false
         rules.preventUninstall = false
         return rules

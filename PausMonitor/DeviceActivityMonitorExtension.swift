@@ -41,6 +41,10 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         case .sos:
             SharedStore.updateRuntime { $0.sosUntil = nil }
             ShieldController.refresh()
+        case .openWindow:
+            SharedStore.updateRuntime { $0.openUntil = nil }
+            SharedStore.openApps = []
+            ShieldController.refresh()
         default:
             if let id = activity.scheduleID {
                 ShieldController.refresh(scheduleOverrides: [id: false])

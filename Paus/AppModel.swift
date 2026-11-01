@@ -754,7 +754,7 @@ final class AppModel {
         switch reason {
         case .focus: what = L("Fokuspasset avslutas och allt låses upp direkt.")
         case .stepFocus: what = L("Stegpasset avslutas och allt låses upp direkt.")
-        case .schedule, .dailyLimit: what = L("Allt låses upp i \(SOS.minutes) min. Sedan blockeras apparna igen.")
+        case .schedule, .dailyLimit, .openLimit: what = L("Allt låses upp i \(SOS.minutes) min. Sedan blockeras apparna igen.")
         }
         return L("\(what) Det kostar \(cost) XP, lika många veckopoäng och lite av Pips hälsa, och mer för varje SOS idag.")
     }

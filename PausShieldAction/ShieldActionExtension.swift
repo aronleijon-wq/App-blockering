@@ -6,7 +6,25 @@ import UserNotifications
 /// so it posts a notification that does, and Paus shows the pause screen when it opens.
 final class ShieldActionExtension: ShieldActionDelegate {
     override func handle(action: ShieldAction, for application: ApplicationToken, completionHandler: @escaping (ShieldActionResponse) -> Void) {
+        let now = Date.now
+        let rules = SharedStore.effectiveRules
+        let engine = BlockEngine(rules: rules, runtime: SharedStore.runtime)
+        if action == .secondaryButtonPressed, engine.canOpenApp(at: now) {
+            open(application, minutes: rules.openMinutes, at: now)
+            // Deferring redraws the shield, which this app no longer has, so it opens.
+            completionHandler(.defer)
+            return
+        }
         handle(action, completionHandler: completionHandler)
+    }
+
+    /// Lets one app through under the open limit, and books the moment it's blocked again.
+    private func open(_ application: ApplicationToken, minutes: Int, at now: Date) {
+        let end = now.addingTimeInterval(TimeInterval(minutes * 60))
+        SharedStore.openApps = [application]
+        SharedStore.updateRuntime { $0.recordOpen(at: now, until: end, calendar: .current) }
+        try? ActivityScheduler.startOpenWindow(until: end)
+        ShieldController.refresh(at: now)
     }
 
     override func handle(action: ShieldAction, for webDomain: WebDomainToken, completionHandler: @escaping (ShieldActionResponse) -> Void) {

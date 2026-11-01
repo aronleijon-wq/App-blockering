@@ -39,6 +39,10 @@ struct PausRules: Codable, Equatable {
     var adultFilter: Bool
     /// Schedules and the daily limit rest until this date. Focus sessions still work.
     var vacationUntil: Date?
+    /// The guarded apps stay blocked, but each can be opened this many times a day in all, from the shield.
+    var openLimit: Int?
+    /// How long an app stays open after opening it from the shield.
+    var openMinutes: Int
 
     init(
         dailyLimitMinutes: Int? = nil,
@@ -47,7 +51,9 @@ struct PausRules: Codable, Equatable {
         pause: PauseRules = PauseRules(),
         preventUninstall: Bool = false,
         adultFilter: Bool = false,
-        vacationUntil: Date? = nil
+        vacationUntil: Date? = nil,
+        openLimit: Int? = nil,
+        openMinutes: Int = 5
     ) {
         self.dailyLimitMinutes = dailyLimitMinutes
         self.schedules = schedules
@@ -56,6 +62,8 @@ struct PausRules: Codable, Equatable {
         self.preventUninstall = preventUninstall
         self.adultFilter = adultFilter
         self.vacationUntil = vacationUntil
+        self.openLimit = openLimit
+        self.openMinutes = openMinutes
     }
 
     func isOnVacation(at date: Date) -> Bool {
@@ -73,6 +81,8 @@ struct PausRules: Codable, Equatable {
         preventUninstall = try container.decodeIfPresent(Bool.self, forKey: .preventUninstall) ?? defaults.preventUninstall
         adultFilter = try container.decodeIfPresent(Bool.self, forKey: .adultFilter) ?? defaults.adultFilter
         vacationUntil = try container.decodeIfPresent(Date.self, forKey: .vacationUntil)
+        openLimit = try container.decodeIfPresent(Int.self, forKey: .openLimit)
+        openMinutes = try container.decodeIfPresent(Int.self, forKey: .openMinutes) ?? defaults.openMinutes
     }
 }
 
@@ -89,6 +99,10 @@ struct PausRuntime: Codable, Equatable {
     var pausedUntil: Date?
     /// Schedules and the daily limit rest until this date after an SOS. Focus sessions started later still block.
     var sosUntil: Date?
+    /// While an app opened from the shield under the open limit stays open.
+    var openUntil: Date?
+    /// Opens used today under the open limit; belongs to `statsDay`.
+    var opensUsed = 0
     /// Day key of the day the daily limit was reached.
     var limitReachedDay: String?
     /// When the shield's pause button was last pressed, so the app can open the pause screen.
@@ -135,6 +149,8 @@ struct PausRuntime: Codable, Equatable {
         focusStepsCheckedAt = try container.decodeIfPresent(Date.self, forKey: .focusStepsCheckedAt)
         pausedUntil = try container.decodeIfPresent(Date.self, forKey: .pausedUntil)
         sosUntil = try container.decodeIfPresent(Date.self, forKey: .sosUntil)
+        openUntil = try container.decodeIfPresent(Date.self, forKey: .openUntil)
+        opensUsed = try container.decodeIfPresent(Int.self, forKey: .opensUsed) ?? 0
         limitReachedDay = try container.decodeIfPresent(String.self, forKey: .limitReachedDay)
         pauseRequestedAt = try container.decodeIfPresent(Date.self, forKey: .pauseRequestedAt)
         statsDay = try container.decodeIfPresent(String.self, forKey: .statsDay)
@@ -149,6 +165,19 @@ struct PausRuntime: Codable, Equatable {
         statsDay = key
         pausesUsed = 0
         closedCount = 0
+        opensUsed = 0
+    }
+
+    /// Opens an app under the open limit until `end`.
+    mutating func recordOpen(at date: Date, until end: Date, calendar: Calendar) {
+        rollOver(to: date, calendar: calendar)
+        opensUsed += 1
+        openUntil = end
+    }
+
+    /// Opens used on the day containing `date`.
+    func opens(on date: Date, calendar: Calendar) -> Int {
+        statsDay == DayKey.string(for: date, calendar: calendar) ? opensUsed : 0
     }
 
     mutating func startPause(at date: Date, until end: Date, calendar: Calendar) {

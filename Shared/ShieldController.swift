@@ -18,7 +18,9 @@ enum ShieldController {
         let rules = SharedStore.effectiveRules
         let engine = BlockEngine(rules: rules, runtime: SharedStore.runtime)
         if engine.shouldShield(at: date, scheduleOverrides: scheduleOverrides) {
-            apply(SharedStore.selection)
+            // Under the open limit, an app opened from the shield stays open until its time is up.
+            let open = engine.isOpenWindow(at: date) ? SharedStore.openApps : []
+            apply(SharedStore.selection, except: open)
             // Without this, deleting and reinstalling Paus would be the easy way out of a block.
             // A step session always has it, since walking must be the only way out.
             let isStepFocus = SharedStore.runtime.focusStepGoal != nil
@@ -30,10 +32,11 @@ enum ShieldController {
         WidgetRefresher.reload()
     }
 
-    private static func apply(_ selection: FamilyActivitySelection) {
+    private static func apply(_ selection: FamilyActivitySelection, except open: Set<ApplicationToken>) {
         let categories = selection.categoryTokens
-        store.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
-        store.shield.applicationCategories = categories.isEmpty ? nil : .specific(categories)
+        let apps = selection.applicationTokens.subtracting(open)
+        store.shield.applications = apps.isEmpty ? nil : apps
+        store.shield.applicationCategories = categories.isEmpty ? nil : .specific(categories, except: open)
         store.shield.webDomains = selection.webDomainTokens.isEmpty ? nil : selection.webDomainTokens
         store.shield.webDomainCategories = categories.isEmpty ? nil : .specific(categories)
     }

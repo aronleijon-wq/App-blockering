@@ -79,6 +79,27 @@ final class BlockEngineTests: XCTestCase {
         XCTAssertTrue(focus.shouldShield(at: monday10), "a focus session started after the SOS still blocks")
     }
 
+    func testOpenLimitBlocksWithOpensLeft() {
+        let rules = PausRules(openLimit: 3, openMinutes: 5)
+        var runtime = PausRuntime()
+        XCTAssertEqual(engine(rules: rules, runtime: runtime).reason(at: monday10), .openLimit(left: 3))
+        XCTAssertTrue(engine(rules: rules, runtime: runtime).canOpenApp(at: monday10))
+
+        let end = monday10.addingTimeInterval(300)
+        runtime.recordOpen(at: monday10, until: end, calendar: calendar)
+        let open = engine(rules: rules, runtime: runtime)
+        XCTAssertEqual(open.reason(at: monday10), .openLimit(left: 2))
+        XCTAssertTrue(open.isOpenWindow(at: monday10.addingTimeInterval(60)))
+        XCTAssertFalse(open.canOpenApp(at: monday10.addingTimeInterval(60)), "one app at a time")
+        XCTAssertTrue(open.canOpenApp(at: end.addingTimeInterval(1)))
+
+        runtime.recordOpen(at: monday10, until: end, calendar: calendar)
+        runtime.recordOpen(at: monday10, until: end, calendar: calendar)
+        XCTAssertEqual(engine(rules: rules, runtime: runtime).reason(at: end.addingTimeInterval(1)), .openLimit(left: 0))
+        XCTAssertFalse(engine(rules: rules, runtime: runtime).canOpenApp(at: end.addingTimeInterval(1)))
+        XCTAssertNil(PausRules(openLimit: 3).effective(isPro: false).openLimit, "Pro only")
+    }
+
     func testCanPauseRequiresAnActiveNonStrictBlock() {
         let focus = PausRuntime(focusEndsAt: monday10.addingTimeInterval(1500))
         XCTAssertFalse(engine().canPause(at: monday10), "nothing is blocked")

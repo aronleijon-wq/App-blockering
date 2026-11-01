@@ -12,6 +12,8 @@ enum BlockReason: Equatable {
     case stepFocus(goal: Int)
     case schedule(name: String, until: Date)
     case dailyLimit(minutes: Int)
+    /// The guarded apps are blocked except for a few opens a day from the shield.
+    case openLimit(left: Int)
 }
 
 /// Decides whether the selected apps should be blocked. The app and every extension use it,
@@ -43,7 +45,22 @@ struct BlockEngine {
         if let limit = rules.dailyLimitMinutes, runtime.limitReachedDay == DayKey.string(for: date, calendar: calendar) {
             return .dailyLimit(minutes: limit)
         }
+        if let opens = rules.openLimit {
+            return .openLimit(left: max(0, opens - runtime.opens(on: date, calendar: calendar)))
+        }
         return nil
+    }
+
+    /// Whether an app opened from the shield is open right now.
+    func isOpenWindow(at date: Date) -> Bool {
+        guard let end = runtime.openUntil else { return false }
+        return end > date
+    }
+
+    /// Whether the shield can open an app now: under the open limit, with opens left and none open already.
+    func canOpenApp(at date: Date) -> Bool {
+        guard case .openLimit(let left) = reason(at: date), left > 0 else { return false }
+        return !isOpenWindow(at: date)
     }
 
     func isPaused(at date: Date) -> Bool {

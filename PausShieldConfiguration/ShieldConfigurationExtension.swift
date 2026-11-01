@@ -5,11 +5,11 @@ import UIKit
 /// The screen iOS shows instead of a blocked app or website.
 final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     override func configuration(shielding application: Application) -> ShieldConfiguration {
-        makeConfiguration(name: application.localizedDisplayName)
+        makeConfiguration(name: application.localizedDisplayName, isApp: true)
     }
 
     override func configuration(shielding application: Application, in category: ActivityCategory) -> ShieldConfiguration {
-        makeConfiguration(name: application.localizedDisplayName)
+        makeConfiguration(name: application.localizedDisplayName, isApp: true)
     }
 
     override func configuration(shielding webDomain: WebDomain) -> ShieldConfiguration {
@@ -20,7 +20,8 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         makeConfiguration(name: webDomain.domain)
     }
 
-    private func makeConfiguration(name: String?) -> ShieldConfiguration {
+    /// Only an app can be opened under the open limit; websites get the pause button as before.
+    private func makeConfiguration(name: String?, isApp: Bool = false) -> ShieldConfiguration {
         let now = Date.now
         let engine = BlockEngine(rules: SharedStore.effectiveRules, runtime: SharedStore.runtime)
         let canPause = engine.canPause(at: now)
@@ -52,9 +53,15 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             subtitle: ShieldConfiguration.Label(text: subtitle, color: UIColor.white.withAlphaComponent(0.75)),
             primaryButtonLabel: ShieldConfiguration.Label(text: earnsXP ? L("Stäng (+\(PlayerProgress.XP.close) XP)") : L("Stäng"), color: .white),
             primaryButtonBackgroundColor: pink,
-            secondaryButtonLabel: canPause
-                ? ShieldConfiguration.Label(text: penalty == 0 ? L("Ta en paus (gratis)") : L("Ta en paus (−\(penalty) XP)"), color: pink)
-                : nil
+            secondaryButtonLabel: openLabel(engine: engine, isApp: isApp, at: now, color: pink)
+                ?? (canPause ? ShieldConfiguration.Label(text: penalty == 0 ? L("Ta en paus (gratis)") : L("Ta en paus (−\(penalty) XP)"), color: pink) : nil)
         )
+    }
+
+    /// "Öppna i 5 min (3 kvar)" under the open limit, while opens are left.
+    private func openLabel(engine: BlockEngine, isApp: Bool, at now: Date, color: UIColor) -> ShieldConfiguration.Label? {
+        guard isApp, case .openLimit(let left) = engine.reason(at: now), engine.canOpenApp(at: now) else { return nil }
+        let minutes = SharedStore.effectiveRules.openMinutes
+        return ShieldConfiguration.Label(text: L("Öppna i \(minutes) min (\(left) kvar)"), color: color)
     }
 }

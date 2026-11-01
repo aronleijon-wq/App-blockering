@@ -1,5 +1,6 @@
 #if !WIDGET_EXTENSION
 import FamilyControls
+import ManagedSettings
 #endif
 import Foundation
 
@@ -22,6 +23,7 @@ enum SharedStore {
     private static let proBonusKey = "proBonusUntil"
     private static let wasAuthorizedKey = "wasAuthorized"
     private static let notificationSettingsKey = "notificationSettings"
+    private static let openAppsKey = "openApps"
 
     static var rules: PausRules {
         get { load(rulesKey) ?? PausRules() }
@@ -37,6 +39,12 @@ enum SharedStore {
     static var selection: FamilyActivitySelection {
         get { load(selectionKey) ?? FamilyActivitySelection() }
         set { save(newValue, forKey: selectionKey) }
+    }
+
+    /// Apps opened from the shield under the open limit, left unshielded until `PausRuntime.openUntil`.
+    static var openApps: Set<ApplicationToken> {
+        get { load(openAppsKey) ?? [] }
+        set { save(newValue, forKey: openAppsKey) }
     }
     #endif
 

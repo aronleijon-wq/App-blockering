@@ -45,6 +45,10 @@ enum Format {
             return L("Schemat ”\(name)” gäller till \(time(until))")
         case .dailyLimit(let minutes):
             return L("Du har använt dina \(Format.minutes(minutes)) för idag")
+        case .openLimit(let left):
+            return left > 0
+                ? L("Öppningsgräns: \(left) öppningar kvar i dag")
+                : L("Öppningsgräns: inga öppningar kvar i dag")
         }
     }
 
