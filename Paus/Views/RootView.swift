@@ -62,6 +62,14 @@ struct RootView: View {
             Text(model.sosExplanation ?? L("Du kan använda appar som vanligt."))
         }
         .alert(
+            L("Veckans dueller ⚔️"),
+            isPresented: Binding(get: { model.duelMessage != nil }, set: { if !$0 { model.duelMessage = nil } })
+        ) {
+            Button(L("Okej"), role: .cancel) {}
+        } message: {
+            Text(model.duelMessage ?? "")
+        }
+        .alert(
             L("Gratis Pro! 🎉"),
             isPresented: Binding(get: { model.referralMessage != nil }, set: { if !$0 { model.referralMessage = nil } })
         ) {

@@ -48,11 +48,13 @@ struct LeagueView: View {
             .refreshable {
                 await model.syncLeague(force: true)
                 await league.load(scope, progress: model.progress)
+                if scope == .friends { await league.loadDuels(progress: model.progress) }
             }
             // Runs again after a new nickname, new points or a new level, so the list never lags behind.
             .task(id: "\(scope.rawValue)|\(league.nickname ?? "")|\(model.progress.weeklyPoints)|\(model.progress.level)") {
                 await model.syncLeague(force: false)
                 await league.load(scope, progress: model.progress)
+                if scope == .friends { await league.loadDuels(progress: model.progress) }
             }
             .sheet(isPresented: $isNicknamePresented) {
                 NicknameSheet()
@@ -146,6 +148,13 @@ struct LeagueView: View {
 
             if scope == .friends {
                 friendCodeRow
+                if !league.duels.isEmpty {
+                    duelsSection
+                } else if (league.entries[.friends] ?? []).contains(where: { !$0.isMe }) {
+                    Label(L("Håll fingret på en vän för att utmana till duell."), systemImage: "figure.fencing")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             let rows = league.entries[scope] ?? []
@@ -165,6 +174,11 @@ struct LeagueView: View {
                         .contextMenu {
                             if !entry.isMe {
                                 if scope == .friends {
+                                    if canDuel(entry) {
+                                        Button(L("Utmana till duell"), systemImage: "figure.fencing") {
+                                            Task { await model.startDuel(with: entry) }
+                                        }
+                                    }
                                     Button(L("Ta bort vän"), systemImage: "person.badge.minus") { league.removeFriend(entry) }
                                 }
                                 Button(L("Anmäl"), systemImage: "exclamationmark.bubble") { reporting = entry }
@@ -175,6 +189,44 @@ struct LeagueView: View {
             }
         }
         .card()
+    }
+
+    private func canDuel(_ entry: LeaderboardEntry) -> Bool {
+        !league.duels.contains { $0.opponentID == entry.id } && league.duels.count < Duel.maxPerWeek
+    }
+
+    /// This week's duels: you against each friend, with who leads.
+    private var duelsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(L("Veckans dueller"), systemImage: "figure.fencing")
+                .font(.headline)
+            ForEach(league.duels) { duel in
+                HStack(spacing: 10) {
+                    Text(L("Du"))
+                        .font(.subheadline.weight(.bold))
+                    Text("\(duel.mine)")
+                        .font(.headline.monospacedDigit())
+                        .foregroundStyle(duel.mine >= duel.theirs ? Theme.mint : .secondary)
+                    Text("–")
+                        .foregroundStyle(.secondary)
+                    Text("\(duel.theirs)")
+                        .font(.headline.monospacedDigit())
+                        .foregroundStyle(duel.theirs > duel.mine ? Theme.pink : .secondary)
+                    Text(duel.opponentName)
+                        .font(.subheadline.weight(.bold))
+                        .lineLimit(1)
+                    Spacer()
+                    Text(duel.mine > duel.theirs ? L("Leder") : duel.mine < duel.theirs ? L("Ligger efter") : L("Lika"))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(10)
+                .background(Theme.cardRaised, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            Text(L("Den som får flest poäng den här veckan vinner \(Duel.winXP) XP och \(Duel.winSeeds) frön."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 
     /// The player's own code, and the way to add someone else's.

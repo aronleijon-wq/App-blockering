@@ -2,6 +2,15 @@ import CloudKit
 import Foundation
 import Observation
 
+/// A duel this week, as it stands.
+struct DuelStanding: Identifiable, Equatable {
+    let id: String
+    let opponentID: String
+    let opponentName: String
+    let mine: Int
+    let theirs: Int
+}
+
 struct LeaderboardEntry: Identifiable, Equatable {
     let id: String
     let nickname: String
@@ -43,6 +52,14 @@ final class LeagueService {
         static let invitedBy = "league.invitedBy"
         static let rewardedInvites = "league.rewardedInvites"
         static let sharesCode = "league.sharesCode"
+        static let settledDuelWeeks = "league.settledDuelWeeks"
+    }
+
+    private enum DuelField {
+        static let type = "Duel"
+        static let challenger = "challenger"
+        static let opponent = "opponent"
+        static let weekKey = "weekKey"
     }
 
     enum FriendError: Error {
@@ -65,6 +82,9 @@ final class LeagueService {
         static let invitedBy = "invitedBy"
         /// 1 once this invited player has finished a focus session, which earns the one who invited them.
         static let inviteQualified = "inviteQualified"
+        /// Last week's key and points, so friends can settle duels after the week has turned.
+        static let lastWeekKey = "lastWeekKey"
+        static let lastWeekPoints = "lastWeekPoints"
     }
 
     private(set) var accountState: AccountState = .unknown
@@ -82,6 +102,9 @@ final class LeagueService {
     private(set) var invitedBy: String?
     /// Invited friends who have already earned this player free Pro, so each counts once.
     private(set) var rewardedInviteIDs: Set<String>
+    /// This week's duels.
+    private(set) var duels: [DuelStanding] = []
+    @ObservationIgnored private var settledDuelWeeks: Set<String>
 
     var canCompete: Bool { accountState == .available && nickname != nil }
     /// Whether this player has invited someone, so their code must be findable even outside the league.
@@ -104,6 +127,7 @@ final class LeagueService {
         invitedBy = UserDefaults.standard.string(forKey: Keys.invitedBy)
         rewardedInviteIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.rewardedInvites) ?? [])
         sharesCode = UserDefaults.standard.bool(forKey: Keys.sharesCode)
+        settledDuelWeeks = Set(UserDefaults.standard.stringArray(forKey: Keys.settledDuelWeeks) ?? [])
         if let code = UserDefaults.standard.string(forKey: Keys.friendCode) {
             friendCode = code
         } else {
@@ -160,7 +184,8 @@ final class LeagueService {
         let friends = friendIDs.sorted()
         let week = progress.weekKey.flatMap { progress.weeklyPoints > 0 ? $0 : nil }
         let qualified = progress.focusSessions > 0
-        let signature = "\(nickname ?? "")|\(friendCode)|\(friends)|\(invitedBy ?? "")|\(qualified)|\(week ?? "")|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)"
+        let lastWeek = progress.lastWeek
+        let signature = "\(lastWeek?.weekKey ?? "")|\(lastWeek?.points ?? 0)|\(nickname ?? "")|\(friendCode)|\(friends)|\(invitedBy ?? "")|\(qualified)|\(week ?? "")|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)"
         guard signature != uploadedSignature else { return }
 
         let record = CKRecord(recordType: Field.type, recordID: try await myRecordID())
@@ -173,6 +198,10 @@ final class LeagueService {
             record[Field.friends] = nil
         } else {
             record[Field.friends] = friends
+        }
+        if let lastWeek, nickname != nil {
+            record[Field.lastWeekKey] = lastWeek.weekKey
+            record[Field.lastWeekPoints] = lastWeek.points
         }
         if let invitedBy {
             record[Field.invitedBy] = invitedBy
@@ -195,6 +224,82 @@ final class LeagueService {
         if case .failure(let error) = results[record.recordID] { throw error }
         uploadedSignature = signature
         uploadedGroupID = progress.leagueGroupID
+    }
+
+    // MARK: Duels
+
+    /// Challenges a friend to a duel for the week `weekKey`.
+    func startDuel(with entry: LeaderboardEntry, weekKey: String) async throws {
+        let me = try await myRecordID().recordName
+        let record = CKRecord(recordType: DuelField.type, recordID: CKRecord.ID(recordName: "duel-\(weekKey)-\(me)-\(entry.id)"))
+        record[DuelField.challenger] = me
+        record[DuelField.opponent] = entry.id
+        record[DuelField.weekKey] = weekKey
+        let (results, _) = try await database.modifyRecords(saving: [record], deleting: [], savePolicy: .allKeys, atomically: false)
+        if case .failure(let error) = results[record.recordID] { throw error }
+    }
+
+    /// Loads this week's duels, with the points each side has so far.
+    func loadDuels(progress: PlayerProgress) async {
+        let weekKey = League.weekKey(for: .now, calendar: .current)
+        guard let opponents = try? await duelOpponents(weekKey: weekKey), !opponents.isEmpty else {
+            duels = []
+            return
+        }
+        let mine = progress.pointsThisWeek(at: .now, calendar: .current)
+        let records = (try? await opponentRecords(opponents)) ?? [:]
+        duels = opponents.compactMap { id -> DuelStanding? in
+            guard !blockedIDs.contains(id) else { return nil }
+            let record = records[id]
+            let theirs = record?[Field.weekKey] as? String == weekKey ? record?[Field.weeklyPoints] as? Int ?? 0 : 0
+            return DuelStanding(id: "\(weekKey)-\(id)", opponentID: id, opponentName: record?[Field.nickname] as? String ?? L("Ny spelare"), mine: mine, theirs: theirs)
+        }
+        .sorted { $0.opponentName < $1.opponentName }
+    }
+
+    /// Settles last week's duels once: each opponent's points for that week against `myPoints`.
+    func settleDuels(weekKey: String, myPoints: Int) async throws -> [(name: String, outcome: Duel.Outcome)] {
+        guard !settledDuelWeeks.contains(weekKey) else { return [] }
+        let opponents = try await duelOpponents(weekKey: weekKey)
+        let records = try await opponentRecords(opponents)
+        let results = opponents.map { id -> (name: String, outcome: Duel.Outcome) in
+            let record = records[id]
+            let theirs: Int
+            if record?[Field.weekKey] as? String == weekKey {
+                theirs = record?[Field.weeklyPoints] as? Int ?? 0
+            } else if record?[Field.lastWeekKey] as? String == weekKey {
+                theirs = record?[Field.lastWeekPoints] as? Int ?? 0
+            } else {
+                theirs = 0
+            }
+            return (record?[Field.nickname] as? String ?? L("Ny spelare"), Duel.outcome(mine: myPoints, theirs: theirs))
+        }
+        settledDuelWeeks.insert(weekKey)
+        UserDefaults.standard.set(Array(settledDuelWeeks), forKey: Keys.settledDuelWeeks)
+        return results
+    }
+
+    /// Who this player duels in `weekKey`, whether they challenged or were challenged.
+    private func duelOpponents(weekKey: String) async throws -> [String] {
+        let me = try await myRecordID().recordName
+        let started = try await duelQuery(NSPredicate(format: "%K == %@ AND %K == %@", DuelField.challenger, me, DuelField.weekKey, weekKey))
+        let received = try await duelQuery(NSPredicate(format: "%K == %@ AND %K == %@", DuelField.opponent, me, DuelField.weekKey, weekKey))
+        let ids = started.compactMap { $0[DuelField.opponent] as? String } + received.compactMap { $0[DuelField.challenger] as? String }
+        return Array(Set(ids))
+    }
+
+    private func duelQuery(_ predicate: NSPredicate) async throws -> [CKRecord] {
+        let (results, _) = try await database.records(matching: CKQuery(recordType: DuelField.type, predicate: predicate), resultsLimit: 50)
+        return results.compactMap { try? $0.1.get() }
+    }
+
+    private func opponentRecords(_ ids: [String]) async throws -> [String: CKRecord] {
+        guard !ids.isEmpty else { return [:] }
+        var records: [String: CKRecord] = [:]
+        for (id, result) in try await database.records(for: ids.map { CKRecord.ID(recordName: $0) }) {
+            if let record = try? result.get() { records[id.recordName] = record }
+        }
+        return records
     }
 
     // MARK: Friends

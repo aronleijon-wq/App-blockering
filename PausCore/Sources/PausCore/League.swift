@@ -195,3 +195,19 @@ enum FriendCode {
         String(input.uppercased().filter { $0.isLetter || $0.isNumber })
     }
 }
+
+/// A one-on-one challenge with a friend over a league week: whoever earns more points wins.
+enum Duel {
+    static let winXP = 100
+    static let winSeeds = 20
+    /// Duels a player can start in one week.
+    static let maxPerWeek = 3
+
+    enum Outcome: Equatable {
+        case won, lost, tied
+    }
+
+    static func outcome(mine: Int, theirs: Int) -> Outcome {
+        mine > theirs ? .won : mine < theirs ? .lost : .tied
+    }
+}

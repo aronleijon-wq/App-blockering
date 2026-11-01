@@ -7,6 +7,8 @@ enum ProgressEvent: Equatable {
     case stepFocusCompleted(minutes: Int)
     /// Added a friend or sent an invite.
     case challengedFriend
+    /// Won a weekly duel against a friend.
+    case wonDuel
     case closedBlockedApp
     case declinedPause
     case claimedDailyReward
@@ -199,6 +201,8 @@ struct PlayerProgress: Codable, Equatable {
     var outfit = Outfit.none
     /// Finished days, by day key, for the focus calendar and the weekly report.
     var history: [String: DaySummary] = [:]
+    /// The league week before this one, kept so duels can be settled against it.
+    var lastWeek: FinishedWeek?
 
     init(
         xp: Int = 0,
@@ -278,6 +282,7 @@ struct PlayerProgress: Codable, Equatable {
         ownedItems = try container.decodeIfPresent(Set<String>.self, forKey: .ownedItems) ?? []
         outfit = try container.decodeIfPresent(Outfit.self, forKey: .outfit) ?? .none
         history = try container.decodeIfPresent([String: DaySummary].self, forKey: .history) ?? [:]
+        lastWeek = try container.decodeIfPresent(FinishedWeek.self, forKey: .lastWeek)
     }
 
     var level: Int { Level.level(forXP: xp) }
@@ -413,6 +418,9 @@ struct PlayerProgress: Codable, Equatable {
         case .challengedFriend:
             guard today.friendActions == 0 else { return [] }
             today.friendActions = 1
+        case .wonDuel:
+            gained = Duel.winXP
+            seeds += Duel.winSeeds
         case .usedSOS:
             today.sosUses += 1
             lost = League.sosPenalty(forUse: today.sosUses)
@@ -530,8 +538,10 @@ struct PlayerProgress: Codable, Equatable {
     mutating func rollWeek(at date: Date, calendar: Calendar) {
         let key = League.weekKey(for: date, calendar: calendar)
         guard weekKey != key else { return }
-        if let weekKey, finishedWeek == nil {
-            finishedWeek = FinishedWeek(weekKey: weekKey, points: weeklyPoints, division: division, groupID: leagueGroupID)
+        if let weekKey {
+            let finished = FinishedWeek(weekKey: weekKey, points: weeklyPoints, division: division, groupID: leagueGroupID)
+            if finishedWeek == nil { finishedWeek = finished }
+            lastWeek = finished
         }
         weekKey = key
         weeklyPoints = 0

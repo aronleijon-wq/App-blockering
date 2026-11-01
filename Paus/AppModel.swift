@@ -38,6 +38,8 @@ final class AppModel {
     var isSOSPresented = false
     /// Good news about free Pro from invites, shown once.
     var referralMessage: String?
+    /// How last week's duels went, shown once.
+    var duelMessage: String?
     var isPaywallPresented = false
     /// Rewards to celebrate on screen; cleared when the celebration is dismissed.
     var celebration: [Reward] = []
@@ -308,9 +310,37 @@ final class AppModel {
             try await league.upload(progress)
             showPendingCelebrations()
             await rewardInvites()
+            await settleDuels()
+            await league.loadDuels(progress: progress)
         } catch {
             // The league is a bonus; it retries on the next sync rather than interrupting the user.
             lastLeagueSync = nil
+        }
+    }
+
+    /// Rewards last week's won duels, once.
+    private func settleDuels() async {
+        guard let last = progress.lastWeek,
+              let results = try? await league.settleDuels(weekKey: last.weekKey, myPoints: last.points),
+              !results.isEmpty
+        else { return }
+        let wins = results.filter { $0.outcome == .won }.count
+        for _ in 0..<wins {
+            ProgressRecorder.record(.wonDuel)
+        }
+        progress = SharedStore.progress
+        duelMessage = wins > 0
+            ? L("Du vann \(wins) av \(results.count) dueller förra veckan! +\(wins * Duel.winXP) XP och \(wins * Duel.winSeeds) frön.")
+            : L("Förra veckans dueller är avgjorda. Ny vecka, nya chanser!")
+    }
+
+    /// Challenges a friend to this week's duel.
+    func startDuel(with entry: LeaderboardEntry) async {
+        do {
+            try await league.startDuel(with: entry, weekKey: League.weekKey(for: .now, calendar: .current))
+            await league.loadDuels(progress: progress)
+        } catch {
+            errorMessage = L("Duellen kunde inte startas just nu. Kontrollera internet och försök igen.")
         }
     }
 

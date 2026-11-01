@@ -96,6 +96,23 @@ final class LeagueTests: XCTestCase {
         XCTAssertEqual(progress.nextSOSPenalty(at: monday, calendar: calendar), 40)
     }
 
+    func testDuelOutcomeAndLastWeek() {
+        XCTAssertEqual(Duel.outcome(mine: 120, theirs: 90), .won)
+        XCTAssertEqual(Duel.outcome(mine: 50, theirs: 90), .lost)
+        XCTAssertEqual(Duel.outcome(mine: 40, theirs: 40), .tied)
+
+        var progress = PlayerProgress()
+        progress.record(.focusCompleted(minutes: 30), at: monday, calendar: calendar)
+        let points = progress.weeklyPoints
+        progress.rollWeek(at: monday.addingTimeInterval(7 * 86_400), calendar: calendar)
+        XCTAssertEqual(progress.lastWeek?.points, points, "last week is kept for settling duels")
+        XCTAssertEqual(progress.lastWeek?.weekKey, "2026-W43")
+
+        let xp = progress.xp
+        progress.record(.wonDuel, at: monday.addingTimeInterval(7 * 86_400), calendar: calendar)
+        XCTAssertEqual(progress.xp, xp + Duel.winXP)
+    }
+
     func testFriendCodes() {
         let code = FriendCode.make()
         XCTAssertEqual(code.count, FriendCode.length)
