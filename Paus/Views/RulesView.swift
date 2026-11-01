@@ -28,6 +28,17 @@ struct RulesView: View {
                 }
 
                 Section {
+                    Label(L("Inställningar > Fokus > välj ett fokusläge > Fokusfilter > Lägg till filter > Paus, och slå på Blockera apparna."), systemImage: "moon.fill")
+                        .font(.subheadline)
+                    Label(L("Genvägar-appen har också Starta fokuspass, till exempel för en automation när du kommer till skolan."), systemImage: "square.2.layers.3d")
+                        .font(.subheadline)
+                } header: {
+                    Text(L("Fokuslägen och genvägar"))
+                } footer: {
+                    Text(L("Då blockerar Paus dina appar automatiskt när till exempel Arbete eller Sömn slås på."))
+                }
+
+                Section {
                     if model.isPro {
                         Picker(L("Öppningsgräns"), selection: binding(\.openLimit)) {
                             Text(L("Ingen")).tag(Int?.none)

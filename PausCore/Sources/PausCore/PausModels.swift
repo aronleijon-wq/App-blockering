@@ -99,6 +99,8 @@ struct PausRuntime: Codable, Equatable {
     var pausedUntil: Date?
     /// Schedules and the daily limit rest until this date after an SOS. Focus sessions started later still block.
     var sosUntil: Date?
+    /// Whether an iPhone Focus with Paus's filter is on, set by the Focus filter.
+    var focusModeOn = false
     /// While an app opened from the shield under the open limit stays open.
     var openUntil: Date?
     /// Opens used today under the open limit; belongs to `statsDay`.
@@ -149,6 +151,7 @@ struct PausRuntime: Codable, Equatable {
         focusStepsCheckedAt = try container.decodeIfPresent(Date.self, forKey: .focusStepsCheckedAt)
         pausedUntil = try container.decodeIfPresent(Date.self, forKey: .pausedUntil)
         sosUntil = try container.decodeIfPresent(Date.self, forKey: .sosUntil)
+        focusModeOn = try container.decodeIfPresent(Bool.self, forKey: .focusModeOn) ?? false
         openUntil = try container.decodeIfPresent(Date.self, forKey: .openUntil)
         opensUsed = try container.decodeIfPresent(Int.self, forKey: .opensUsed) ?? 0
         limitReachedDay = try container.decodeIfPresent(String.self, forKey: .limitReachedDay)

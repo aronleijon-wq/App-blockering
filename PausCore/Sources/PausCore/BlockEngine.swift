@@ -14,6 +14,8 @@ enum BlockReason: Equatable {
     case dailyLimit(minutes: Int)
     /// The guarded apps are blocked except for a few opens a day from the shield.
     case openLimit(left: Int)
+    /// An iPhone Focus, such as Work or Sleep, is on and blocks with Paus.
+    case focusMode
 }
 
 /// Decides whether the selected apps should be blocked. The app and every extension use it,
@@ -34,6 +36,7 @@ struct BlockEngine {
         }
         // On vacation only a focus session the user starts blocks anything.
         if rules.isOnVacation(at: date) { return nil }
+        if runtime.focusModeOn { return .focusMode }
         for schedule in rules.schedules {
             let override = scheduleOverrides[schedule.id]
             if override == false { continue }

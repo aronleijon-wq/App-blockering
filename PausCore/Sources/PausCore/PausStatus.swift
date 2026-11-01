@@ -47,6 +47,8 @@ struct PausStatus: Codable, Hashable {
         case .dailyLimit:
             let midnight = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: date))
             return PausStatus(kind: .limit, title: L("Dagens tid är slut"), start: nil, end: midnight)
+        case .focusMode:
+            return PausStatus(kind: .schedule, title: L("Fokusläge"), start: nil, end: nil)
         case .openLimit(let left):
             if engine.isOpenWindow(at: date), let end = runtime.openUntil {
                 return PausStatus(kind: .pause, title: L("Öppen"), start: end.addingTimeInterval(-TimeInterval(rules.openMinutes * 60)), end: end)

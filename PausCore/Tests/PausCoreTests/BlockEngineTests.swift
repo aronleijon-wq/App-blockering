@@ -100,6 +100,16 @@ final class BlockEngineTests: XCTestCase {
         XCTAssertNil(PausRules(openLimit: 3).effective(isPro: false).openLimit, "Pro only")
     }
 
+    func testFocusModeBlocksUntilItEnds() {
+        var runtime = PausRuntime()
+        runtime.focusModeOn = true
+        XCTAssertEqual(engine(runtime: runtime).reason(at: monday10), .focusMode)
+        XCTAssertTrue(engine(runtime: runtime).shouldShield(at: monday10))
+        let focusEnd = monday10.addingTimeInterval(1500)
+        runtime.focusEndsAt = focusEnd
+        XCTAssertEqual(engine(runtime: runtime).reason(at: monday10), .focus(until: focusEnd), "a focus session wins")
+    }
+
     func testCanPauseRequiresAnActiveNonStrictBlock() {
         let focus = PausRuntime(focusEndsAt: monday10.addingTimeInterval(1500))
         XCTAssertFalse(engine().canPause(at: monday10), "nothing is blocked")
