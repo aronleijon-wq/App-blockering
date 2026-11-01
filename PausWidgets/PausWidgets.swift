@@ -6,12 +6,14 @@ import WidgetKit
 struct PausWidgetsBundle: WidgetBundle {
     var body: some Widget {
         StatusWidget()
+        PipWidget()
+        JourneyWidget()
         PausLiveActivity()
     }
 }
 
 /// The app's colors, repeated here because the widget extension doesn't include the app's design files.
-private enum Palette {
+enum Palette {
     static let background = Color(red: 0.055, green: 0.043, blue: 0.122)
     static let violet = Color(red: 0.545, green: 0.361, blue: 1.0)
     static let pink = Color(red: 1.0, green: 0.31, blue: 0.64)
@@ -24,7 +26,7 @@ private enum Palette {
     )
 }
 
-private extension PausStatus {
+extension PausStatus {
     var symbol: String {
         switch kind {
         case .focus: return "scope"
@@ -88,11 +90,17 @@ struct StatusEntry: TimelineEntry {
     let status: PausStatus
     let health: Int
     let streak: Int
+    var mood: MascotMood = .happy
+    var xp = 0
+    /// Whether the user has done something in Paus today, which keeps the streak going.
+    var activeToday = true
+
+    var level: Int { Level.level(forXP: xp) }
 }
 
 struct StatusProvider: TimelineProvider {
     func placeholder(in context: Context) -> StatusEntry {
-        StatusEntry(date: .now, status: PausStatus(kind: .schedule, title: L("Skola"), start: nil, end: .now.addingTimeInterval(5400)), health: 80, streak: 4)
+        StatusEntry(date: .now, status: PausStatus(kind: .schedule, title: L("Skola"), start: nil, end: .now.addingTimeInterval(5400)), health: 80, streak: 4, mood: .happy, xp: 1150)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (StatusEntry) -> Void) {
@@ -112,11 +120,17 @@ struct StatusProvider: TimelineProvider {
 
     private func entry(at date: Date) -> StatusEntry {
         let progress = SharedStore.progress
+        let rules = SharedStore.effectiveRules
+        let runtime = SharedStore.runtime
+        let engine = BlockEngine(rules: rules, runtime: runtime)
         return StatusEntry(
             date: date,
-            status: PausStatus.at(date, rules: SharedStore.effectiveRules, runtime: SharedStore.runtime, calendar: .current),
+            status: PausStatus.at(date, rules: rules, runtime: runtime, calendar: .current),
             health: progress.health,
-            streak: progress.currentStreak(at: date, calendar: .current)
+            streak: progress.currentStreak(at: date, calendar: .current),
+            mood: MascotMood.current(reason: engine.reason(at: date), isPaused: engine.isPaused(at: date), progress: progress, at: date, calendar: .current),
+            xp: progress.xp,
+            activeToday: progress.lastActiveDay == DayKey.string(for: date, calendar: .current)
         )
     }
 }
