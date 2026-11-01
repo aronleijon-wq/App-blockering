@@ -151,23 +151,29 @@ struct PipItemView: View {
                 .stroke(band, style: StrokeStyle(lineWidth: size * 0.06, lineCap: .round))
                 .frame(width: size * 1.0, height: size * 1.0)
                 .offset(y: size * 0.4)
-            ForEach([-1.0, 1.0], id: \.self) { side in
-                ZStack {
-                    RoundedRectangle(cornerRadius: size * 0.07, style: .continuous)
-                        .fill(LinearGradient(colors: [Theme.pink, Theme.violet], startPoint: .top, endPoint: .bottom))
-                        .frame(width: size * 0.17, height: size * 0.27)
-                    RoundedRectangle(cornerRadius: size * 0.04, style: .continuous)
-                        .fill(band)
-                        .frame(width: size * 0.06, height: size * 0.2)
-                        .offset(x: -CGFloat(side) * size * 0.075)
-                    Circle()
-                        .fill(.white.opacity(0.35))
-                        .frame(width: size * 0.05)
-                        .offset(x: CGFloat(side) * size * 0.02, y: -size * 0.06)
-                }
-                .offset(x: CGFloat(side) * size * 0.49, y: size * 0.38)
-            }
+            headphoneCup(side: -1, band: band)
+            headphoneCup(side: 1, band: band)
         }
+    }
+
+    private func headphoneCup(side: CGFloat, band: Color) -> some View {
+        let inner: CGFloat = -side * size * 0.075
+        let shineX: CGFloat = side * size * 0.02
+        let x: CGFloat = side * size * 0.49
+        return ZStack {
+            RoundedRectangle(cornerRadius: size * 0.07, style: .continuous)
+                .fill(LinearGradient(colors: [Theme.pink, Theme.violet], startPoint: .top, endPoint: .bottom))
+                .frame(width: size * 0.17, height: size * 0.27)
+            RoundedRectangle(cornerRadius: size * 0.04, style: .continuous)
+                .fill(band)
+                .frame(width: size * 0.06, height: size * 0.2)
+                .offset(x: inner)
+            Circle()
+                .fill(.white.opacity(0.35))
+                .frame(width: size * 0.05)
+                .offset(x: shineX, y: -size * 0.06)
+        }
+        .offset(x: x, y: size * 0.38)
     }
 
     /// A red ninja headband across the forehead, its tails fluttering.
@@ -217,9 +223,12 @@ struct PipItemView: View {
                 .offset(y: size * 0.13)
             Capsule().fill(leather).frame(width: size * 0.66, height: size * 0.08).offset(y: size * 0.13)
             Capsule().fill(leather).frame(width: size * 0.06, height: size * 0.24).offset(y: size * 0.01)
-            ForEach([-0.2, 0.0, 0.2], id: \.self) { x in
-                Circle().fill(Color(white: 0.95)).frame(width: size * 0.03).offset(x: size * CGFloat(x), y: size * 0.13)
+            HStack(spacing: size * 0.17) {
+                ForEach(0..<3, id: \.self) { _ in
+                    Circle().fill(Color(white: 0.95)).frame(width: size * 0.03)
+                }
             }
+            .offset(y: size * 0.13)
         }
     }
 
@@ -253,26 +262,36 @@ struct PipItemView: View {
     /// A glowing ring floating above Pip.
     private var halo: some View {
         let glow = Color(red: 1, green: 0.85, blue: 0.3)
+        let bob: CGFloat = CGFloat(sin(time * 2.4)) * 0.025
+        let y: CGFloat = size * (bob - 0.1)
         return Ellipse()
             .stroke(Color(red: 1, green: 0.93, blue: 0.55), lineWidth: size * 0.045)
             .frame(width: size * 0.44, height: size * 0.12)
             .shadow(color: glow, radius: size * 0.04)
             .shadow(color: glow.opacity(0.6), radius: size * 0.1)
-            .offset(y: -size * 0.1 + CGFloat(sin(time * 2.4)) * size * 0.025)
+            .offset(y: y)
     }
 
     /// Flames for hair, flickering.
     private var fireHair: some View {
         ZStack {
             ForEach(0..<5, id: \.self) { i in
-                FlameShape()
-                    .fill(Self.flame)
-                    .frame(width: size * 0.17, height: size * flameHeight(i))
-                    .scaleEffect(x: 1, y: 1 + 0.16 * CGFloat(sin(time * 9 + Double(i) * 1.7)), anchor: .bottom)
-                    .offset(x: size * CGFloat(i - 2) * 0.1, y: -size * flameHeight(i) / 2 + size * 0.12)
+                flame(i)
             }
         }
         .shadow(color: Theme.orange.opacity(0.75), radius: size * 0.05)
+    }
+
+    private func flame(_ i: Int) -> some View {
+        let height: CGFloat = size * flameHeight(i)
+        let flicker: CGFloat = 1 + 0.16 * CGFloat(sin(time * 9 + Double(i) * 1.7))
+        let x: CGFloat = size * CGFloat(i - 2) * 0.1
+        let y: CGFloat = size * 0.12 - height / 2
+        return FlameShape()
+            .fill(Self.flame)
+            .frame(width: size * 0.17, height: height)
+            .scaleEffect(x: 1, y: flicker, anchor: .bottom)
+            .offset(x: x, y: y)
     }
 
     private func flameHeight(_ i: Int) -> CGFloat {
@@ -369,7 +388,8 @@ struct PipItemView: View {
     /// A neon visor with a shine sweeping across it.
     private var visor: some View {
         let cyan = Color(red: 0.2, green: 0.95, blue: 1)
-        let sweep = CGFloat((time * 0.6).truncatingRemainder(dividingBy: 1))
+        let sweep: CGFloat = CGFloat((time * 0.6).truncatingRemainder(dividingBy: 1))
+        let sweepX: CGFloat = size * (sweep - 0.5)
         return ZStack {
             Capsule()
                 .fill(LinearGradient(colors: [cyan, Theme.violet, Theme.pink], startPoint: .leading, endPoint: .trailing))
@@ -377,7 +397,7 @@ struct PipItemView: View {
             Capsule()
                 .fill(LinearGradient(colors: [.clear, .white.opacity(0.85), .clear], startPoint: .leading, endPoint: .trailing))
                 .frame(width: size * 0.14)
-                .offset(x: size * (sweep * 1.0 - 0.5))
+                .offset(x: sweepX)
             Capsule()
                 .stroke(.white.opacity(0.7), lineWidth: size * 0.012)
         }
@@ -438,20 +458,24 @@ struct PipItemView: View {
     }
 
     /// A ring of flowers.
+    private static let leiColors: [Color] = [Theme.pink, Theme.orange, Color(red: 1, green: 0.88, blue: 0.3), Theme.mint, Theme.violet]
+
     private var lei: some View {
-        let colors: [Color] = [Theme.pink, Theme.orange, Color(red: 1, green: 0.88, blue: 0.3), Theme.mint, Theme.violet]
-        return ZStack {
+        ZStack {
             ForEach(0..<9, id: \.self) { i in
-                Image(systemName: "camera.macro")
-                    .font(.system(size: size * 0.09, weight: .bold))
-                    .foregroundStyle(colors[i % colors.count])
-                    .offset(x: size * 0.3 * CGFloat(cos(leiAngle(i))), y: size * 0.12 * CGFloat(sin(leiAngle(i))) - size * 0.07)
+                leiFlower(i)
             }
         }
     }
 
-    private func leiAngle(_ i: Int) -> Double {
-        Double.pi * (0.08 + 0.84 * Double(i) / 8)
+    private func leiFlower(_ i: Int) -> some View {
+        let angle: Double = Double.pi * (0.08 + 0.84 * Double(i) / 8)
+        let x: CGFloat = size * 0.3 * CGFloat(cos(angle))
+        let y: CGFloat = size * (0.12 * CGFloat(sin(angle)) - 0.07)
+        return Image(systemName: "camera.macro")
+            .font(.system(size: size * 0.09, weight: .bold))
+            .foregroundStyle(Self.leiColors[i % Self.leiColors.count])
+            .offset(x: x, y: y)
     }
 
     private var goldChain: some View {
@@ -475,14 +499,16 @@ struct PipItemView: View {
     // MARK: Back, drawn behind Pip
 
     private var cape: some View {
-        CapeShape(wave: CGFloat(sin(time * 3)) * size * 0.03)
+        let wave: CGFloat = CGFloat(sin(time * 3)) * size * 0.03
+        return CapeShape(wave: wave)
             .fill(LinearGradient(colors: [Color(red: 0.95, green: 0.15, blue: 0.25), Color(red: 0.6, green: 0.05, blue: 0.15)], startPoint: .top, endPoint: .bottom))
             .frame(width: size * 1.25, height: size * 0.95)
             .offset(y: size * 0.12)
     }
 
     private func wings(angel: Bool) -> some View {
-        let flap = sin(time * (angel ? 4 : 5)) * 10
+        let speed: Double = angel ? 4 : 5
+        let flap: Double = sin(time * speed) * 10
         let fill = angel
             ? LinearGradient(colors: [.white, Color(red: 0.85, green: 0.9, blue: 1)], startPoint: .top, endPoint: .bottom)
             : LinearGradient(colors: [Color(red: 0.45, green: 0.2, blue: 0.7), Color(red: 0.2, green: 0.08, blue: 0.35)], startPoint: .top, endPoint: .bottom)
@@ -503,28 +529,32 @@ struct PipItemView: View {
     }
 
     private var jetpack: some View {
-        let flicker = 1 + 0.25 * CGFloat(sin(time * 20))
-        return ZStack {
-            ForEach([-1.0, 1.0], id: \.self) { side in
-                ZStack {
-                    FlameShape()
-                        .fill(Self.flame)
-                        .frame(width: size * 0.13, height: size * 0.3)
-                        .rotationEffect(.degrees(180))
-                        .scaleEffect(x: 1, y: flicker, anchor: .top)
-                        .offset(y: size * 0.32)
-                    RoundedRectangle(cornerRadius: size * 0.07, style: .continuous)
-                        .fill(LinearGradient(colors: [Color(white: 0.9), Color(white: 0.5)], startPoint: .leading, endPoint: .trailing))
-                        .frame(width: size * 0.19, height: size * 0.44)
-                    Capsule()
-                        .fill(Theme.pink)
-                        .frame(width: size * 0.19, height: size * 0.05)
-                        .offset(y: -size * 0.1)
-                }
-                .offset(x: CGFloat(side) * size * 0.47, y: size * 0.04)
-            }
+        ZStack {
+            jetpackTank(side: -1)
+            jetpackTank(side: 1)
         }
         .shadow(color: Theme.orange.opacity(0.5), radius: size * 0.04)
+    }
+
+    private func jetpackTank(side: CGFloat) -> some View {
+        let flicker: CGFloat = 1 + 0.25 * CGFloat(sin(time * 20))
+        let x: CGFloat = side * size * 0.47
+        return ZStack {
+            FlameShape()
+                .fill(Self.flame)
+                .frame(width: size * 0.13, height: size * 0.3)
+                .rotationEffect(.degrees(180))
+                .scaleEffect(x: 1, y: flicker, anchor: .top)
+                .offset(y: size * 0.32)
+            RoundedRectangle(cornerRadius: size * 0.07, style: .continuous)
+                .fill(LinearGradient(colors: [Color(white: 0.9), Color(white: 0.5)], startPoint: .leading, endPoint: .trailing))
+                .frame(width: size * 0.19, height: size * 0.44)
+            Capsule()
+                .fill(Theme.pink)
+                .frame(width: size * 0.19, height: size * 0.05)
+                .offset(y: -size * 0.1)
+        }
+        .offset(x: x, y: size * 0.04)
     }
 }
 
@@ -651,9 +681,16 @@ struct WingShape: Shape {
         ]
         var previous = tip
         for point in points {
-            let control = spiky
-                ? CGPoint(x: max(previous.x, point.x) - r.width * 0.02, y: min(previous.y, point.y) + r.height * 0.02)
-                : CGPoint(x: min(previous.x, point.x) - r.width * 0.06, y: max(previous.y, point.y) + r.height * 0.06)
+            let control: CGPoint
+            if spiky {
+                let cx: CGFloat = max(previous.x, point.x) - r.width * 0.02
+                let cy: CGFloat = min(previous.y, point.y) + r.height * 0.02
+                control = CGPoint(x: cx, y: cy)
+            } else {
+                let cx: CGFloat = min(previous.x, point.x) - r.width * 0.06
+                let cy: CGFloat = max(previous.y, point.y) + r.height * 0.06
+                control = CGPoint(x: cx, y: cy)
+            }
             p.addQuadCurve(to: point, control: control)
             previous = point
         }

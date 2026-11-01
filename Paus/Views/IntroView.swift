@@ -33,15 +33,20 @@ struct IntroView: View {
             topBar
             content
                 .id(step)
-                .transition(.asymmetric(
-                    insertion: .move(edge: movesBack ? .leading : .trailing).combined(with: .opacity),
-                    removal: .move(edge: movesBack ? .trailing : .leading).combined(with: .opacity)
-                ))
+                .transition(stepTransition)
                 .environment(\.showsLinesAtOnce, movesBack)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .screenBackground()
         .animation(.spring(duration: 0.5), value: step)
+    }
+
+    /// Steps slide in from the right, or from the left when going back.
+    private var stepTransition: AnyTransition {
+        let from: Edge = movesBack ? .leading : .trailing
+        let to: Edge = movesBack ? .trailing : .leading
+        return .asymmetric(insertion: AnyTransition.move(edge: from).combined(with: .opacity),
+                           removal: AnyTransition.move(edge: to).combined(with: .opacity))
     }
 
     private var topBar: some View {
