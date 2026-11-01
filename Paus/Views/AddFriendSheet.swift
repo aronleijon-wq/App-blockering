@@ -43,7 +43,7 @@ struct AddFriendSheet: View {
                     }
                 } footer: {
                     Text(model.league.invitedBy == nil
-                        ? L("Den första koden du lägger till räknas som din inbjudan: du får \(Referral.bonusDays) dagar gratis Pro direkt, och din vän får lika många när du har kört ditt första fokuspass.")
+                        ? L("Den första koden du lägger till räknas som din inbjudan. Din vän får \(Referral.bonusDays) dagar gratis Pro när du har kört ditt första fokuspass.")
                         : L("Ni ser varandra i Vänner så fort en av er har lagt till den andra."))
                 }
             }

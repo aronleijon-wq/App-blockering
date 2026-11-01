@@ -254,7 +254,7 @@ struct IntroView: View {
         case .friends:
             ChatStep(mood: .hyped, lines: [
                 L("Allt är roligare tillsammans! 🏆"),
-                L("Bjud in en vän, så får ni båda \(Referral.bonusDays) dagar gratis Pro 🎁"),
+                L("Bjud in en vän och få \(Referral.bonusDays) dagar gratis Pro 🎁"),
             ]) {
                 InviteCard(nickname: model.league.nickname, code: model.league.friendCode)
                 ShareLink(
@@ -707,7 +707,7 @@ private struct InviteCard: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            Label(L("\(Referral.bonusDays) dagar gratis Pro – till er båda"), systemImage: "gift.fill")
+            Label(L("\(Referral.bonusDays) dagar gratis Pro per vän"), systemImage: "gift.fill")
                 .font(.subheadline.weight(.heavy))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 14)
@@ -718,7 +718,7 @@ private struct InviteCard: View {
                 podium(height: 76, mood: .hyped, place: "1")
                 podium(height: 38, mood: .sleepy, place: "3")
             }
-            Text(markdown(L("Din vän lägger till din kod **\(code)** i appen. Hen får sina dagar direkt, och du får dina när hen har kört sitt första fokuspass.")))
+            Text(markdown(L("Din vän lägger till din kod **\(code)** i appen. Du får dina dagar när hen har kört sitt första fokuspass.")))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

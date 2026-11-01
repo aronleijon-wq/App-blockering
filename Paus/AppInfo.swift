@@ -19,7 +19,7 @@ enum AppInfo {
     /// The text that goes with an invite, with the player's code so the friend can add them in the league.
     static func inviteMessage(nickname: String?, code: String) -> String {
         let name = nickname.map { L(" Mitt smeknamn är \($0).") } ?? ""
-        return L("Jag kör Paus för att scrolla mindre 📵 Utmana mig i ligan – den som scrollar minst vinner veckan!\(name) Lägg till min kod \(code) under Liga > Vänner, så får vi båda \(Referral.bonusDays) dagar gratis Pro.")
+        return L("Jag kör Paus för att scrolla mindre 📵 Utmana mig i ligan – den som scrollar minst vinner veckan!\(name) Lägg till min kod \(code) under Liga > Vänner, så tävlar vi mot varandra.")
     }
 
     /// "0.1.0 (1)", from the bundle.

@@ -330,11 +330,10 @@ final class AppModel {
             : L("\(count) vänner du bjöd in har kommit igång! Du fick \(days) dagar gratis Pro.")
     }
 
-    /// Adds a friend by code. The first code a player adds is their invite, which gives them free Pro right away.
+    /// Adds a friend by code. The first code a player adds is their invite, which earns the friend free Pro
+    /// once this player has finished a focus session.
     func addFriend(code: String) async throws {
-        guard try await league.addFriend(code: code) else { return }
-        store.addBonus(days: Referral.bonusDays)
-        referralMessage = L("Välkommen! Du fick \(Referral.bonusDays) dagar gratis Pro. Din vän får också \(Referral.bonusDays) dagar när du har kört ditt första fokuspass.")
+        try await league.addFriend(code: code)
     }
 
     // MARK: Rewards

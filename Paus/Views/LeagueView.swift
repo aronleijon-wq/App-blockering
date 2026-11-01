@@ -232,7 +232,7 @@ struct LeagueView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L("Utmana dina vänner"))
                         .font(.headline)
-                    Text(L("Skicka din länk. Ni får båda \(Referral.bonusDays) dagar gratis Pro när din vän kommer igång."))
+                    Text(L("Skicka din länk. Du får \(Referral.bonusDays) dagar gratis Pro för varje vän som kommer igång."))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     let earned = league.rewardedInviteIDs.count
