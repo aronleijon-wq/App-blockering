@@ -16,7 +16,7 @@ final class Store {
     /// Whether a subscription is active, as opposed to free Pro days earned by inviting friends.
     private(set) var isSubscribed = false
     /// When the free Pro days from invites run out.
-    private(set) var bonusUntil = SharedStore.proBonusUntil
+    private(set) var bonusUntil = ReferralRecord.bonusUntil
     /// Localized prices from the App Store, such as "29,00 kr", once loaded.
     private(set) var monthlyPrice: String?
     private(set) var yearlyPrice: String?
@@ -59,14 +59,14 @@ final class Store {
             isEligibleForTrial = await subscription.isEligibleForIntroOffer
         }
         isSubscribed = active
+        ReferralRecord.backUp()
+        bonusUntil = ReferralRecord.bonusUntil
         updateEntitlement()
     }
 
-    /// Adds free Pro days, earned by inviting a friend or by being invited.
+    /// Adds free Pro days, earned by inviting a friend.
     func addBonus(days: Int) {
-        let until = Referral.extend(SharedStore.proBonusUntil, byDays: days, from: .now)
-        SharedStore.proBonusUntil = until
-        bonusUntil = until
+        bonusUntil = ReferralRecord.extendBonus(byDays: days)
         updateEntitlement()
     }
 

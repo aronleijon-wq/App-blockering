@@ -59,7 +59,8 @@ enum SharedStore {
         set { AppGroup.defaults.set(newValue, forKey: proKey) }
     }
 
-    /// Free Pro earned by inviting friends lasts until this date.
+    /// The phone's copy of when free Pro from invites runs out. `ReferralRecord` also keeps it in the keychain,
+    /// which survives reinstalling Paus; read it from there.
     static var proBonusUntil: Date? {
         get { AppGroup.defaults.object(forKey: proBonusKey) as? Date }
         set { AppGroup.defaults.set(newValue, forKey: proBonusKey) }

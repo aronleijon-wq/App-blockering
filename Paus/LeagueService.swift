@@ -49,8 +49,6 @@ final class LeagueService {
         static let friendCode = "league.friendCode"
         static let friends = "league.friends"
         static let unfriended = "league.unfriended"
-        static let invitedBy = "league.invitedBy"
-        static let rewardedInvites = "league.rewardedInvites"
         static let sharesCode = "league.sharesCode"
         static let settledDuelWeeks = "league.settledDuelWeeks"
     }
@@ -124,8 +122,8 @@ final class LeagueService {
         blockedIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.blocked) ?? [])
         friendIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.friends) ?? [])
         unfriendedIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.unfriended) ?? [])
-        invitedBy = UserDefaults.standard.string(forKey: Keys.invitedBy)
-        rewardedInviteIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.rewardedInvites) ?? [])
+        invitedBy = ReferralRecord.invitedBy
+        rewardedInviteIDs = (try? ReferralRecord.rewardedInvites()) ?? []
         sharesCode = UserDefaults.standard.bool(forKey: Keys.sharesCode)
         settledDuelWeeks = Set(UserDefaults.standard.stringArray(forKey: Keys.settledDuelWeeks) ?? [])
         if let code = UserDefaults.standard.string(forKey: Keys.friendCode) {
@@ -323,17 +321,18 @@ final class LeagueService {
         let saved = try? await database.record(for: myID)
         guard saved?[Field.invitedBy] == nil else {
             invitedBy = saved?[Field.invitedBy] as? String
-            UserDefaults.standard.set(invitedBy, forKey: Keys.invitedBy)
+            ReferralRecord.invitedBy = invitedBy
             return false
         }
         invitedBy = id
-        UserDefaults.standard.set(id, forKey: Keys.invitedBy)
+        ReferralRecord.invitedBy = id
         return true
     }
 
     /// Players this player invited who have since finished a focus session and haven't earned anything yet.
-    /// Each is counted once, up to `Referral.maxRewardedFriends`.
+    /// Each is counted once, up to `Referral.maxRewardedFriends`, even after Paus is reinstalled.
     func newlyQualifiedInvites() async throws -> Int {
+        rewardedInviteIDs = try ReferralRecord.rewardedInvites()
         let room = Referral.maxRewardedFriends - rewardedInviteIDs.count
         guard room > 0 else { return 0 }
         let me = try await myRecordID().recordName
@@ -345,7 +344,7 @@ final class LeagueService {
             .prefix(room)
         guard !fresh.isEmpty else { return 0 }
         rewardedInviteIDs.formUnion(fresh)
-        UserDefaults.standard.set(Array(rewardedInviteIDs), forKey: Keys.rewardedInvites)
+        ReferralRecord.addRewardedInvites(fresh)
         return fresh.count
     }
 
