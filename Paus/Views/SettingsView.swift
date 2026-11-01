@@ -62,7 +62,7 @@ struct SettingsView: View {
                         SettingsDivider()
                         notificationToggle(\.pipHealth, symbol: "heart.fill", title: L("Pips mående"), detail: L("När Pip mår sämre av scrollandet."))
                         SettingsDivider()
-                        notificationToggle(\.dailyReminder, symbol: "flame.fill", title: L("Daglig påminnelse"), detail: L("Kl. 18.30 om dagens belöning och streaken."))
+                        notificationToggle(\.dailyReminder, symbol: "flame.fill", title: L("Daglig påminnelse"), detail: L("Kl. 18.30 om dagens belöning, och Pip hör av sig om du är borta ett tag."))
                     }
 
                     SettingsGroup(title: L("Skydd")) {

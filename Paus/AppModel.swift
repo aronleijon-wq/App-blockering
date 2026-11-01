@@ -412,15 +412,17 @@ final class AppModel {
 
     private func scheduleReminder() {
         guard notificationSettings.dailyReminder else {
-            Notifier.cancel([Reminders.identifier])
+            Notifier.cancel([Reminders.identifier] + Reminders.winBackIdentifiers)
             return
         }
         let now = Date.now
+        let streak = progress.currentStreak(at: now, calendar: .current)
         Reminders.scheduleNext(
             rewardClaimedToday: !progress.canClaimDailyReward(at: now, calendar: .current),
-            streak: progress.currentStreak(at: now, calendar: .current),
+            streak: streak,
             now: now
         )
+        Reminders.scheduleWinBack(streak: streak, now: now)
     }
 
     // MARK: Rules
