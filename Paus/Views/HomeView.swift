@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var isHealthInfoPresented = false
     @State private var isSettingsPresented = false
     @State private var isStopFocusConfirming = false
+    @State private var isWardrobePresented = false
     /// The step goal waiting for the user to confirm, since a step session can't be undone.
     @State private var confirmingStepGoal: Int?
 
@@ -73,8 +74,29 @@ struct HomeView: View {
         let levelStart = Level.xpRequired(for: level)
         let levelEnd = Level.xpRequired(for: level + 1)
         return VStack(spacing: 14) {
-            MascotView(mood: model.mood, level: level, size: 160)
-                .padding(.top, 8)
+            Button {
+                isWardrobePresented = true
+            } label: {
+                MascotView(mood: model.mood, level: level, size: 160, outfit: progress.outfit)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 8)
+            .accessibilityHint(L("Öppnar Pips garderob"))
+            .sheet(isPresented: $isWardrobePresented) {
+                WardrobeView()
+            }
+
+            Button {
+                isWardrobePresented = true
+            } label: {
+                HStack(spacing: 8) {
+                    SeedsChip(seeds: progress.seeds)
+                    Label(L("Garderob"), systemImage: "tshirt.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .buttonStyle(.plain)
 
             if !model.coachMessage.isEmpty {
                 Text(model.coachMessage)

@@ -38,7 +38,7 @@ struct CelebrationView: View {
 
             VStack(spacing: 20) {
                 Spacer()
-                MascotView(mood: .proud, level: newLevel ?? model.progress.level, size: 180)
+                MascotView(mood: .proud, level: newLevel ?? model.progress.level, size: 180, outfit: model.progress.outfit)
 
                 if let change = divisionChange {
                     DivisionBadge(division: change.division, size: 72)

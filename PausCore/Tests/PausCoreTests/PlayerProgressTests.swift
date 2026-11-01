@@ -130,6 +130,32 @@ final class PlayerProgressTests: XCTestCase {
         XCTAssertEqual(progress.weekCounts(at: day(7, from: monday), calendar: calendar).focusMinutes, 0, "a new week starts empty")
     }
 
+    func testSeedsAreEarnedAndSpent() {
+        var progress = PlayerProgress()
+        progress.record(.claimedDailyReward, at: monday, calendar: calendar)
+        XCTAssertGreaterThanOrEqual(progress.seeds, Seeds.dailyReward)
+        progress.record(.focusCompleted(minutes: 50), at: monday, calendar: calendar)
+        XCTAssertGreaterThanOrEqual(progress.seeds, Seeds.dailyReward + 5)
+
+        let cap = WardrobeItem.with(id: "hat-cap")!
+        progress.seeds = cap.price - 1
+        XCTAssertEqual(progress.buy(cap, isPro: false), .tooFewSeeds)
+        progress.seeds = cap.price
+        XCTAssertEqual(progress.buy(cap, isPro: false), .bought)
+        XCTAssertEqual(progress.seeds, 0)
+        XCTAssertEqual(progress.buy(cap, isPro: false), .alreadyOwned)
+
+        progress.toggle(cap)
+        XCTAssertEqual(progress.outfit.hat, "hat-cap")
+        progress.toggle(cap)
+        XCTAssertNil(progress.outfit.hat)
+
+        let crown = WardrobeItem.with(id: "hat-crown")!
+        progress.seeds = 1000
+        XCTAssertEqual(progress.buy(crown, isPro: false), .needsPro)
+        XCTAssertEqual(progress.buy(crown, isPro: true), .bought)
+    }
+
     func testCountersResetOnNewDay() {
         var progress = PlayerProgress()
         progress.record(.closedBlockedApp, at: monday, calendar: calendar)

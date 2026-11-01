@@ -345,6 +345,29 @@ final class AppModel {
         if rewards.contains(where: \.isCelebration) { showPendingCelebrations() }
     }
 
+    // MARK: Wardrobe
+
+    /// Buys a wardrobe item with seeds and puts it on Pip.
+    func buy(_ item: WardrobeItem) {
+        let isPro = isPro
+        _ = SharedStore.updateProgress { progress in
+            if progress.buy(item, isPro: isPro) == .bought {
+                progress.toggle(item)
+            }
+            return []
+        }
+        progress = SharedStore.progress
+    }
+
+    /// Puts an owned item on Pip, or takes it off.
+    func toggle(_ item: WardrobeItem) {
+        _ = SharedStore.updateProgress { progress in
+            progress.toggle(item)
+            return []
+        }
+        progress = SharedStore.progress
+    }
+
     // MARK: Rewards
 
     func claimDailyReward() {

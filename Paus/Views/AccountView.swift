@@ -13,7 +13,7 @@ struct AccountView: View {
         ScrollView {
             VStack(spacing: 24) {
                 VStack(spacing: 6) {
-                    MascotView(mood: model.mood, level: model.progress.level, size: 100)
+                    MascotView(mood: model.mood, level: model.progress.level, size: 100, outfit: model.progress.outfit)
                     Text(model.firstName ?? L("Ditt konto"))
                         .font(.title2.bold())
                     Text(L("Nivå \(model.progress.level) · \(Level.title(for: model.progress.level))"))

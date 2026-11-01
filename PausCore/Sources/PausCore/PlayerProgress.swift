@@ -193,6 +193,10 @@ struct PlayerProgress: Codable, Equatable {
     var week = WeeklyCounts()
     /// Whether quests for Pro features, such as step sessions, can be picked. Set before each event.
     var includesProQuests = false
+    /// Seeds to spend in Pip's wardrobe, and what has been bought and is worn.
+    var seeds = 0
+    var ownedItems: Set<String> = []
+    var outfit = Outfit.none
 
     init(
         xp: Int = 0,
@@ -268,6 +272,9 @@ struct PlayerProgress: Codable, Equatable {
         healthDay = try container.decodeIfPresent(String.self, forKey: .healthDay)
         week = try container.decodeIfPresent(WeeklyCounts.self, forKey: .week) ?? WeeklyCounts()
         includesProQuests = try container.decodeIfPresent(Bool.self, forKey: .includesProQuests) ?? false
+        seeds = try container.decodeIfPresent(Int.self, forKey: .seeds) ?? 0
+        ownedItems = try container.decodeIfPresent(Set<String>.self, forKey: .ownedItems) ?? []
+        outfit = try container.decodeIfPresent(Outfit.self, forKey: .outfit) ?? .none
     }
 
     var level: Int { Level.level(forXP: xp) }
@@ -331,6 +338,7 @@ struct PlayerProgress: Codable, Equatable {
             week.focusSessions += 1
             week.focusMinutes += minutes
             if today.focusSessions == 1 { week.focusDays += 1 }
+            seeds += Seeds.forFocus(minutes: minutes)
             gained = minutes + XP.focusBonus
             points = min(minutes, max(0, League.Points.focusDailyCap - today.focusPoints))
             today.focusPoints += points
@@ -356,6 +364,7 @@ struct PlayerProgress: Codable, Equatable {
             guard lastRewardDay != day else { return [] }
             lastRewardDay = day
             today.rewardClaimed = 1
+            seeds += Seeds.dailyReward
             // Extend the streak first so the reward reflects it.
             markActive(at: date, calendar: calendar)
             gained = XP.dailyRewardBase + XP.dailyRewardPerStreakDay * min(streak, XP.dailyRewardMaxStreakBonus)
@@ -363,6 +372,7 @@ struct PlayerProgress: Codable, Equatable {
             healthChange = PipHealth.dailyReward
         case .dayUnderLimit:
             week.daysUnderLimit += 1
+            seeds += Seeds.dayUnderLimit
             gained = XP.dayUnderLimit
             points = League.Points.dayUnderLimit
             healthChange = PipHealth.dayUnderLimit
@@ -423,6 +433,7 @@ struct PlayerProgress: Codable, Equatable {
                 today.completedQuests.insert(quest.id)
                 week.dailyQuests += 1
             }
+            seeds += Seeds.forQuest(quest)
             gained += quest.xp
             rewards.append(.quest(quest.id))
         }
@@ -432,6 +443,7 @@ struct PlayerProgress: Codable, Equatable {
            !today.completedQuests.contains(bonus.id), bonus.progress(today: today, week: week) >= bonus.target {
             today.completedQuests.insert(bonus.id)
             week.dailyQuests += 1
+            seeds += Seeds.forQuest(bonus)
             gained += bonus.xp
             rewards.append(.quest(bonus.id))
         }

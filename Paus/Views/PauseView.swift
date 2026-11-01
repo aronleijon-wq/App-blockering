@@ -44,7 +44,7 @@ struct PauseView: View {
     private var reasonPicker: some View {
         ScrollView {
             VStack(spacing: 20) {
-                MascotView(mood: .happy, level: model.progress.level, size: 110)
+                MascotView(mood: .happy, level: model.progress.level, size: 110, outfit: model.progress.outfit)
                     .padding(.top, 8)
                 Text(L("Varför vill du öppna appen?"))
                     .font(.title2.bold())
@@ -114,7 +114,7 @@ struct PauseView: View {
                         .fill(Theme.glow)
                         .opacity(0.55)
                         .scaleEffect(scale)
-                    MascotView(mood: .zen, level: model.progress.level, size: 110)
+                    MascotView(mood: .zen, level: model.progress.level, size: 110, outfit: model.progress.outfit)
                 }
                 .frame(width: 220, height: 220)
                 .accessibilityHidden(true)

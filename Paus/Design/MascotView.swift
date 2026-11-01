@@ -5,6 +5,8 @@ struct MascotView: View {
     var mood: MascotMood
     var level: Int
     var size: CGFloat = 170
+    /// What Pip wears from the wardrobe.
+    var outfit: Outfit = .none
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -33,6 +35,14 @@ struct MascotView: View {
                     .saturation(saturation)
 
                 face(time: time)
+                if let neck = outfit.neck {
+                    PipItemView(id: neck, size: size)
+                        .offset(PipItemView.offset(for: .neck, size: size))
+                }
+                if let glasses = outfit.glasses, mood != .wrecked {
+                    PipItemView(id: glasses, size: size)
+                        .offset(PipItemView.offset(for: .glasses, size: size))
+                }
                 accessories(time: time)
                 if mood == .crying {
                     tears(time: time)
@@ -64,6 +74,9 @@ struct MascotView: View {
     }
 
     private var bodyGradient: LinearGradient {
+        if let colors = PipColors.colors(for: outfit.color) {
+            return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
         let colors: [Color]
         switch level {
         case ..<3: colors = [Theme.mint, Color(red: 0.2, green: 0.75, blue: 0.95)]
@@ -189,6 +202,10 @@ struct MascotView: View {
                 .frame(width: size * 0.22, height: size * 0.08)
                 .rotationEffect(.degrees(-30))
                 .offset(x: size * 0.2, y: -size * 0.3)
+        } else if let hat = outfit.hat {
+            // A hat from the wardrobe replaces the level accessory.
+            PipItemView(id: hat, size: size)
+                .offset(PipItemView.offset(for: .hat, size: size))
         } else if level >= 8 {
             Image(systemName: "crown.fill")
                 .font(.system(size: size * 0.22))

@@ -66,7 +66,7 @@ struct PipHealthSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    MascotView(mood: model.mood, level: model.progress.level, size: 120)
+                    MascotView(mood: model.mood, level: model.progress.level, size: 120, outfit: model.progress.outfit)
                     HealthBar(health: model.progress.health)
                         .card()
 
