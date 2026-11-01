@@ -14,6 +14,10 @@ struct IntroView: View {
     @FocusState private var isTyping: Bool
     @State private var isPaywallPresented = false
     @State private var isEmailSignInPresented = false
+    /// The steps the user came through, so the back arrow can return to them.
+    @State private var history: [Step] = []
+    /// Whether the last move was back, which slides the steps the other way and shows Pip's lines at once.
+    @State private var movesBack = false
 
     enum Step: Int, CaseIterable {
         case language, hello, name, age, hours, apps, goals, calculating, reveal, plan, account, tour, nickname, friends, trial
@@ -30,9 +34,10 @@ struct IntroView: View {
             content
                 .id(step)
                 .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
+                    insertion: .move(edge: movesBack ? .leading : .trailing).combined(with: .opacity),
+                    removal: .move(edge: movesBack ? .trailing : .leading).combined(with: .opacity)
                 ))
+                .environment(\.showsLinesAtOnce, movesBack)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .screenBackground()
@@ -41,6 +46,20 @@ struct IntroView: View {
 
     private var topBar: some View {
         HStack(spacing: 14) {
+            Button {
+                goBack()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 36, height: 36)
+                    .background(Theme.cardRaised, in: Circle())
+            }
+            .accessibilityLabel(L("Tillbaka"))
+            // Kept in place when hidden, so the progress bar doesn't jump.
+            .opacity(canGoBack ? 1 : 0)
+            .disabled(!canGoBack)
+            .accessibilityHidden(!canGoBack)
             GradientBar(fraction: Double(step.rawValue + 1) / Double(Step.allCases.count), height: 6)
             Button {
                 finish()
@@ -63,7 +82,7 @@ struct IntroView: View {
         case .language:
             LanguageStep { language in
                 model.setLanguage(language)
-                step = .hello
+                go(.hello)
             }
 
         case .hello:
@@ -72,7 +91,7 @@ struct IntroView: View {
                 L("Jag hjälper dig att ta tillbaka tiden som mobilen äter upp."),
                 L("Får jag ställa några snabba frågor först?"),
             ]) {
-                Button(L("Kör!")) { step = .name }
+                Button(L("Kör!")) { go(.name) }
                     .buttonStyle(GlowButtonStyle())
             }
 
@@ -101,7 +120,7 @@ struct IntroView: View {
                     ForEach(AgeGroup.allCases) { group in
                         ChoiceChip(title: group.label, isSelected: answers.ageGroup == group) {
                             answers.ageGroup = group
-                            step = .hours
+                            go(.hours)
                         }
                     }
                 }
@@ -124,7 +143,7 @@ struct IntroView: View {
                         .sensoryFeedback(.selection, trigger: answers.hoursPerDay)
                         .accessibilityLabel(L("Timmar per dag"))
                         .accessibilityValue(Self.hours(answers.hoursPerDay))
-                    Button(L("Fortsätt")) { step = .apps }
+                    Button(L("Fortsätt")) { go(.apps) }
                         .buttonStyle(GlowButtonStyle())
                 }
             }
@@ -133,7 +152,7 @@ struct IntroView: View {
             ChatStep(mood: .happy, lines: [L("Vilka appar tar mest tid?"), L("Välj så många du vill.")]) {
                 VStack(spacing: 16) {
                     ChoiceGrid(choices: appChoices, selected: $answers.apps)
-                    Button(L("Fortsätt")) { step = .goals }
+                    Button(L("Fortsätt")) { go(.goals) }
                         .buttonStyle(GlowButtonStyle())
                 }
             }
@@ -142,13 +161,13 @@ struct IntroView: View {
             ChatStep(mood: .happy, lines: [L("Och om du fick tillbaka tiden…"), L("Vad skulle du hellre göra?")]) {
                 VStack(spacing: 16) {
                     ChoiceGrid(choices: goalChoices, selected: $answers.goals)
-                    Button(L("Fortsätt")) { step = .calculating }
+                    Button(L("Fortsätt")) { go(.calculating) }
                         .buttonStyle(GlowButtonStyle())
                 }
             }
 
         case .calculating:
-            CalculatingStep { step = .reveal }
+            CalculatingStep { go(.reveal) }
 
         case .reveal:
             ChatStep(mood: .sad, lines: [
@@ -156,12 +175,12 @@ struct IntroView: View {
                 L("Med **\(Self.hours(answers.hoursPerDay)) om dagen** lägger du resten av livet…"),
             ]) {
                 RevealCard(answers: answers)
-                Button(L("Det vill jag ändra")) { step = .plan }
+                Button(L("Det vill jag ändra")) { go(.plan) }
                     .buttonStyle(GlowButtonStyle())
             }
 
         case .plan:
-            PlanStep(answers: answers, goalText: goalText) { step = .account }
+            PlanStep(answers: answers, goalText: goalText) { go(.account) }
 
         case .account:
             ChatStep(mood: .happy, lines: [
@@ -172,7 +191,7 @@ struct IntroView: View {
                     request.requestedScopes = [.fullName, .email]
                 } onCompletion: { result in
                     if model.signIn(result) {
-                        step = .tour
+                        go(.tour)
                     }
                 }
                 .signInWithAppleButtonStyle(.white)
@@ -182,10 +201,10 @@ struct IntroView: View {
                     OrDivider()
                     EmailSignInButton { isEmailSignInPresented = true }
                         .sheet(isPresented: $isEmailSignInPresented) {
-                            EmailSignInView(suggestedName: trimmedName) { step = .tour }
+                            EmailSignInView(suggestedName: trimmedName) { go(.tour) }
                         }
                 }
-                Button(L("Inte nu")) { step = .tour }
+                Button(L("Inte nu")) { go(.tour) }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -199,7 +218,7 @@ struct IntroView: View {
                     TourItem(symbol: "chart.bar.fill", title: L("Din skärmtid"), text: L("Se dagen och veckan, och hur mycket du vinner tillbaka.")),
                     TourItem(symbol: "flag.checkered", title: L("Ligor varje vecka"), text: L("Tävla mot andra som också vill scrolla mindre.")),
                 ])
-                Button(L("Låter bra!")) { step = .nickname }
+                Button(L("Låter bra!")) { go(.nickname) }
                     .buttonStyle(GlowButtonStyle())
             }
 
@@ -246,7 +265,7 @@ struct IntroView: View {
                 Button(L("Klar!")) { submitNickname() }
                     .buttonStyle(GlowButtonStyle())
                     .disabled(Nickname.problem(with: nickname) != nil)
-                Button(L("Hoppa över ligan")) { step = .friends }
+                Button(L("Hoppa över ligan")) { go(.friends) }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -279,6 +298,37 @@ struct IntroView: View {
         }
     }
 
+    private var canGoBack: Bool {
+        !history.isEmpty && step != .calculating
+    }
+
+    /// Moves on to `next`, remembering this step so the back arrow can return to it. Pip's calculation is left out,
+    /// and so is the account step once the user has signed in.
+    private func go(_ next: Step) {
+        if step != .calculating, !(step == .account && model.account != nil) {
+            history.append(step)
+        }
+        move(to: next, back: false)
+    }
+
+    /// Returns to the previous step, where the earlier answer is still chosen and can be changed.
+    private func goBack() {
+        guard let previous = history.popLast() else { return }
+        isTyping = false
+        move(to: previous, back: true)
+    }
+
+    /// A step removed in the same update as the direction changes would slide the old way, so a change of direction
+    /// is applied first and the step changes right after.
+    private func move(to next: Step, back: Bool) {
+        guard movesBack != back else {
+            step = next
+            return
+        }
+        movesBack = back
+        DispatchQueue.main.async { step = next }
+    }
+
     private var trimmedName: String {
         answers.name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -287,14 +337,14 @@ struct IntroView: View {
         guard !trimmedName.isEmpty else { return }
         answers.name = trimmedName
         isTyping = false
-        step = .age
+        go(.age)
     }
 
     private func submitNickname() {
         guard Nickname.problem(with: nickname) == nil else { return }
         model.league.setNickname(nickname)
         Task { await model.syncLeague(force: true) }
-        step = .friends
+        go(.friends)
     }
 
     /// Offers the free week, unless the user already has Pro.
@@ -302,7 +352,7 @@ struct IntroView: View {
         if model.isPro {
             finish()
         } else {
-            step = .trial
+            go(.trial)
         }
     }
 
@@ -401,6 +451,7 @@ private struct ChatStep<Actions: View>: View {
 
     @State private var shownLines = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.showsLinesAtOnce) private var showsLinesAtOnce
 
     init(mood: MascotMood, lines: [String], @ViewBuilder actions: () -> Actions) {
         self.mood = mood
@@ -437,6 +488,11 @@ private struct ChatStep<Actions: View>: View {
         .scrollBounceBehavior(.basedOnSize)
         .sensoryFeedback(.impact(weight: .light), trigger: shownLines)
         .task {
+            // Coming back to a question, Pip has already said it.
+            if showsLinesAtOnce {
+                shownLines = lines.count
+                return
+            }
             for (index, line) in lines.enumerated() {
                 // Longer lines take longer to "type".
                 let delay = reduceMotion ? 100 : min(1400, 350 + line.count * 18)
@@ -444,6 +500,18 @@ private struct ChatStep<Actions: View>: View {
                 withAnimation(.spring(duration: 0.4)) { shownLines = index + 1 }
             }
         }
+    }
+}
+
+private struct ShowsLinesAtOnceKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private extension EnvironmentValues {
+    /// Whether a chat step shows all of Pip's lines straight away, as when the user goes back to it.
+    var showsLinesAtOnce: Bool {
+        get { self[ShowsLinesAtOnceKey.self] }
+        set { self[ShowsLinesAtOnceKey.self] = newValue }
     }
 }
 
@@ -597,7 +665,7 @@ private struct RevealCard: View {
                 RevealStat(value: "\(LifeMath.hoursPerYear(hoursPerDay: answers.hoursPerDay)) h", label: L("varje år"))
                 RevealStat(value: "\(Int((LifeMath.shareOfWakingTime(hoursPerDay: answers.hoursPerDay) * 100).rounded())) %", label: L("av varje vaken dag"))
             }
-            Text(L("Räknat på 16 vakna timmar om dagen fram till 80 års ålder."))
+            Text(L("Räknat på 16 vakna timmar om dagen fram till 90 års ålder."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -744,7 +812,7 @@ private struct InviteCard: View {
 
 // MARK: - Plan
 
-/// The goal: what halving screen time gives back, sealed with a fist bump.
+/// The goal: what cutting screen time by 60 % gives back, sealed with a fist bump.
 private struct PlanStep: View {
     let answers: IntroAnswers
     let goalText: String
@@ -781,7 +849,7 @@ private struct PlanStep: View {
                     VStack(alignment: .leading, spacing: 22) {
                         PlanRow(
                             symbol: "lock.shield.fill",
-                            title: L("Målet: halvera din skärmtid"),
+                            title: L("Målet: sänk din skärmtid med 60 %"),
                             text: L("Från \(IntroView.hours(answers.hoursPerDay)) till **\(IntroView.hours(Plan.targetHours(from: answers.hoursPerDay)))** om dagen.")
                         )
                         .planReveal(index: 0, shown: shownRows)

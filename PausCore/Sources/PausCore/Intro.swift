@@ -42,13 +42,12 @@ struct IntroAnswers: Codable, Equatable {
     var goals: [String] = []
 }
 
-/// The numbers the intro shows. Waking time assumes 16 waking hours a day and a life to 80,
-/// the same assumptions as the ads.
+/// The numbers the intro shows. Waking time assumes 16 waking hours a day until the age of 90.
 enum LifeMath {
-    static let lifeExpectancy = 80
+    static let lifeExpectancy = 90
     static let wakingHoursPerDay = 16.0
 
-    /// Years of waking life spent on the phone from `age` until 80, at `hoursPerDay`.
+    /// Years of waking life spent on the phone from `age` until 90, at `hoursPerDay`.
     static func wakingYears(hoursPerDay: Double, age: Int) -> Double {
         let remainingYears = Double(max(0, lifeExpectancy - age))
         return hoursPerDay / wakingHoursPerDay * remainingYears
@@ -69,16 +68,16 @@ enum LifeMath {
     }
 }
 
-/// The goal Paus sets at the end of the intro: halving screen time, not an empty phone.
+/// The goal Paus sets at the end of the intro: cutting screen time by 60 %, not an empty phone.
 enum Plan {
     /// The share of screen time the plan aims to cut.
-    static let reduction = 0.5
+    static let reduction = 0.6
 
     static func targetHours(from hoursPerDay: Double) -> Double {
         hoursPerDay * (1 - reduction)
     }
 
-    /// Waking years won back from `age` until 80.
+    /// Waking years won back from `age` until 90.
     static func yearsBack(hoursPerDay: Double, age: Int) -> Double {
         LifeMath.wakingYears(hoursPerDay: hoursPerDay, age: age) * reduction
     }
