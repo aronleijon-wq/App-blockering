@@ -79,13 +79,6 @@ final class BlockEngineTests: XCTestCase {
         XCTAssertTrue(focus.shouldShield(at: monday10), "a focus session started after the SOS still blocks")
     }
 
-    func testSOSNeedsAConfirmingTapWithinAMinute() {
-        let sut = engine(runtime: PausRuntime(sosRequestedAt: monday10))
-        XCTAssertTrue(sut.isSOSRequested(at: monday10.addingTimeInterval(30)))
-        XCTAssertFalse(sut.isSOSRequested(at: monday10.addingTimeInterval(SOS.confirmSeconds + 1)))
-        XCTAssertFalse(engine().isSOSRequested(at: monday10))
-    }
-
     func testCanPauseRequiresAnActiveNonStrictBlock() {
         let focus = PausRuntime(focusEndsAt: monday10.addingTimeInterval(1500))
         XCTAssertFalse(engine().canPause(at: monday10), "nothing is blocked")

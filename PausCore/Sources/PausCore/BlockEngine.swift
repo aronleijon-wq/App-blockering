@@ -4,8 +4,6 @@ import Foundation
 /// and the daily limit for a while, at a price in points, XP and Pip's health that rises with each use.
 enum SOS {
     static let minutes = 15
-    /// How long the shield waits for the second tap that confirms an SOS.
-    static let confirmSeconds: TimeInterval = 60
 }
 
 enum BlockReason: Equatable {
@@ -70,12 +68,6 @@ struct BlockEngine {
     /// Whether SOS can lift anything right now: always, while something is shielded.
     func canSOS(at date: Date) -> Bool {
         shouldShield(at: date)
-    }
-
-    /// Whether SOS was tapped once on the shield and waits for the confirming tap.
-    func isSOSRequested(at date: Date) -> Bool {
-        guard let requested = runtime.sosRequestedAt else { return false }
-        return date.timeIntervalSince(requested) < SOS.confirmSeconds && requested <= date
     }
 
     func pausesLeft(at date: Date) -> Int {

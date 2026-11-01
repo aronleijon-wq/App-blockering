@@ -213,7 +213,6 @@ struct HomeView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    sosButton
                 } else if engine.isSOS(at: date), let sosUntil = model.runtime.sosUntil {
                     StatusRow(
                         symbol: "sos",
@@ -236,19 +235,6 @@ struct HomeView: View {
             }
             .card()
         }
-    }
-
-    /// The way out of every block, strict focus and step sessions included. The confirmation lives in `RootView`,
-    /// shared with the SOS quick action on the app icon.
-    private var sosButton: some View {
-        Button {
-            model.isSOSPresented = true
-        } label: {
-            Label(L("SOS – lås upp"), systemImage: "sos")
-                .font(.subheadline.weight(.semibold))
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(.secondary)
     }
 
     // MARK: Focus
@@ -340,7 +326,7 @@ struct HomeView: View {
                     .font(.title3.bold())
                 Text(L("Gå \(Format.number(goal - walked)) steg till, så låses apparna upp."))
                     .foregroundStyle(.secondary)
-                Label(L("Bara SOS stoppar det"), systemImage: "lock.fill")
+                Label(L("Låst tills du har gått klart"), systemImage: "lock.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.pink)
             }
@@ -391,7 +377,7 @@ struct HomeView: View {
             }
             Button(L("Inte nu"), role: .cancel) {}
         } message: { goal in
-            Text(L("Apparna låses tills du har gått \(Format.number(goal)) steg. Det går inte att pausa eller ta bort Paus under tiden, bara att avbryta med SOS. Öppna Paus när du har gått klart."))
+            Text(L("Apparna låses tills du har gått \(Format.number(goal)) steg. Det går inte att avbryta, pausa eller ta bort Paus under tiden. Öppna Paus när du har gått klart."))
         }
     }
 

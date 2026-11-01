@@ -73,7 +73,7 @@ struct RulesView: View {
                 } header: {
                     Text(L("Fokuspass"))
                 } footer: {
-                    Text(L("Ett strikt fokuspass går inte att avbryta, och du kan inte ta pauser under det. I en nödsituation finns SOS."))
+                    Text(L("Ett strikt fokuspass går inte att avbryta, och du kan inte ta pauser under det. I en nödsituation: håll in Paus-ikonen och välj SOS."))
                 }
 
                 Section {
