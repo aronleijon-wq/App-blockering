@@ -13,6 +13,10 @@ final class Store {
     static let proProductIDs = [yearlyProductID, monthlyProductID]
 
     private(set) var isPro = SharedStore.isPro
+    /// Whether a subscription is active, as opposed to free Pro days earned by inviting friends.
+    private(set) var isSubscribed = false
+    /// When the free Pro days from invites run out.
+    private(set) var bonusUntil = SharedStore.proBonusUntil
     /// Localized prices from the App Store, such as "29,00 kr", once loaded.
     private(set) var monthlyPrice: String?
     private(set) var yearlyPrice: String?
@@ -54,6 +58,21 @@ final class Store {
         if let subscription = products.first?.subscription {
             isEligibleForTrial = await subscription.isEligibleForIntroOffer
         }
+        isSubscribed = active
+        updateEntitlement()
+    }
+
+    /// Adds free Pro days, earned by inviting a friend or by being invited.
+    func addBonus(days: Int) {
+        let until = Referral.extend(SharedStore.proBonusUntil, byDays: days, from: .now)
+        SharedStore.proBonusUntil = until
+        bonusUntil = until
+        updateEntitlement()
+    }
+
+    /// Pro is a subscription or free days from invites that haven't run out.
+    private func updateEntitlement() {
+        let active = isSubscribed || (bonusUntil.map { $0 > .now } ?? false)
         guard active != isPro else { return }
         isPro = active
         SharedStore.isPro = active

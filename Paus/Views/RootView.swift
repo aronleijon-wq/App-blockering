@@ -61,6 +61,14 @@ struct RootView: View {
         } message: {
             Text(model.sosExplanation ?? L("Du kan använda appar som vanligt."))
         }
+        .alert(
+            L("Gratis Pro! 🎉"),
+            isPresented: Binding(get: { model.referralMessage != nil }, set: { if !$0 { model.referralMessage = nil } })
+        ) {
+            Button(L("Okej"), role: .cancel) {}
+        } message: {
+            Text(model.referralMessage ?? "")
+        }
         .sheet(isPresented: $model.isPauseSheetPresented) {
             PauseView()
         }

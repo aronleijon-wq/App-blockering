@@ -40,6 +40,8 @@ final class LeagueService {
         static let friendCode = "league.friendCode"
         static let friends = "league.friends"
         static let unfriended = "league.unfriended"
+        static let invitedBy = "league.invitedBy"
+        static let rewardedInvites = "league.rewardedInvites"
     }
 
     enum FriendError: Error {
@@ -58,6 +60,10 @@ final class LeagueService {
         static let joinedAt = "joinedAt"
         static let friendCode = "friendCode"
         static let friends = "friends"
+        /// The record name of the player whose code this player added first.
+        static let invitedBy = "invitedBy"
+        /// 1 once this invited player has finished a focus session, which earns the one who invited them.
+        static let inviteQualified = "inviteQualified"
     }
 
     private(set) var accountState: AccountState = .unknown
@@ -71,6 +77,10 @@ final class LeagueService {
     private(set) var friendIDs: Set<String>
     /// Players removed from the friends list, so they stay gone even though they still have this player.
     private var unfriendedIDs: Set<String>
+    /// Who invited this player: the first player whose code they added.
+    private(set) var invitedBy: String?
+    /// Invited friends who have already earned this player free Pro, so each counts once.
+    private(set) var rewardedInviteIDs: Set<String>
 
     var canCompete: Bool { accountState == .available && nickname != nil }
 
@@ -88,6 +98,8 @@ final class LeagueService {
         blockedIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.blocked) ?? [])
         friendIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.friends) ?? [])
         unfriendedIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.unfriended) ?? [])
+        invitedBy = UserDefaults.standard.string(forKey: Keys.invitedBy)
+        rewardedInviteIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.rewardedInvites) ?? [])
         if let code = UserDefaults.standard.string(forKey: Keys.friendCode) {
             friendCode = code
         } else {
@@ -132,7 +144,8 @@ final class LeagueService {
         guard let nickname else { return }
         let friends = friendIDs.sorted()
         let week = progress.weekKey.flatMap { progress.weeklyPoints > 0 ? $0 : nil }
-        let signature = "\(nickname)|\(friendCode)|\(friends)|\(week ?? "")|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)"
+        let qualified = progress.focusSessions > 0
+        let signature = "\(nickname)|\(friendCode)|\(friends)|\(invitedBy ?? "")|\(qualified)|\(week ?? "")|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)"
         guard signature != uploadedSignature else { return }
 
         let record = CKRecord(recordType: Field.type, recordID: try await myRecordID())
@@ -143,6 +156,10 @@ final class LeagueService {
             record[Field.friends] = nil
         } else {
             record[Field.friends] = friends
+        }
+        if let invitedBy {
+            record[Field.invitedBy] = invitedBy
+            record[Field.inviteQualified] = qualified ? 1 : 0
         }
         if let week {
             record[Field.weekKey] = week
@@ -166,16 +183,48 @@ final class LeagueService {
     // MARK: Friends
 
     /// Adds the player with `code` as a friend. They see this player too, without adding back.
-    func addFriend(code: String) async throws {
+    /// Returns true when it also counted as this player's invite, the first code they ever added.
+    @discardableResult
+    func addFriend(code: String) async throws -> Bool {
         let code = FriendCode.normalized(code)
         guard code != friendCode else { throw FriendError.ownCode }
-        let me = try await myRecordID().recordName
+        let myID = try await myRecordID()
         let matches = try await query(NSPredicate(format: "%K == %@", Field.friendCode, code), sortedBy: nil, limit: 1)
-        guard let id = matches.first?.recordID.recordName, id != me else { throw FriendError.notFound }
+        guard let id = matches.first?.recordID.recordName, id != myID.recordName else { throw FriendError.notFound }
         friendIDs.insert(id)
         unfriendedIDs.remove(id)
         saveFriends()
         uploadedSignature = nil
+
+        // The invite is checked against the saved record too, so reinstalling Paus can't earn it twice.
+        guard invitedBy == nil else { return false }
+        let saved = try? await database.record(for: myID)
+        guard saved?[Field.invitedBy] == nil else {
+            invitedBy = saved?[Field.invitedBy] as? String
+            UserDefaults.standard.set(invitedBy, forKey: Keys.invitedBy)
+            return false
+        }
+        invitedBy = id
+        UserDefaults.standard.set(id, forKey: Keys.invitedBy)
+        return true
+    }
+
+    /// Players this player invited who have since finished a focus session and haven't earned anything yet.
+    /// Each is counted once, up to `Referral.maxRewardedFriends`.
+    func newlyQualifiedInvites() async throws -> Int {
+        let room = Referral.maxRewardedFriends - rewardedInviteIDs.count
+        guard room > 0 else { return 0 }
+        let me = try await myRecordID().recordName
+        let invited = try await query(NSPredicate(format: "%K == %@", Field.invitedBy, me), sortedBy: nil, limit: 200)
+        let fresh = invited
+            .filter { ($0[Field.inviteQualified] as? Int ?? 0) == 1 }
+            .map(\.recordID.recordName)
+            .filter { !rewardedInviteIDs.contains($0) && !blockedIDs.contains($0) }
+            .prefix(room)
+        guard !fresh.isEmpty else { return 0 }
+        rewardedInviteIDs.formUnion(fresh)
+        UserDefaults.standard.set(Array(rewardedInviteIDs), forKey: Keys.rewardedInvites)
+        return fresh.count
     }
 
     func removeFriend(_ entry: LeaderboardEntry) {

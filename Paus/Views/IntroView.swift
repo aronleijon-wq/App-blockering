@@ -258,7 +258,7 @@ struct IntroView: View {
             ]) {
                 InviteCard(nickname: model.league.nickname)
                 ShareLink(
-                    item: AppInfo.inviteURL,
+                    item: AppInfo.inviteURL(code: model.league.friendCode),
                     subject: Text(L("Utmana mig i Paus")),
                     message: Text(AppInfo.inviteMessage(nickname: model.league.nickname, code: model.league.friendCode))
                 ) {

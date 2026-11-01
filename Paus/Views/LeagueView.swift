@@ -219,7 +219,7 @@ struct LeagueView: View {
 
     private var inviteCard: some View {
         ShareLink(
-            item: AppInfo.inviteURL,
+            item: AppInfo.inviteURL(code: league.friendCode),
             subject: Text(L("Utmana mig i Paus")),
             message: Text(AppInfo.inviteMessage(nickname: league.nickname, code: league.friendCode))
         ) {
@@ -232,9 +232,15 @@ struct LeagueView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L("Utmana dina vänner"))
                         .font(.headline)
-                    Text(L("Skicka din kod. Den som scrollar minst vinner veckan."))
+                    Text(L("Skicka din länk. Ni får båda \(Referral.bonusDays) dagar gratis Pro när din vän kommer igång."))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                    let earned = league.rewardedInviteIDs.count
+                    if earned > 0 {
+                        Text(L("\(earned) vänner har kommit igång · \(earned * Referral.bonusDays) dagar Pro intjänat"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.mint)
+                    }
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "square.and.arrow.up")

@@ -77,6 +77,15 @@ final class LeagueTests: XCTestCase {
         XCTAssertEqual(progress.settleFinishedWeek(rank: 1, groupSize: 20), [])
     }
 
+    func testReferralDaysAddUpFromNowOrFromTheEnd() {
+        let fiveDays = TimeInterval(Referral.bonusDays * 86_400)
+        XCTAssertEqual(Referral.extend(nil, byDays: Referral.bonusDays, from: monday), monday.addingTimeInterval(fiveDays))
+        let later = monday.addingTimeInterval(fiveDays)
+        XCTAssertEqual(Referral.extend(later, byDays: Referral.bonusDays, from: monday), later.addingTimeInterval(fiveDays))
+        let expired = monday.addingTimeInterval(-86_400)
+        XCTAssertEqual(Referral.extend(expired, byDays: Referral.bonusDays, from: monday), monday.addingTimeInterval(fiveDays))
+    }
+
     func testSOSCostsMoreEachTimeTheSameDay() {
         XCTAssertEqual((1...5).map(League.sosPenalty(forUse:)), [20, 40, 80, 160, 160])
         XCTAssertEqual((1...5).map(PipHealth.sosCost(forUse:)), [5, 10, 15, 20, 20])

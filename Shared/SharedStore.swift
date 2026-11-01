@@ -19,6 +19,7 @@ enum SharedStore {
     private static let selectionKey = "selection"
     private static let progressKey = "progress"
     private static let proKey = "isPro"
+    private static let proBonusKey = "proBonusUntil"
     private static let wasAuthorizedKey = "wasAuthorized"
     private static let notificationSettingsKey = "notificationSettings"
 
@@ -48,6 +49,12 @@ enum SharedStore {
     static var isPro: Bool {
         get { AppGroup.defaults.bool(forKey: proKey) }
         set { AppGroup.defaults.set(newValue, forKey: proKey) }
+    }
+
+    /// Free Pro earned by inviting friends lasts until this date.
+    static var proBonusUntil: Date? {
+        get { AppGroup.defaults.object(forKey: proBonusKey) as? Date }
+        set { AppGroup.defaults.set(newValue, forKey: proBonusKey) }
     }
 
     /// Whether Paus had Screen Time access last time it checked, to notice when it is turned off.

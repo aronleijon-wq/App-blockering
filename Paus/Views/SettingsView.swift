@@ -134,7 +134,7 @@ struct SettingsView: View {
 
                     SettingsGroup(title: L("Dela")) {
                         ShareLink(
-                            item: AppInfo.inviteURL,
+                            item: AppInfo.inviteURL(code: model.league.friendCode),
                             subject: Text(L("Utmana mig i Paus")),
                             message: Text(AppInfo.inviteMessage(nickname: model.league.nickname, code: model.league.friendCode))
                         ) {
@@ -211,7 +211,16 @@ struct SettingsView: View {
     @ViewBuilder
     private var planCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            if model.isPro {
+            if model.isPro && !model.store.isSubscribed, let until = model.store.bonusUntil {
+                Label(L("Gratis Pro till \(until.formatted(.dateTime.day().month(.wide).locale(Language.current.locale)))"), systemImage: "gift.fill")
+                    .font(.title3.bold())
+                    .foregroundStyle(Theme.mint)
+                Text(L("Intjänat genom inbjudningar. Bjud in fler vänner för fler dagar."))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Button(L("Fortsätt med Pro efteråt")) { isPaywallPresented = true }
+                    .buttonStyle(ChipButtonStyle())
+            } else if model.isPro {
                 Label(L("Du har Paus Pro"), systemImage: "checkmark.seal.fill")
                     .font(.title3.bold())
                     .foregroundStyle(Theme.mint)

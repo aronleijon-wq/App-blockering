@@ -35,14 +35,16 @@ struct AddFriendSheet: View {
                             .textSelection(.enabled)
                     }
                     ShareLink(
-                        item: AppInfo.inviteURL,
+                        item: AppInfo.inviteURL(code: model.league.friendCode),
                         subject: Text(L("Utmana mig i Paus")),
                         message: Text(AppInfo.inviteMessage(nickname: model.league.nickname, code: model.league.friendCode))
                     ) {
                         Label(L("Skicka din kod"), systemImage: "square.and.arrow.up")
                     }
                 } footer: {
-                    Text(L("Ni ser varandra i Vänner så fort en av er har lagt till den andra."))
+                    Text(model.league.invitedBy == nil
+                        ? L("Den första koden du lägger till räknas som din inbjudan: du får \(Referral.bonusDays) dagar gratis Pro direkt, och din vän får lika många när du har kört ditt första fokuspass.")
+                        : L("Ni ser varandra i Vänner så fort en av er har lagt till den andra."))
                 }
             }
             .scrollContentBackground(.hidden)
@@ -65,7 +67,7 @@ struct AddFriendSheet: View {
         isAdding = true
         Task {
             do {
-                try await model.league.addFriend(code: normalized)
+                try await model.addFriend(code: normalized)
                 dismiss()
                 await onAdded()
             } catch LeagueService.FriendError.ownCode {

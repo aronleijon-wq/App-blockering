@@ -36,6 +36,8 @@ final class AppModel {
     var isPauseSheetPresented = false
     /// Asks whether to unblock everything, from the home screen or the SOS quick action on the app icon.
     var isSOSPresented = false
+    /// Good news about free Pro from invites, shown once.
+    var referralMessage: String?
     var isPaywallPresented = false
     /// Rewards to celebrate on screen; cleared when the celebration is dismissed.
     var celebration: [Reward] = []
@@ -299,10 +301,28 @@ final class AppModel {
             progress = SharedStore.progress
             try await league.upload(progress)
             showPendingCelebrations()
+            await rewardInvites()
         } catch {
             // The league is a bonus; it retries on the next sync rather than interrupting the user.
             lastLeagueSync = nil
         }
+    }
+
+    /// Gives free Pro for friends this player invited who have got going since the last check.
+    private func rewardInvites() async {
+        guard let count = try? await league.newlyQualifiedInvites(), count > 0 else { return }
+        let days = count * Referral.bonusDays
+        store.addBonus(days: days)
+        referralMessage = count == 1
+            ? L("En vän du bjöd in har kommit igång! Du fick \(days) dagar gratis Pro.")
+            : L("\(count) vänner du bjöd in har kommit igång! Du fick \(days) dagar gratis Pro.")
+    }
+
+    /// Adds a friend by code. The first code a player adds is their invite, which gives them free Pro right away.
+    func addFriend(code: String) async throws {
+        guard try await league.addFriend(code: code) else { return }
+        store.addBonus(days: Referral.bonusDays)
+        referralMessage = L("Välkommen! Du fick \(Referral.bonusDays) dagar gratis Pro. Din vän får också \(Referral.bonusDays) dagar när du har kört ditt första fokuspass.")
     }
 
     // MARK: Rewards
