@@ -254,17 +254,18 @@ struct IntroView: View {
         case .friends:
             ChatStep(mood: .hyped, lines: [
                 L("Allt är roligare tillsammans! 🏆"),
-                L("Utmana dina vänner. Den som scrollar minst vinner veckan."),
+                L("Bjud in en vän, så får ni båda \(Referral.bonusDays) dagar gratis Pro 🎁"),
             ]) {
-                InviteCard(nickname: model.league.nickname)
+                InviteCard(nickname: model.league.nickname, code: model.league.friendCode)
                 ShareLink(
                     item: AppInfo.inviteURL(code: model.league.friendCode),
                     subject: Text(L("Utmana mig i Paus")),
                     message: Text(AppInfo.inviteMessage(nickname: model.league.nickname, code: model.league.friendCode))
                 ) {
-                    Label(L("Bjud in vänner"), systemImage: "square.and.arrow.up")
+                    Label(L("Bjud in en vän"), systemImage: "gift.fill")
                 }
                 .buttonStyle(GlowButtonStyle())
+                .simultaneousGesture(TapGesture().onEnded { model.prepareInvite() })
                 Button(L("Fortsätt")) { goToTrial() }
                     .buttonStyle(ChipButtonStyle())
             }
@@ -701,16 +702,23 @@ private struct TourList: View {
 /// Pip and a few friendly faces racing up the board.
 private struct InviteCard: View {
     let nickname: String?
+    let code: String
     @State private var isRaised = false
 
     var body: some View {
         VStack(spacing: 14) {
+            Label(L("\(Referral.bonusDays) dagar gratis Pro – till er båda"), systemImage: "gift.fill")
+                .font(.subheadline.weight(.heavy))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Theme.brand, in: Capsule())
             HStack(alignment: .bottom, spacing: 18) {
                 podium(height: 52, mood: .happy, place: "2")
                 podium(height: 76, mood: .hyped, place: "1")
                 podium(height: 38, mood: .sleepy, place: "3")
             }
-            Text(markdown(nickname.map { L("Dina vänner hittar dig som **\($0)**.") } ?? L("Dina vänner kan gå med i samma liga.")))
+            Text(markdown(L("Din vän lägger till din kod **\(code)** i appen. Hen får sina dagar direkt, och du får dina när hen har kört sitt första fokuspass.")))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

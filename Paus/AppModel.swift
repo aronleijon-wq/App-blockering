@@ -284,7 +284,13 @@ final class AppModel {
         if !force, let lastLeagueSync, Date.now.timeIntervalSince(lastLeagueSync) < 60 { return }
         lastLeagueSync = .now
         await league.refreshAccount()
-        guard league.canCompete else { return }
+        guard league.canCompete else {
+            // Outside the league, a player who invited someone still uploads their code and earns from invites.
+            guard league.accountState == .available, league.sharesCode else { return }
+            try? await league.upload(SharedStore.progress)
+            await rewardInvites()
+            return
+        }
         do {
             SharedStore.updateProgress { progress in
                 progress.rollWeek(at: .now, calendar: .current)
@@ -306,6 +312,12 @@ final class AppModel {
             // The league is a bonus; it retries on the next sync rather than interrupting the user.
             lastLeagueSync = nil
         }
+    }
+
+    /// Makes the player's code findable before they send it, so the friend can add it straight away.
+    func prepareInvite() {
+        league.shareCode()
+        Task { await syncLeague(force: true) }
     }
 
     /// Gives free Pro for friends this player invited who have got going since the last check.

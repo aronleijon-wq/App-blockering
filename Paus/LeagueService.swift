@@ -42,6 +42,7 @@ final class LeagueService {
         static let unfriended = "league.unfriended"
         static let invitedBy = "league.invitedBy"
         static let rewardedInvites = "league.rewardedInvites"
+        static let sharesCode = "league.sharesCode"
     }
 
     enum FriendError: Error {
@@ -83,6 +84,8 @@ final class LeagueService {
     private(set) var rewardedInviteIDs: Set<String>
 
     var canCompete: Bool { accountState == .available && nickname != nil }
+    /// Whether this player has invited someone, so their code must be findable even outside the league.
+    private(set) var sharesCode: Bool
 
     @ObservationIgnored private let container: CKContainer
     @ObservationIgnored private var playerRecordName: String?
@@ -100,6 +103,7 @@ final class LeagueService {
         unfriendedIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.unfriended) ?? [])
         invitedBy = UserDefaults.standard.string(forKey: Keys.invitedBy)
         rewardedInviteIDs = Set(UserDefaults.standard.stringArray(forKey: Keys.rewardedInvites) ?? [])
+        sharesCode = UserDefaults.standard.bool(forKey: Keys.sharesCode)
         if let code = UserDefaults.standard.string(forKey: Keys.friendCode) {
             friendCode = code
         } else {
@@ -113,6 +117,14 @@ final class LeagueService {
         accountState = status == .available ? .available : .unavailable
     }
 
+    /// Called when the player invites someone: from now on their code is uploaded so the friend can add it.
+    func shareCode() {
+        guard !sharesCode else { return }
+        sharesCode = true
+        UserDefaults.standard.set(true, forKey: Keys.sharesCode)
+        uploadedSignature = nil
+    }
+
     func setNickname(_ name: String) {
         nickname = name.trimmingCharacters(in: .whitespacesAndNewlines)
         UserDefaults.standard.set(nickname, forKey: Keys.nickname)
@@ -124,7 +136,9 @@ final class LeagueService {
         let recordID = try await myRecordID()
         _ = try await database.modifyRecords(saving: [], deleting: [recordID])
         nickname = nil
+        sharesCode = false
         UserDefaults.standard.removeObject(forKey: Keys.nickname)
+        UserDefaults.standard.removeObject(forKey: Keys.sharesCode)
         uploadedSignature = nil
         uploadedGroupID = nil
         entries = [:]
@@ -138,18 +152,21 @@ final class LeagueService {
         return (index + 1, records.count)
     }
 
-    /// Publishes the player's nickname, friend code and friends, and their week once it has points.
+    /// Publishes the player's nickname, friend code and friends, and their week once it has points. A player who
+    /// invited someone without joining the league uploads only the code, which keeps them off the leaderboards.
     /// Skips the upload when nothing visible changed.
     func upload(_ progress: PlayerProgress) async throws {
-        guard let nickname else { return }
+        guard nickname != nil || sharesCode else { return }
         let friends = friendIDs.sorted()
         let week = progress.weekKey.flatMap { progress.weeklyPoints > 0 ? $0 : nil }
         let qualified = progress.focusSessions > 0
-        let signature = "\(nickname)|\(friendCode)|\(friends)|\(invitedBy ?? "")|\(qualified)|\(week ?? "")|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)"
+        let signature = "\(nickname ?? "")|\(friendCode)|\(friends)|\(invitedBy ?? "")|\(qualified)|\(week ?? "")|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)"
         guard signature != uploadedSignature else { return }
 
         let record = CKRecord(recordType: Field.type, recordID: try await myRecordID())
-        record[Field.nickname] = nickname
+        if let nickname {
+            record[Field.nickname] = nickname
+        }
         record[Field.friendCode] = friendCode
         // CloudKit can't store an empty list, so a player without friends gets none.
         if friends.isEmpty {
@@ -161,7 +178,7 @@ final class LeagueService {
             record[Field.invitedBy] = invitedBy
             record[Field.inviteQualified] = qualified ? 1 : 0
         }
-        if let week {
+        if let week, nickname != nil {
             record[Field.weekKey] = week
             record[Field.weeklyPoints] = progress.weeklyPoints
             record[Field.level] = progress.level
@@ -264,7 +281,7 @@ final class LeagueService {
                 // row always shows what this phone knows.
                 return LeaderboardEntry(
                     id: record.recordID.recordName,
-                    nickname: isMe ? nickname ?? "?" : record[Field.nickname] as? String ?? "?",
+                    nickname: isMe ? nickname ?? "?" : record[Field.nickname] as? String ?? L("Ny spelare"),
                     points: isMe ? progress.weeklyPoints : thisWeek ? record[Field.weeklyPoints] as? Int ?? 0 : 0,
                     level: isMe ? progress.level : record[Field.level] as? Int ?? 1,
                     division: isMe ? progress.division : Division(rawValue: record[Field.division] as? Int ?? 0) ?? .brons,
