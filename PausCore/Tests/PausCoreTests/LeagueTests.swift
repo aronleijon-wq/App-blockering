@@ -153,14 +153,16 @@ final class PausePenaltyTests: XCTestCase {
         var progress = PlayerProgress()
         progress.record(.dayUnderLimit, at: monday, calendar: calendar)
         XCTAssertEqual(progress.nextPausePenalty(at: monday, calendar: calendar), 0)
+        let start = League.Points.dayUnderLimit
         progress.record(.tookPause, at: monday, calendar: calendar)
-        XCTAssertEqual(progress.weeklyPoints, 30, "first pause is free")
+        XCTAssertEqual(progress.weeklyPoints, start, "first pause is free")
         XCTAssertEqual(progress.nextPausePenalty(at: monday, calendar: calendar), 10)
         progress.record(.tookPause, at: monday, calendar: calendar)
         progress.record(.tookPause, at: monday, calendar: calendar)
-        XCTAssertEqual(progress.weeklyPoints, 0, "30 - 10 - 20")
+        XCTAssertEqual(progress.weeklyPoints, max(0, start - 10 - 20), "the second and third pauses cost 10 and 20")
         progress.record(.tookPause, at: monday, calendar: calendar)
-        XCTAssertEqual(progress.weeklyPoints, 0)
+        progress.record(.tookPause, at: monday, calendar: calendar)
+        XCTAssertEqual(progress.weeklyPoints, 0, "never below zero")
 
         let tuesday = calendar.date(byAdding: .day, value: 1, to: monday)!
         XCTAssertEqual(progress.nextPausePenalty(at: tuesday, calendar: calendar), 0, "a new day starts free")
