@@ -57,7 +57,7 @@ final class SeasonTests: XCTestCase {
         XCTAssertEqual(season.key, "2026-11")
         XCTAssertEqual(season.items, ["color-iron"])
         XCTAssertEqual(Season.containing(questID: season.quests[1].id), season)
-        XCTAssertEqual(Achievement.with(id: season.trophyID)?.title, "Säsong: Järnvilja")
+        XCTAssertEqual(Achievement.with(id: season.trophyID)?.title, "Säsong: Lock in")
         XCTAssertEqual(Season.with(key: "2027-05").items, [], "a month without items of its own")
         XCTAssertEqual(season.daysLeft(from: november2, calendar: calendar), 29)
 

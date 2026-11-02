@@ -9,12 +9,14 @@ struct Season: Equatable {
     let symbol: String
     /// The items the first quests give, in order. Months without their own items have none.
     let items: [String]
+    /// A line under the name, for months that have one.
+    var tagline: String? = nil
 
     var trophyID: String { "season-\(key)" }
 
     /// The months with a name and items of their own. Other months get the month's name and quests only.
     private static var named: [String: (name: String, symbol: String, items: [String])] { [
-        "2026-11": (L("Järnvilja"), "shield.fill", ["color-iron"]),
+        "2026-11": ("Lock in", "lock.fill", ["color-iron"]),
         "2026-12": (L("Vinter"), "snowflake", ["hat-santa", "color-frost"]),
         "2027-01": (L("Nystart"), "sunrise.fill", ["glasses-gold", "color-dawn"]),
     ] }
@@ -30,7 +32,8 @@ struct Season: Equatable {
 
     static func with(key: String) -> Season {
         if let named = named[key] {
-            return Season(key: key, name: named.name, symbol: named.symbol, items: named.items)
+            let tagline = key == "2026-11" ? L("Extra utmaningar hela november. Dags att låsa in.") : nil
+            return Season(key: key, name: named.name, symbol: named.symbol, items: named.items, tagline: tagline)
         }
         return Season(key: key, name: monthName(key), symbol: "calendar", items: [])
     }

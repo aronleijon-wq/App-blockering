@@ -263,6 +263,7 @@ extension Translations {
         "Ett strikt fokuspass går inte att avbryta, och du kan inte ta pauser under det.": "A strict focus session can't be ended early, and you can't take pauses during it.",
         "Ett strikt fokuspass går inte att avbryta, och du kan inte ta pauser under det. I en nödsituation finns SOS.": "A strict focus session can't be ended early, and you can't take pauses during it. In an emergency, there's SOS.",
         "Ett strikt fokuspass går inte att avbryta, och du kan inte ta pauser under det. I en nödsituation: håll in Paus-ikonen och välj SOS.": "A strict focus session can't be ended early, and you can't take pauses during it. In an emergency, hold the Paus icon and choose SOS.",
+        "Extra utmaningar hela november. Dags att låsa in.": "Extra challenges all through November. Time to lock in.",
         "Familjen": "Family",
         "Fel e-post eller lösenord.": "Wrong email or password.",
         "Fingrarna tog dig hit på autopilot. Det är precis det vi tränar bort. Du behöver nog inte appen just nu.": "Your fingers brought you here on autopilot. That's exactly what we're training away. You probably don't need the app right now.",

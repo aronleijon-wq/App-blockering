@@ -514,6 +514,11 @@ extension HomeView {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
+            if let tagline = season.tagline {
+                Text(tagline)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
             ForEach(Array(season.quests.enumerated()), id: \.element.id) { index, quest in
                 QuestRow(quest: quest, progress: quest.progress(today: counts, week: month), isDone: month.completedQuests.contains(quest.id),
                          untracked: untracked, label: index < season.items.count ? WardrobeItem.with(id: season.items[index])?.name : nil)
