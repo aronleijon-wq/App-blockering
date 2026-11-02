@@ -1,3 +1,6 @@
+#if !WIDGET_EXTENSION
+import FamilyControls
+#endif
 import Foundation
 
 /// Records progress events from the app or an extension, always against the latest stored state.

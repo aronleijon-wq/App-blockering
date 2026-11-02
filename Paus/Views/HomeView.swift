@@ -503,9 +503,16 @@ private struct QuestRow: View {
     /// What a quest about the whole day shows instead of a bar until it is decided.
     private var status: (text: String, isGood: Bool)? {
         guard !isDone, quest.needsTracking else { return nil }
-        if let untracked { return (untracked, false) }
+        if let untracked { return (text: untracked, isGood: false) }
         guard quest.isEvening else { return nil }
-        return holds ? (L("Håller hittills · avgörs kl. \(Quest.eveningHour)"), true) : (L("Inte i dag"), false)
+        if holds { return (text: L("Håller hittills · avgörs kl. \(Quest.eveningHour)"), isGood: true) }
+        return (text: L("Inte i dag"), isGood: false)
+    }
+
+    private var accessibilityValue: String {
+        if isDone { return L("Klart") }
+        if let status { return status.text }
+        return L("\(min(progress, quest.target)) av \(quest.target)")
     }
 
     var body: some View {
@@ -543,7 +550,7 @@ private struct QuestRow: View {
                 .foregroundStyle(isDone ? Theme.mint : .secondary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityValue(isDone ? L("Klart") : status?.text ?? L("\(min(progress, quest.target)) av \(quest.target)"))
+        .accessibilityValue(accessibilityValue)
     }
 }
 

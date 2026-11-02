@@ -435,7 +435,9 @@ final class LeagueService {
         unfriendedIDs.insert(entry.id)
         saveFriends()
         uploadedSignature = nil
-        entries[.friends]?.removeAll { $0.id == entry.id }
+        for period in Period.allCases {
+            entries[Board(scope: .friends, period: period)]?.removeAll { $0.id == entry.id }
+        }
     }
 
     private func saveFriends() {
