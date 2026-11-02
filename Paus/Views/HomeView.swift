@@ -444,6 +444,9 @@ struct HomeView: View {
         let daily = Quest.daily(for: day, includesPro: model.isPro)
         let doneDaily = daily.filter { counts.completedQuests.contains($0.id) }.count
         let weekKey = League.weekKey(for: date, calendar: .current)
+        // Screen time isn't measured without picked apps or on vacation, so those quests can't be done then.
+        let untracked: String? = !model.hasSelection ? L("Välj appar att skydda först")
+            : model.rules.isOnVacation(at: date) ? L("Räknas inte under semesterläget") : nil
         return VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text(L("Dagens uppdrag"))
@@ -454,11 +457,13 @@ struct HomeView: View {
                     .foregroundStyle(Theme.brand)
             }
             ForEach(daily) { quest in
-                QuestRow(quest: quest, progress: quest.progress(today: counts, week: week), isDone: counts.completedQuests.contains(quest.id))
+                QuestRow(quest: quest, progress: quest.progress(today: counts, week: week), isDone: counts.completedQuests.contains(quest.id),
+                         holds: quest.isHolding(today: counts), untracked: untracked)
             }
             if let bonus = Quest.bonus(for: day, includesPro: model.isPro) {
                 if doneDaily == daily.count {
-                    QuestRow(quest: bonus, progress: bonus.progress(today: counts, week: week), isDone: counts.completedQuests.contains(bonus.id), label: L("Bonus"))
+                    QuestRow(quest: bonus, progress: bonus.progress(today: counts, week: week), isDone: counts.completedQuests.contains(bonus.id),
+                             holds: bonus.isHolding(today: counts), untracked: untracked, label: L("Bonus"))
                 } else {
                     HStack(spacing: 14) {
                         Image(systemName: "lock.fill")
@@ -477,7 +482,8 @@ struct HomeView: View {
             Text(L("Veckans uppdrag"))
                 .font(.headline)
             ForEach(Quest.weekly(for: weekKey, includesPro: model.isPro)) { quest in
-                QuestRow(quest: quest, progress: quest.progress(today: counts, week: week), isDone: week.completedQuests.contains(quest.id))
+                QuestRow(quest: quest, progress: quest.progress(today: counts, week: week), isDone: week.completedQuests.contains(quest.id),
+                         untracked: untracked)
             }
         }
         .card()
@@ -488,7 +494,19 @@ private struct QuestRow: View {
     let quest: Quest
     let progress: Int
     let isDone: Bool
+    /// For a quest about the whole day: whether it still holds so far today.
+    var holds = true
+    /// Why screen time isn't measured right now, if it isn't.
+    var untracked: String?
     var label: String?
+
+    /// What a quest about the whole day shows instead of a bar until it is decided.
+    private var status: (text: String, isGood: Bool)? {
+        guard !isDone, quest.needsTracking else { return nil }
+        if let untracked { return (untracked, false) }
+        guard quest.isEvening else { return nil }
+        return holds ? (L("Håller hittills · avgörs kl. \(Quest.eveningHour)"), true) : (L("Inte i dag"), false)
+    }
 
     var body: some View {
         HStack(spacing: 14) {
@@ -512,14 +530,20 @@ private struct QuestRow: View {
                         .font(.subheadline.weight(.semibold))
                         .strikethrough(isDone, color: .secondary)
                 }
-                GradientBar(fraction: Double(min(progress, quest.target)) / Double(quest.target), height: 6)
+                if let status {
+                    Text(status.text)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(status.isGood ? Theme.mint : .secondary)
+                } else {
+                    GradientBar(fraction: Double(min(progress, quest.target)) / Double(quest.target), height: 6)
+                }
             }
             Text("+\(quest.xp)")
                 .font(.caption.weight(.bold).monospacedDigit())
                 .foregroundStyle(isDone ? Theme.mint : .secondary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityValue(isDone ? L("Klart") : L("\(min(progress, quest.target)) av \(quest.target)"))
+        .accessibilityValue(isDone ? L("Klart") : status?.text ?? L("\(min(progress, quest.target)) av \(quest.target)"))
     }
 }
 

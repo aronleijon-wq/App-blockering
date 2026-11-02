@@ -27,6 +27,8 @@ enum ProgressEvent: Equatable {
     case scrolled(minutes: Int)
     /// Used up the daily limit. Only makes Pip sadder.
     case reachedDailyLimit
+    /// Opened Paus. Changes nothing itself, but lets the quests about the whole day be checked in the evening.
+    case checkIn
 }
 
 enum Reward: Codable, Equatable, Hashable {
@@ -117,6 +119,8 @@ struct WeeklyCounts: Codable, Equatable {
     /// Daily quests finished, bonus quests included.
     var dailyQuests = 0
     var daysUnderLimit = 0
+    /// Days the guarded apps were used less than `Quest.calmDayMinutes`.
+    var lowScrollDays = 0
     var completedQuests: Set<String> = []
 
     init(key: String? = nil) {
@@ -134,6 +138,7 @@ struct WeeklyCounts: Codable, Equatable {
         focusDays = try container.decodeIfPresent(Int.self, forKey: .focusDays) ?? 0
         dailyQuests = try container.decodeIfPresent(Int.self, forKey: .dailyQuests) ?? 0
         daysUnderLimit = try container.decodeIfPresent(Int.self, forKey: .daysUnderLimit) ?? 0
+        lowScrollDays = try container.decodeIfPresent(Int.self, forKey: .lowScrollDays) ?? 0
         completedQuests = try container.decodeIfPresent(Set<String>.self, forKey: .completedQuests) ?? []
     }
 }
@@ -196,6 +201,9 @@ struct PlayerProgress: Codable, Equatable {
     var week = WeeklyCounts()
     /// Whether quests for Pro features, such as step sessions, can be picked. Set before each event.
     var includesProQuests = false
+    /// Whether screen time is measured: apps are picked to guard and no vacation is on. Without it, quests about
+    /// the whole day would be free, so they can't complete. Set before each event.
+    var tracksUsage = true
     /// Seeds to spend in Pip's wardrobe, and what has been bought and is worn.
     var seeds = 0
     var ownedItems: Set<String> = []
@@ -279,6 +287,7 @@ struct PlayerProgress: Codable, Equatable {
         healthDay = try container.decodeIfPresent(String.self, forKey: .healthDay)
         week = try container.decodeIfPresent(WeeklyCounts.self, forKey: .week) ?? WeeklyCounts()
         includesProQuests = try container.decodeIfPresent(Bool.self, forKey: .includesProQuests) ?? false
+        tracksUsage = try container.decodeIfPresent(Bool.self, forKey: .tracksUsage) ?? true
         seeds = try container.decodeIfPresent(Int.self, forKey: .seeds) ?? 0
         ownedItems = try container.decodeIfPresent(Set<String>.self, forKey: .ownedItems) ?? []
         outfit = try container.decodeIfPresent(Outfit.self, forKey: .outfit) ?? .none
@@ -318,8 +327,11 @@ struct PlayerProgress: Codable, Equatable {
     @discardableResult
     mutating func record(_ event: ProgressEvent, at date: Date, calendar: Calendar) -> [Reward] {
         let day = DayKey.string(for: date, calendar: calendar)
+        let hour = calendar.component(.hour, from: date)
         if firstDay == nil { firstDay = day }
+        var settled: [Reward] = []
         if today.day != day {
+            settled = settleEndedDay()
             archive(today)
             today = DailyCounts(day: day)
         }
@@ -340,7 +352,6 @@ struct PlayerProgress: Codable, Equatable {
             today.focusSessions += 1
             today.focusMinutes += minutes
             today.longestSession = max(today.longestSession, minutes)
-            let hour = calendar.component(.hour, from: date)
             if hour < 10 { today.morningSessions += 1 }
             if hour >= 20 { today.eveningSessions += 1 }
             if case .stepFocusCompleted = event {
@@ -427,6 +438,8 @@ struct PlayerProgress: Codable, Equatable {
             lost = League.sosPenalty(forUse: today.sosUses)
             points = -lost
             healthChange = -PipHealth.sosCost(forUse: today.sosUses)
+        case .checkIn:
+            break
         }
         health = min(PipHealth.maximum, max(0, health + healthChange))
         weeklyPoints = max(0, weeklyPoints + points)
@@ -441,7 +454,7 @@ struct PlayerProgress: Codable, Equatable {
         if gained > 0 { rewards.append(.xp(gained)) }
 
         for quest in Quest.available(for: day, week: week.key ?? "", includesPro: includesProQuests)
-        where !isDone(quest) && quest.progress(today: today, week: week) >= quest.target {
+        where !isDone(quest) && canComplete(quest) && quest.isMet(today: today, week: week, dayIsOver: false, hour: hour) {
             if quest.tier == .weekly {
                 week.completedQuests.insert(quest.id)
             } else {
@@ -455,7 +468,8 @@ struct PlayerProgress: Codable, Equatable {
         // Finishing the three daily quests can unlock the bonus quest, which may already be done.
         if let bonus = Quest.bonus(for: day, includesPro: includesProQuests),
            Quest.daily(for: day, includesPro: includesProQuests).allSatisfy({ today.completedQuests.contains($0.id) }),
-           !today.completedQuests.contains(bonus.id), bonus.progress(today: today, week: week) >= bonus.target {
+           !today.completedQuests.contains(bonus.id), canComplete(bonus),
+           bonus.isMet(today: today, week: week, dayIsOver: false, hour: hour) {
             today.completedQuests.insert(bonus.id)
             week.dailyQuests += 1
             seeds += Seeds.forQuest(bonus)
@@ -472,11 +486,62 @@ struct PlayerProgress: Codable, Equatable {
             rewards.append(.achievement(achievement.id))
         }
 
+        queueCelebrations(rewards)
+        return rewards + settled
+    }
+
+    private mutating func queueCelebrations(_ rewards: [Reward]) {
         pendingRewards.append(contentsOf: rewards.filter(\.isCelebration))
         if pendingRewards.count > Self.maxPendingRewards {
             pendingRewards.removeFirst(pendingRewards.count - Self.maxPendingRewards)
         }
+    }
+
+    /// When a day ends: its quests about the whole day that held until midnight are done, and a calm day counts
+    /// for the week. Covers users who didn't open Paus in the evening. Applied on its own, so the event that
+    /// starts the new day can't drop it.
+    private mutating func settleEndedDay() -> [Reward] {
+        guard let ended = today.day, tracksUsage else { return [] }
+        if today.scrolledMinutes < Quest.calmDayMinutes {
+            week.lowScrollDays += 1
+        }
+        let levelBefore = level
+        var rewards: [Reward] = []
+        let daily = Quest.daily(for: ended, includesPro: includesProQuests)
+        var candidates = daily.filter(\.isEvening)
+        if let bonus = Quest.bonus(for: ended, includesPro: includesProQuests) {
+            candidates.append(bonus)
+        }
+        for quest in candidates where !today.completedQuests.contains(quest.id) {
+            let isBonus = !daily.contains(where: { $0.id == quest.id })
+            if isBonus && !daily.allSatisfy({ today.completedQuests.contains($0.id) }) { continue }
+            guard quest.isMet(today: today, week: week, dayIsOver: true, hour: 0) else { continue }
+            today.completedQuests.insert(quest.id)
+            week.dailyQuests += 1
+            seeds += Seeds.forQuest(quest)
+            xp += quest.xp
+            rewards.append(.quest(quest.id))
+        }
+        // The last day of a league week can finish a weekly quest before the week rolls over.
+        if let key = week.key {
+            for quest in Quest.weekly(for: key, includesPro: includesProQuests)
+            where !week.completedQuests.contains(quest.id) && quest.isMet(today: today, week: week, dayIsOver: true, hour: 0) {
+                week.completedQuests.insert(quest.id)
+                seeds += Seeds.forQuest(quest)
+                xp += quest.xp
+                rewards.append(.quest(quest.id))
+            }
+        }
+        if level > levelBefore {
+            rewards.append(contentsOf: (levelBefore + 1...level).map(Reward.levelUp))
+        }
+        queueCelebrations(rewards)
         return rewards
+    }
+
+    /// Quests about screen time need it measured.
+    private func canComplete(_ quest: Quest) -> Bool {
+        tracksUsage || !quest.needsTracking
     }
 
     /// Whether `quest` is already done today, or this week for a weekly quest.
@@ -605,7 +670,18 @@ struct Quest: Identifiable {
     enum Metric {
         case focusSessions, focusMinutes, closes, declines, stepSessions, morningSessions, eveningSessions, rewardClaimed
         case longestSession, friendActions, focusDays, dailyQuests, daysUnderLimit
+        /// The guarded apps used less than `target` minutes today. Decided in the evening.
+        case scrollUnder
+        /// No pause and no SOS all day. Decided in the evening.
+        case noPauses
+        case lowScrollDays
     }
+
+    /// From this hour, quests about the whole day count as done if they still hold. At midnight they are settled
+    /// for anyone who didn't open Paus in the evening.
+    static let eveningHour = 21
+    /// A calm day for the weekly quest: the guarded apps used for less than this many minutes.
+    static let calmDayMinutes = 120
 
     enum Tier {
         case easy, medium, hard, weekly
@@ -636,25 +712,56 @@ struct Quest: Identifiable {
         case .focusDays: return week.focusDays
         case .dailyQuests: return week.dailyQuests
         case .daysUnderLimit: return week.daysUnderLimit
+        case .scrollUnder: return counts.scrolledMinutes
+        case .noPauses: return counts.pauses + counts.sosUses
+        case .lowScrollDays: return week.lowScrollDays
+        }
+    }
+
+    /// A quest about the whole day, which can only be decided in the evening.
+    var isEvening: Bool {
+        metric == .scrollUnder || metric == .noPauses
+    }
+
+    /// A quest that only means something while screen time is measured.
+    var needsTracking: Bool {
+        isEvening || metric == .lowScrollDays
+    }
+
+    /// Whether the quest is met: reached its target, or for a quest about the whole day, still holding in the evening.
+    func isMet(today counts: DailyCounts, week: WeeklyCounts, dayIsOver: Bool, hour: Int) -> Bool {
+        let evening = dayIsOver || hour >= Self.eveningHour
+        switch metric {
+        case .scrollUnder: return evening && counts.scrolledMinutes < target
+        case .noPauses: return evening && counts.pauses == 0 && counts.sosUses == 0
+        default: return progress(today: counts, week: week) >= target
+        }
+    }
+
+    /// Whether a quest about the whole day still holds so far today.
+    func isHolding(today counts: DailyCounts) -> Bool {
+        switch metric {
+        case .scrollUnder: return counts.scrolledMinutes < target
+        case .noPauses: return counts.pauses == 0 && counts.sosUses == 0
+        default: return true
         }
     }
 
     static var easyPool: [Quest] { [
         Quest(id: "reward-1", title: L("Hämta dagens belöning"), symbol: "gift.fill", metric: .rewardClaimed, target: 1, xp: 20, tier: .easy),
         Quest(id: "focus-1", title: L("Klara ett fokuspass"), symbol: "scope", metric: .focusSessions, target: 1, xp: 30, tier: .easy),
-        Quest(id: "close-1", title: L("Stäng en blockerad app"), symbol: "hand.raised.fill", metric: .closes, target: 1, xp: 20, tier: .easy),
-        Quest(id: "decline-1", title: L("Tacka nej till en paus"), symbol: "wind", metric: .declines, target: 1, xp: 25, tier: .easy),
         Quest(id: "focus-25", title: L("Fokusera 25 minuter"), symbol: "timer", metric: .focusMinutes, target: 25, xp: 30, tier: .easy),
         Quest(id: "friend-1", title: L("Utmana en vän"), symbol: "person.2.fill", metric: .friendActions, target: 1, xp: 25, tier: .easy),
+        Quest(id: "scroll-180", title: L("Scrolla mindre än 3 timmar i dag"), symbol: "hourglass", metric: .scrollUnder, target: 180, xp: 35, tier: .easy),
     ] }
 
     static var mediumPool: [Quest] { [
         Quest(id: "focus-50", title: L("Fokusera 50 minuter"), symbol: "timer", metric: .focusMinutes, target: 50, xp: 60, tier: .medium),
         Quest(id: "focus-2", title: L("Klara två fokuspass"), symbol: "bolt.fill", metric: .focusSessions, target: 2, xp: 60, tier: .medium),
-        Quest(id: "close-5", title: L("Stäng blockerade appar 5 gånger"), symbol: "hand.raised.fill", metric: .closes, target: 5, xp: 50, tier: .medium),
         Quest(id: "morning-1", title: L("Klara ett fokuspass före kl. 10"), symbol: "sunrise.fill", metric: .morningSessions, target: 1, xp: 60, tier: .medium),
         Quest(id: "evening-1", title: L("Klara ett fokuspass efter kl. 20"), symbol: "moon.stars.fill", metric: .eveningSessions, target: 1, xp: 50, tier: .medium),
-        Quest(id: "decline-2", title: L("Tacka nej till två pauser"), symbol: "wind", metric: .declines, target: 2, xp: 50, tier: .medium),
+        Quest(id: "scroll-120", title: L("Scrolla mindre än 2 timmar i dag"), symbol: "hourglass", metric: .scrollUnder, target: 120, xp: 70, tier: .medium),
+        Quest(id: "nopause-1", title: L("Ta ingen paus i dag"), symbol: "hand.raised.fill", metric: .noPauses, target: 1, xp: 60, tier: .medium),
         Quest(id: "step-1", title: L("Klara ett stegpass"), symbol: "figure.walk", metric: .stepSessions, target: 1, xp: 70, tier: .medium, needsPro: true),
     ] }
 
@@ -662,17 +769,17 @@ struct Quest: Identifiable {
         Quest(id: "focus-90", title: L("Fokusera 90 minuter"), symbol: "flame.fill", metric: .focusMinutes, target: 90, xp: 100, tier: .hard),
         Quest(id: "focus-3", title: L("Klara tre fokuspass"), symbol: "bolt.fill", metric: .focusSessions, target: 3, xp: 100, tier: .hard),
         Quest(id: "long-60", title: L("Klara ett pass på minst en timme"), symbol: "hourglass", metric: .longestSession, target: 60, xp: 90, tier: .hard),
-        Quest(id: "close-10", title: L("Stäng blockerade appar 10 gånger"), symbol: "hand.raised.fill", metric: .closes, target: 10, xp: 80, tier: .hard),
         Quest(id: "focus-120", title: L("Fokusera två timmar"), symbol: "flame.fill", metric: .focusMinutes, target: 120, xp: 120, tier: .hard),
+        Quest(id: "scroll-60", title: L("Scrolla mindre än en timme i dag"), symbol: "leaf.fill", metric: .scrollUnder, target: 60, xp: 120, tier: .hard),
     ] }
 
     static var weeklyPool: [Quest] { [
         Quest(id: "w-focus-300", title: L("Fokusera 5 timmar den här veckan"), symbol: "trophy.fill", metric: .focusMinutes, target: 300, xp: 250, tier: .weekly),
+        Quest(id: "w-focus-600", title: L("Fokusera 10 timmar den här veckan"), symbol: "trophy.fill", metric: .focusMinutes, target: 600, xp: 450, tier: .weekly),
         Quest(id: "w-sessions-10", title: L("Klara 10 fokuspass den här veckan"), symbol: "bolt.circle.fill", metric: .focusSessions, target: 10, xp: 250, tier: .weekly),
-        Quest(id: "w-closes-25", title: L("Stäng blockerade appar 25 gånger"), symbol: "hand.raised.circle.fill", metric: .closes, target: 25, xp: 200, tier: .weekly),
         Quest(id: "w-quests-12", title: L("Klara 12 dagliga uppdrag"), symbol: "checklist", metric: .dailyQuests, target: 12, xp: 300, tier: .weekly),
         Quest(id: "w-days-5", title: L("Fokusera fem olika dagar"), symbol: "calendar", metric: .focusDays, target: 5, xp: 250, tier: .weekly),
-        Quest(id: "w-declines-5", title: L("Tacka nej till fem pauser"), symbol: "wind", metric: .declines, target: 5, xp: 150, tier: .weekly),
+        Quest(id: "w-calm-5", title: L("Scrolla mindre än 2 timmar fem dagar"), symbol: "leaf.circle.fill", metric: .lowScrollDays, target: 5, xp: 300, tier: .weekly),
         Quest(id: "w-limit-3", title: L("Håll dig under din dagliga gräns tre dagar"), symbol: "checkmark.shield.fill", metric: .daysUnderLimit, target: 3, xp: 200, tier: .weekly, needsPro: true),
         Quest(id: "w-steps-3", title: L("Klara tre stegpass den här veckan"), symbol: "figure.walk.circle.fill", metric: .stepSessions, target: 3, xp: 250, tier: .weekly, needsPro: true),
     ] }
@@ -681,35 +788,54 @@ struct Quest: Identifiable {
         key.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
     }
 
+    /// Scatters a seed, so neighbouring days and weeks get unrelated picks. The same on every device.
+    private static func mix(_ seed: Int, _ salt: UInt32) -> Int {
+        var x = UInt32(truncatingIfNeeded: seed) &+ salt &* 0x9E37_79B9
+        x ^= x >> 16
+        x = x &* 0x7FEB_352D
+        x ^= x >> 15
+        x = x &* 0x846C_A68B
+        x ^= x >> 16
+        return Int(x)
+    }
+
     private static func pool(_ quests: [Quest], includesPro: Bool) -> [Quest] {
         quests.filter { includesPro || !$0.needsPro }
+    }
+
+    /// One quest from `quests` that measures something none of `taken` does, so a day never asks for the same
+    /// thing twice, such as 25 and 90 minutes of focus.
+    private static func pick(from quests: [Quest], avoiding taken: [Quest], seed: Int, salt: UInt32) -> Quest? {
+        let fresh = quests.filter { quest in !taken.contains { $0.metric == quest.metric } }
+        let options = fresh.isEmpty ? quests.filter { quest in !taken.contains { $0.id == quest.id } } : fresh
+        guard !options.isEmpty else { return nil }
+        return options[mix(seed, salt) % options.count]
     }
 
     /// One easy, one medium and one hard quest for `day`, the same on every device and process.
     static func daily(for day: String, includesPro: Bool = false) -> [Quest] {
         let seed = seedValue(day)
-        let easy = pool(easyPool, includesPro: includesPro)
-        let medium = pool(mediumPool, includesPro: includesPro)
-        let hard = pool(hardPool, includesPro: includesPro)
-        return [easy[seed % easy.count], medium[(seed / 3) % medium.count], hard[(seed / 7) % hard.count]]
+        var picked: [Quest] = []
+        for (salt, quests) in [(1, easyPool), (2, mediumPool), (3, hardPool)] as [(UInt32, [Quest])] {
+            if let quest = pick(from: pool(quests, includesPro: includesPro), avoiding: picked, seed: seed, salt: salt) {
+                picked.append(quest)
+            }
+        }
+        return picked
     }
 
     /// The extra quest that opens once the three daily ones are done: another hard one.
     static func bonus(for day: String, includesPro: Bool = false) -> Quest? {
-        let hard = pool(hardPool, includesPro: includesPro)
-        guard hard.count > 1 else { return nil }
-        let seed = seedValue(day)
-        let picked = (seed / 7) % hard.count
-        return hard[(picked + 1 + seed % (hard.count - 1)) % hard.count]
+        pick(from: pool(hardPool, includesPro: includesPro), avoiding: daily(for: day, includesPro: includesPro), seed: seedValue(day), salt: 4)
     }
 
     /// Two quests for the league week `week`, with bigger rewards.
     static func weekly(for week: String, includesPro: Bool = false) -> [Quest] {
         let quests = pool(weeklyPool, includesPro: includesPro)
         let seed = seedValue(week)
-        let first = seed % quests.count
-        let second = (first + 1 + (seed / 5) % (quests.count - 1)) % quests.count
-        return [quests[first], quests[second]]
+        guard let first = pick(from: quests, avoiding: [], seed: seed, salt: 5),
+              let second = pick(from: quests, avoiding: [first], seed: seed, salt: 6) else { return [] }
+        return [first, second]
     }
 
     /// The daily and weekly quests that can complete now. The bonus quest is handled on its own.
@@ -736,7 +862,7 @@ struct Achievement: Identifiable {
         Achievement(id: "streak-3", title: L("Tre i rad"), detail: L("Håll igång en streak i 3 dagar"), symbol: "flame") { $0.bestStreak >= 3 },
         Achievement(id: "streak-7", title: L("En hel vecka"), detail: L("Håll igång en streak i 7 dagar"), symbol: "flame.fill") { $0.bestStreak >= 7 },
         Achievement(id: "streak-30", title: L("Månadens legend"), detail: L("Håll igång en streak i 30 dagar"), symbol: "calendar") { $0.bestStreak >= 30 },
-        Achievement(id: "close-10", title: L("Nej tack, TikTok"), detail: L("Stäng en blockerad app 10 gånger"), symbol: "hand.raised.fill") { $0.closes >= 10 },
+        Achievement(id: "close-10", title: L("Nej tack!"), detail: L("Stäng en blockerad app 10 gånger"), symbol: "hand.raised.fill") { $0.closes >= 10 },
         Achievement(id: "close-100", title: L("Järnvilja"), detail: L("Stäng en blockerad app 100 gånger"), symbol: "shield.fill") { $0.closes >= 100 },
         Achievement(id: "decline-5", title: L("Andades och avstod"), detail: L("Tacka nej till en paus 5 gånger"), symbol: "wind") { $0.declines >= 5 },
         Achievement(id: "level-5", title: L("Skärmtämjare"), detail: L("Nå nivå 5"), symbol: "star.fill") { $0.level >= 5 },

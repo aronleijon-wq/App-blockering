@@ -5,8 +5,15 @@ enum ProgressRecorder {
     @discardableResult
     static func record(_ event: ProgressEvent, at date: Date = .now) -> [Reward] {
         let isPro = SharedStore.isPro
+        #if WIDGET_EXTENSION
+        let tracksUsage: Bool? = nil
+        #else
+        // Screen time is only reported for picked apps, and not at all on vacation.
+        let tracksUsage: Bool? = !SharedStore.selection.isEmpty && !SharedStore.rules.isOnVacation(at: date)
+        #endif
         return SharedStore.updateProgress { progress in
             progress.includesProQuests = isPro
+            if let tracksUsage { progress.tracksUsage = tracksUsage }
             return progress.record(event, at: date, calendar: .current)
         }
     }

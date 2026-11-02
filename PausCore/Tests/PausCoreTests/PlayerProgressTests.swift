@@ -129,6 +129,91 @@ final class PlayerProgressTests: XCTestCase {
         }
     }
 
+    func testADayNeverAsksForTheSameThingTwice() {
+        for offset in 0..<120 {
+            let day = DayKey.string(for: self.day(offset, from: monday), calendar: calendar)
+            for includesPro in [false, true] {
+                let quests = Quest.daily(for: day, includesPro: includesPro) + [Quest.bonus(for: day, includesPro: includesPro)].compactMap { $0 }
+                XCTAssertEqual(quests.count, 4, day)
+                XCTAssertEqual(Set(quests.map(\.metric)).count, quests.count, "\(day): \(quests.map(\.id))")
+            }
+        }
+    }
+
+    /// The first day from `monday` with a daily quest measuring `metric`, at 10 o'clock.
+    private func firstDay(withDaily metric: Quest.Metric) -> (date: Date, quest: Quest)? {
+        for offset in 0..<120 {
+            let date = day(offset, from: monday)
+            if let quest = Quest.daily(for: DayKey.string(for: date, calendar: calendar)).first(where: { $0.metric == metric }) {
+                return (date, quest)
+            }
+        }
+        return nil
+    }
+
+    private func evening(of date: Date) -> Date {
+        calendar.date(bySettingHour: Quest.eveningHour, minute: 30, second: 0, of: date)!
+    }
+
+    func testScrollQuestIsDecidedInTheEvening() throws {
+        let (date, quest) = try XCTUnwrap(firstDay(withDaily: .scrollUnder))
+        var calm = PlayerProgress()
+        calm.record(.scrolled(minutes: quest.target - PipHealth.scrollStepMinutes), at: date, calendar: calendar)
+        XCTAssertFalse(calm.today.completedQuests.contains(quest.id), "not decided before the evening")
+        XCTAssertTrue(quest.isHolding(today: calm.today))
+        XCTAssertTrue(calm.record(.checkIn, at: evening(of: date), calendar: calendar).contains(.quest(quest.id)))
+        XCTAssertTrue(calm.pendingRewards.contains(.quest(quest.id)))
+
+        var busy = PlayerProgress()
+        busy.record(.scrolled(minutes: quest.target), at: date, calendar: calendar)
+        XCTAssertFalse(quest.isHolding(today: busy.today))
+        busy.record(.checkIn, at: evening(of: date), calendar: calendar)
+        XCTAssertFalse(busy.today.completedQuests.contains(quest.id), "scrolled up to the limit")
+    }
+
+    func testScrollQuestSettlesWhenTheDayEnds() throws {
+        let (date, quest) = try XCTUnwrap(firstDay(withDaily: .scrollUnder))
+        var progress = PlayerProgress()
+        progress.record(.checkIn, at: date, calendar: calendar)
+        // The first event of the next day can be one that changes nothing; the quest still pays out.
+        let rewards = progress.record(.focusCompleted(minutes: 0), at: day(1, from: date), calendar: calendar)
+        XCTAssertEqual(rewards, [])
+        XCTAssertTrue(progress.pendingRewards.contains(.quest(quest.id)), "held until midnight without opening Paus at night")
+        XCTAssertGreaterThanOrEqual(progress.xp, quest.xp)
+        XCTAssertGreaterThanOrEqual(progress.history[DayKey.string(for: date, calendar: calendar)]?.quests ?? 0, 1, "the archived day counts it")
+    }
+
+    func testNoPauseQuestBreaksWithAPause() throws {
+        let (date, quest) = try XCTUnwrap(firstDay(withDaily: .noPauses))
+        var clean = PlayerProgress()
+        clean.record(.checkIn, at: evening(of: date), calendar: calendar)
+        XCTAssertTrue(clean.today.completedQuests.contains(quest.id))
+
+        var paused = PlayerProgress()
+        paused.record(.tookPause, at: date, calendar: calendar)
+        XCTAssertFalse(quest.isHolding(today: paused.today))
+        paused.record(.checkIn, at: evening(of: date), calendar: calendar)
+        XCTAssertFalse(paused.today.completedQuests.contains(quest.id))
+    }
+
+    func testScreenTimeQuestsNeedPickedApps() throws {
+        let (date, quest) = try XCTUnwrap(firstDay(withDaily: .scrollUnder))
+        var progress = PlayerProgress()
+        progress.tracksUsage = false
+        progress.record(.checkIn, at: evening(of: date), calendar: calendar)
+        progress.record(.checkIn, at: day(1, from: date), calendar: calendar)
+        XCTAssertFalse(progress.pendingRewards.contains(.quest(quest.id)), "nothing is measured, so nothing is earned")
+        XCTAssertEqual(progress.week.lowScrollDays, 0)
+    }
+
+    func testCalmDaysCountForTheWeek() {
+        var progress = PlayerProgress()
+        progress.record(.scrolled(minutes: 90), at: monday, calendar: calendar)
+        progress.record(.scrolled(minutes: Quest.calmDayMinutes), at: day(1, from: monday), calendar: calendar)
+        progress.record(.checkIn, at: day(2, from: monday), calendar: calendar)
+        XCTAssertEqual(progress.weekCounts(at: day(2, from: monday), calendar: calendar).lowScrollDays, 1, "only the day under two hours")
+    }
+
     func testWeeklyQuestsCountTheWholeWeek() {
         var progress = PlayerProgress()
         for offset in 0..<5 {

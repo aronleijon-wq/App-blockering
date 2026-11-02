@@ -144,6 +144,8 @@ final class AppModel {
                 calendar: .current
             )
         }
+        // Settles a day that ended and, in the evening, completes quests about the whole day that held.
+        ProgressRecorder.record(.checkIn)
         progress = SharedStore.progress
 
         if !ActivityScheduler.isInSync(rules: effectiveRules, selection: selection) {
