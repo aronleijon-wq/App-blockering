@@ -108,6 +108,8 @@ struct CelebrationView: View {
         case .quest(let id):
             guard let quest = Quest.with(id: id) else { return nil }
             return ("checkmark", L("Uppdrag klart: \(quest.title) (+\(quest.xp) XP)"))
+        case .lockCompleted(let days):
+            return ("lock.open.fill", L("Låset klart: \(days) dagar utan vuxensajter (+\(AdultLock.rewardXP(days: days)) XP, \(AdultLock.rewardSeeds(days: days)) frön)"))
         case .division(let raw, let promoted):
             guard let division = Division(rawValue: raw) else { return nil }
             return (promoted ? "arrow.up.right" : "arrow.down.right", promoted ? L("Du gick upp till \(division.title)-ligan") : L("Du åkte ner till \(division.title)-ligan"))

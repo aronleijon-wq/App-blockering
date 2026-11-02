@@ -29,6 +29,8 @@ enum ProgressEvent: Equatable {
     case reachedDailyLimit
     /// Opened Paus. Changes nothing itself, but lets the quests about the whole day be checked in the evening.
     case checkIn
+    /// An adult filter lock of `days` days ran its course. `challenge` when it was the November challenge.
+    case finishedAdultLock(days: Int, challenge: Bool)
 }
 
 enum Reward: Codable, Equatable, Hashable {
@@ -39,6 +41,8 @@ enum Reward: Codable, Equatable, Hashable {
     case division(Int, promoted: Bool)
     /// XP taken away for giving in. Never costs a level.
     case xpLost(Int)
+    /// An adult filter lock of this many days ran its course.
+    case lockCompleted(days: Int)
 
     /// Rewards worth a celebration screen; plain XP and losses only move the progress bar.
     var isCelebration: Bool {
@@ -201,6 +205,8 @@ struct PlayerProgress: Codable, Equatable {
     var week = WeeklyCounts()
     /// Whether quests for Pro features, such as step sessions, can be picked. Set before each event.
     var includesProQuests = false
+    /// November challenges finished: the adult filter locked for the rest of November.
+    var challengesWon = 0
     /// Whether screen time is measured: apps are picked to guard and no vacation is on. Without it, quests about
     /// the whole day would be free, so they can't complete. Set before each event.
     var tracksUsage = true
@@ -287,6 +293,7 @@ struct PlayerProgress: Codable, Equatable {
         healthDay = try container.decodeIfPresent(String.self, forKey: .healthDay)
         week = try container.decodeIfPresent(WeeklyCounts.self, forKey: .week) ?? WeeklyCounts()
         includesProQuests = try container.decodeIfPresent(Bool.self, forKey: .includesProQuests) ?? false
+        challengesWon = try container.decodeIfPresent(Int.self, forKey: .challengesWon) ?? 0
         tracksUsage = try container.decodeIfPresent(Bool.self, forKey: .tracksUsage) ?? true
         seeds = try container.decodeIfPresent(Int.self, forKey: .seeds) ?? 0
         ownedItems = try container.decodeIfPresent(Set<String>.self, forKey: .ownedItems) ?? []
@@ -343,6 +350,7 @@ struct PlayerProgress: Codable, Equatable {
         var lost = 0
         var points = 0
         var healthChange = 0
+        var celebrated: [Reward] = []
 
         switch event {
         case .focusCompleted(let minutes), .stepFocusCompleted(let minutes):
@@ -440,6 +448,12 @@ struct PlayerProgress: Codable, Equatable {
             healthChange = -PipHealth.sosCost(forUse: today.sosUses)
         case .checkIn:
             break
+        case .finishedAdultLock(let days, let challenge):
+            guard days >= AdultLock.minRewardDays else { return [] }
+            gained = AdultLock.rewardXP(days: days)
+            seeds += AdultLock.rewardSeeds(days: days)
+            if challenge { challengesWon += 1 }
+            celebrated.append(.lockCompleted(days: days))
         }
         health = min(PipHealth.maximum, max(0, health + healthChange))
         weeklyPoints = max(0, weeklyPoints + points)
@@ -452,6 +466,7 @@ struct PlayerProgress: Codable, Equatable {
             rewards.append(.xpLost(taken))
         }
         if gained > 0 { rewards.append(.xp(gained)) }
+        rewards.append(contentsOf: celebrated)
 
         for quest in Quest.available(for: day, week: week.key ?? "", includesPro: includesProQuests)
         where !isDone(quest) && canComplete(quest) && quest.isMet(today: today, week: week, dayIsOver: false, hour: hour) {
@@ -863,6 +878,7 @@ struct Achievement: Identifiable {
         Achievement(id: "streak-7", title: L("En hel vecka"), detail: L("Håll igång en streak i 7 dagar"), symbol: "flame.fill") { $0.bestStreak >= 7 },
         Achievement(id: "streak-30", title: L("Månadens legend"), detail: L("Håll igång en streak i 30 dagar"), symbol: "calendar") { $0.bestStreak >= 30 },
         Achievement(id: "close-10", title: L("Nej tack!"), detail: L("Stäng en blockerad app 10 gånger"), symbol: "hand.raised.fill") { $0.closes >= 10 },
+        Achievement(id: "november", title: L("Klarade november"), detail: L("Håll vuxenfiltret låst resten av november"), symbol: "trophy.fill") { $0.challengesWon >= 1 },
         Achievement(id: "close-100", title: L("Järnvilja"), detail: L("Stäng en blockerad app 100 gånger"), symbol: "shield.fill") { $0.closes >= 100 },
         Achievement(id: "decline-5", title: L("Andades och avstod"), detail: L("Tacka nej till en paus 5 gånger"), symbol: "wind") { $0.declines >= 5 },
         Achievement(id: "level-5", title: L("Skärmtämjare"), detail: L("Nå nivå 5"), symbol: "star.fill") { $0.level >= 5 },

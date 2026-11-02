@@ -39,6 +39,8 @@ struct PausRules: Codable, Equatable {
     var adultFilter: Bool
     /// The adult filter stays on until this date and can't be turned off before. See `AdultLock`.
     var adultFilterLockedUntil: Date?
+    /// When the running adult filter lock started, so its length can be shown and rewarded once it ends.
+    var adultFilterLockedAt: Date?
     /// Schedules and the daily limit rest until this date. Focus sessions still work.
     var vacationUntil: Date?
     /// The guarded apps stay blocked, but each can be opened this many times a day in all, from the shield.
@@ -54,6 +56,7 @@ struct PausRules: Codable, Equatable {
         preventUninstall: Bool = false,
         adultFilter: Bool = false,
         adultFilterLockedUntil: Date? = nil,
+        adultFilterLockedAt: Date? = nil,
         vacationUntil: Date? = nil,
         openLimit: Int? = nil,
         openMinutes: Int = 5
@@ -65,6 +68,7 @@ struct PausRules: Codable, Equatable {
         self.preventUninstall = preventUninstall
         self.adultFilter = adultFilter
         self.adultFilterLockedUntil = adultFilterLockedUntil
+        self.adultFilterLockedAt = adultFilterLockedAt
         self.vacationUntil = vacationUntil
         self.openLimit = openLimit
         self.openMinutes = openMinutes
@@ -95,6 +99,7 @@ struct PausRules: Codable, Equatable {
         preventUninstall = try container.decodeIfPresent(Bool.self, forKey: .preventUninstall) ?? defaults.preventUninstall
         adultFilter = try container.decodeIfPresent(Bool.self, forKey: .adultFilter) ?? defaults.adultFilter
         adultFilterLockedUntil = try container.decodeIfPresent(Date.self, forKey: .adultFilterLockedUntil)
+        adultFilterLockedAt = try container.decodeIfPresent(Date.self, forKey: .adultFilterLockedAt)
         vacationUntil = try container.decodeIfPresent(Date.self, forKey: .vacationUntil)
         openLimit = try container.decodeIfPresent(Int.self, forKey: .openLimit)
         openMinutes = try container.decodeIfPresent(Int.self, forKey: .openMinutes) ?? defaults.openMinutes
@@ -125,6 +130,37 @@ enum AdultLock {
     static func daysLeft(until end: Date, from date: Date, calendar: Calendar) -> Int {
         let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: date), to: calendar.startOfDay(for: end)).day ?? 0
         return max(0, days)
+    }
+
+    // MARK: The November challenge
+
+    /// The month the challenge runs in.
+    static let challengeMonth = 11
+
+    /// Whether `date` is in the challenge month with enough of it left to take the challenge.
+    static func offersChallenge(at date: Date, calendar: Calendar) -> Bool {
+        calendar.component(.month, from: date) == challengeMonth
+            && daysLeft(until: endOfMonth(after: date, calendar: calendar), from: date, calendar: calendar) >= minDaysForMonth
+    }
+
+    /// Whether a lock from `start` to `end` is the challenge: started in November and lasting the rest of it.
+    static func isChallenge(from start: Date, to end: Date, calendar: Calendar) -> Bool {
+        calendar.component(.month, from: start) == challengeMonth && end >= endOfMonth(after: start, calendar: calendar)
+    }
+
+    // MARK: Rewards
+
+    /// Locks shorter than this earn nothing when they end, so short locks can't be farmed.
+    static let minRewardDays = 7
+    /// Rewards grow with the lock up to this many days.
+    static let maxRewardDays = 30
+
+    static func rewardXP(days: Int) -> Int {
+        days < minRewardDays ? 0 : min(days, maxRewardDays) * 10
+    }
+
+    static func rewardSeeds(days: Int) -> Int {
+        days < minRewardDays ? 0 : min(days, maxRewardDays) * 5
     }
 }
 

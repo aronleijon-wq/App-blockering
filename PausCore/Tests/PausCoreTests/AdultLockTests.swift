@@ -39,4 +39,33 @@ final class AdultLockTests: XCTestCase {
         let roundTripped = try JSONDecoder().decode(PausRules.self, from: JSONEncoder().encode(locked))
         XCTAssertEqual(roundTripped, locked)
     }
+
+    func testTheChallengeIsOfferedInNovemberWhileThereIsTimeLeft() {
+        XCTAssertTrue(AdultLock.offersChallenge(at: november2, calendar: calendar))
+        XCTAssertFalse(AdultLock.offersChallenge(at: TestCalendar.date(2026, 11, 29, 12, 0), calendar: calendar), "two days left")
+        XCTAssertFalse(AdultLock.offersChallenge(at: TestCalendar.date(2026, 10, 15, 12, 0), calendar: calendar))
+
+        let december = TestCalendar.date(2026, 12, 1, 0, 0)
+        XCTAssertTrue(AdultLock.isChallenge(from: november2, to: december, calendar: calendar))
+        XCTAssertTrue(AdultLock.isChallenge(from: november2, to: december.addingTimeInterval(7 * 86_400), calendar: calendar), "extended")
+        XCTAssertFalse(AdultLock.isChallenge(from: november2, to: TestCalendar.date(2026, 11, 9, 0, 0), calendar: calendar))
+        XCTAssertFalse(AdultLock.isChallenge(from: TestCalendar.date(2026, 10, 30, 12, 0), to: december, calendar: calendar))
+    }
+
+    func testAFinishedLockPaysOutAndTheChallengeEarnsATrophy() {
+        XCTAssertEqual(AdultLock.rewardXP(days: AdultLock.minRewardDays - 1), 0)
+        XCTAssertEqual(AdultLock.rewardXP(days: 29), 290)
+        XCTAssertEqual(AdultLock.rewardXP(days: 365), AdultLock.rewardXP(days: AdultLock.maxRewardDays))
+
+        var progress = PlayerProgress()
+        XCTAssertEqual(progress.record(.finishedAdultLock(days: 3, challenge: false), at: november2, calendar: calendar), [], "too short to earn")
+
+        let rewards = progress.record(.finishedAdultLock(days: 29, challenge: true), at: november2, calendar: calendar)
+        XCTAssertTrue(rewards.contains(.lockCompleted(days: 29)))
+        XCTAssertTrue(rewards.contains(.achievement("november")))
+        XCTAssertTrue(progress.pendingRewards.contains(.lockCompleted(days: 29)))
+        XCTAssertGreaterThanOrEqual(progress.xp, AdultLock.rewardXP(days: 29))
+        XCTAssertGreaterThanOrEqual(progress.seeds, AdultLock.rewardSeeds(days: 29))
+        XCTAssertEqual(progress.challengesWon, 1)
+    }
 }

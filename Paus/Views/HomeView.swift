@@ -22,6 +22,7 @@ struct HomeView: View {
                             setupCard
                         }
                         dailyRewardCard(at: context.date)
+                        AdultLockCard(date: context.date)
                         if model.hasSelection {
                             statusCard(at: context.date)
                             focusCard(at: context.date)

@@ -147,6 +147,7 @@ final class AppModel {
         // Settles a day that ended and, in the evening, completes quests about the whole day that held.
         ProgressRecorder.record(.checkIn)
         progress = SharedStore.progress
+        settleAdultLock()
 
         if !ActivityScheduler.isInSync(rules: effectiveRules, selection: selection) {
             resyncMonitoring()
@@ -258,10 +259,11 @@ final class AppModel {
         }
         // A locked adult filter outlives the data, or deleting it would be the way out of the lock.
         let adultLock = isAdultFilterLocked ? rules.adultFilterLockedUntil : nil
+        let adultLockStart = rules.adultFilterLockedAt
         ActivityScheduler.stopAll()
         SharedStore.eraseUserData()
         if let adultLock {
-            SharedStore.rules = PausRules(adultFilter: true, adultFilterLockedUntil: adultLock)
+            SharedStore.rules = PausRules(adultFilter: true, adultFilterLockedUntil: adultLock, adultFilterLockedAt: adultLockStart)
         }
         signOut()
         introAnswers = nil
@@ -535,6 +537,7 @@ final class AppModel {
         if oldRules.isAdultFilterLocked(at: .now), let lock = oldRules.adultFilterLockedUntil {
             new.adultFilter = true
             new.adultFilterLockedUntil = max(lock, new.adultFilterLockedUntil ?? lock)
+            new.adultFilterLockedAt = oldRules.adultFilterLockedAt
         }
         rules = new
         SharedStore.rules = new
@@ -630,13 +633,28 @@ final class AppModel {
 
     /// Turns the adult filter on and locks it until `end`. A running lock can only be made longer.
     func lockAdultFilter(until end: Date) {
+        // A lock that just ended earns its reward before a new one starts.
+        settleAdultLock()
+        let isNew = !isAdultFilterLocked
         updateRules { rules in
             rules.adultFilter = true
             rules.adultFilterLockedUntil = max(end, rules.adultFilterLockedUntil ?? end)
+            if isNew { rules.adultFilterLockedAt = .now }
         }
         if let lock = rules.adultFilterLockedUntil {
             Notifier.scheduleAdultLockOver(at: lock)
         }
+    }
+
+    /// Rewards an adult filter lock that ran its course, once.
+    private func settleAdultLock() {
+        guard let end = rules.adultFilterLockedUntil, end <= .now, let start = rules.adultFilterLockedAt else { return }
+        let calendar = Calendar.current
+        let days = AdultLock.daysLeft(until: end, from: start, calendar: calendar)
+        let challenge = AdultLock.isChallenge(from: start, to: end, calendar: calendar)
+        updateRules { $0.adultFilterLockedAt = nil }
+        ProgressRecorder.record(.finishedAdultLock(days: days, challenge: challenge))
+        progress = SharedStore.progress
     }
 
     func endVacation() {
