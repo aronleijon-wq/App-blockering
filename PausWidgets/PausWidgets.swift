@@ -94,6 +94,7 @@ struct StatusEntry: TimelineEntry {
     var xp = 0
     /// Whether the user has done something in Paus today, which keeps the streak going.
     var activeToday = true
+    var hour = 12
 
     var level: Int { Level.level(forXP: xp) }
 }
@@ -123,14 +124,25 @@ struct StatusProvider: TimelineProvider {
         let rules = SharedStore.effectiveRules
         let runtime = SharedStore.runtime
         let engine = BlockEngine(rules: rules, runtime: runtime)
+        let calendar = Calendar.current
+        let reason = engine.reason(at: date)
+        let streak = progress.currentStreak(at: date, calendar: calendar)
+        let activeToday = progress.lastActiveDay == DayKey.string(for: date, calendar: calendar)
+        let hour = calendar.component(.hour, from: date)
+        var mood = MascotMood.current(reason: reason, isPaused: engine.isPaused(at: date), progress: progress, at: date, calendar: calendar)
+        // The longer the day goes without Paus, the sadder Pip gets.
+        if !activeToday, reason == nil, let missing = MascotMood.missing(hour: hour, streak: streak) {
+            mood = missing
+        }
         return StatusEntry(
             date: date,
-            status: PausStatus.at(date, rules: rules, runtime: runtime, calendar: .current),
+            status: PausStatus.at(date, rules: rules, runtime: runtime, calendar: calendar),
             health: progress.health,
-            streak: progress.currentStreak(at: date, calendar: .current),
-            mood: MascotMood.current(reason: engine.reason(at: date), isPaused: engine.isPaused(at: date), progress: progress, at: date, calendar: .current),
+            streak: streak,
+            mood: mood,
             xp: progress.xp,
-            activeToday: progress.lastActiveDay == DayKey.string(for: date, calendar: .current)
+            activeToday: activeToday,
+            hour: hour
         )
     }
 }
@@ -200,12 +212,21 @@ private struct StatusWidgetView: View {
             }
             .progressViewStyle(.circular)
         } else {
-            Gauge(value: Double(entry.health), in: 0...100) {
-                Image(systemName: "heart.fill")
-            } currentValueLabel: {
-                Text("\(entry.health)")
+            // Pip's face, with the streak under it.
+            ZStack {
+                AccessoryWidgetBackground()
+                VStack(spacing: 0) {
+                    WidgetPip(mood: entry.mood, level: entry.level)
+                        .frame(width: 34, height: 34)
+                    HStack(spacing: 1) {
+                        Image(systemName: "flame.fill")
+                        Text("\(entry.streak)")
+                            .monospacedDigit()
+                    }
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                }
             }
-            .gaugeStyle(.accessoryCircular)
+            .widgetAccentable()
         }
     }
 
@@ -282,162 +303,70 @@ private struct StatusWidgetView: View {
 
 // MARK: - Live Activity
 
-/// The app icon, so a Live Activity is recognisably Paus at a glance.
-private struct PausIcon: View {
-    let size: CGFloat
-
-    var body: some View {
-        Image("PausIcon")
-            .resizable()
-            .interpolation(.high)
-            .frame(width: size, height: size)
-            .clipShape(RoundedRectangle(cornerRadius: size * 0.2237, style: .continuous))
-            .accessibilityHidden(true)
-    }
-}
-
 struct PausLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: PausActivityAttributes.self) { context in
             LockScreenActivityView(state: context.state, isStale: context.isStale)
-                .activityBackgroundTint(Palette.background.opacity(0.9))
+                .activityBackgroundTint(ActivityLook.of(context.state.status, health: context.state.health, isStale: context.isStale).colors[0])
                 .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { context in
             let status = context.state.status
+            let look = ActivityLook.of(status, health: context.state.health, isStale: context.isStale)
+            let level = context.state.level ?? 1
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    PausIcon(size: 40)
+                    PipBadge(mood: look.mood, level: level, size: 50)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     if let left = status.stepsLeft {
                         Text(L("\(Format.number(left)) kvar"))
                             .font(.title3.weight(.bold))
                             .monospacedDigit()
-                            .foregroundStyle(status.tint)
+                            .contentTransition(.numericText(value: Double(left)))
+                            .foregroundStyle(look.accent)
                             .frame(maxWidth: 110, alignment: .trailing)
                     } else if let range = status.countdown(from: .now) {
                         Text(timerInterval: range, countsDown: true)
                             .font(.title3.weight(.bold))
                             .monospacedDigit()
-                            .foregroundStyle(status.tint)
+                            .foregroundStyle(look.accent)
                             .frame(maxWidth: 90, alignment: .trailing)
                     }
                 }
                 DynamicIslandExpandedRegion(.center) {
-                    Text(status.title)
-                        .font(.headline)
-                        .lineLimit(1)
+                    VStack(spacing: 1) {
+                        Text(look.label)
+                            .font(.caption2.weight(.heavy))
+                            .tracking(1)
+                            .foregroundStyle(look.accent)
+                        Text(status.title)
+                            .font(.headline)
+                            .lineLimit(1)
+                    }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    Text(context.isStale ? status.finishedText : status.stepsLine ?? status.subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    IslandBottom(state: context.state, isStale: context.isStale)
                 }
             } compactLeading: {
-                PausIcon(size: 24)
+                WidgetPip(mood: look.mood, level: level)
+                    .frame(width: 24, height: 24)
             } compactTrailing: {
                 if let left = status.stepsLeft {
                     Text(Format.number(left))
                         .monospacedDigit()
+                        .contentTransition(.numericText(value: Double(left)))
                         .frame(maxWidth: 52)
-                        .foregroundStyle(status.tint)
+                        .foregroundStyle(look.accent)
                 } else if let range = status.countdown(from: .now) {
                     Text(timerInterval: range, countsDown: true)
                         .monospacedDigit()
                         .frame(maxWidth: 48)
-                        .foregroundStyle(status.tint)
+                        .foregroundStyle(look.accent)
                 }
             } minimal: {
-                PausIcon(size: 24)
+                WidgetPip(mood: look.mood, level: level)
+                    .frame(width: 22, height: 22)
             }
         }
-    }
-}
-
-private struct LockScreenActivityView: View {
-    let state: PausActivityAttributes.ContentState
-    let isStale: Bool
-
-    private var status: PausStatus { state.status }
-
-    var body: some View {
-        if status.stepGoal != nil {
-            steps
-        } else {
-            countdown
-        }
-    }
-
-    /// A step session: how many steps are left, walked so far and when they were last counted.
-    private var steps: some View {
-        HStack(spacing: 14) {
-            PausIcon(size: 52)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(status.title)
-                    .font(.headline)
-                if let line = status.stepsLine {
-                    Text(line)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                ProgressView(value: status.stepFraction)
-                    .tint(status.tint)
-                if let checked = status.stepsCheckedAt {
-                    Text(L("Uppdaterad \(Format.time(checked))"))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 0)
-            VStack(alignment: .trailing, spacing: 0) {
-                Text(Format.number(status.stepsLeft ?? 0))
-                    .font(.system(size: 30, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(status.tint)
-                Text(L("steg kvar"))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .foregroundStyle(.white)
-        .padding(16)
-    }
-
-    private var countdown: some View {
-        HStack(spacing: 14) {
-            PausIcon(size: 52)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(status.title)
-                    .font(.headline)
-                if isStale {
-                    Text(status.finishedText)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text(status.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    if let range = status.countdown(from: .now), status.start != nil {
-                        ProgressView(timerInterval: range, countsDown: true) {
-                            EmptyView()
-                        } currentValueLabel: {
-                            EmptyView()
-                        }
-                        .tint(status.tint)
-                    }
-                }
-            }
-            Spacer(minLength: 0)
-            if !isStale, let range = status.countdown(from: .now) {
-                Text(timerInterval: range, countsDown: true)
-                    .font(.system(size: 30, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(status.tint)
-                    .multilineTextAlignment(.trailing)
-                    .frame(maxWidth: 110, alignment: .trailing)
-            }
-        }
-        .foregroundStyle(.white)
-        .padding(16)
     }
 }

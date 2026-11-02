@@ -5,7 +5,7 @@ import Foundation
 /// so it is updated whenever the app changes something or comes to the front.
 @MainActor
 enum LiveActivities {
-    static func sync(status: PausStatus, health: Int) {
+    static func sync(status: PausStatus, health: Int, level: Int, streak: Int) {
         let current = Activity<PausActivityAttributes>.activities
         // A step session has no end time; it lasts until the steps are walked.
         let isRunning = status.end.map { $0 > .now } ?? (status.stepGoal != nil)
@@ -16,7 +16,7 @@ enum LiveActivities {
             return
         }
         // Stale once it is over, so the lock screen can say so even if the app hasn't run since.
-        let content = ActivityContent(state: PausActivityAttributes.ContentState(status: status, health: health), staleDate: status.end)
+        let content = ActivityContent(state: PausActivityAttributes.ContentState(status: status, health: health, level: level, streak: streak), staleDate: status.end)
         if let activity = current.first {
             guard activity.content.state != content.state else { return }
             Task { await activity.update(content) }

@@ -137,6 +137,15 @@ enum AdultLock {
     /// The month the challenge runs in.
     static let challengeMonth = 11
 
+    /// The oldest age group the challenge is offered to: under 18, 18–24 and 25–34 see it. Without an answer
+    /// from the intro, it is offered.
+    static let oldestChallengeGroup = AgeGroup.from25
+
+    static func offersChallenge(to ageGroup: AgeGroup?) -> Bool {
+        guard let ageGroup else { return true }
+        return ageGroup.youngestAge <= oldestChallengeGroup.youngestAge
+    }
+
     /// Whether `date` is in the challenge month with enough of it left to take the challenge.
     static func offersChallenge(at date: Date, calendar: Calendar) -> Bool {
         calendar.component(.month, from: date) == challengeMonth

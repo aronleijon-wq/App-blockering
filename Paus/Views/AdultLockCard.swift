@@ -18,7 +18,8 @@ struct AdultLockCard: View {
     var body: some View {
         if let end = model.rules.adultFilterLockedUntil, end > date {
             progressCard(until: end)
-        } else if AdultLock.offersChallenge(at: date, calendar: calendar) && dismissedMonth != monthKey {
+        } else if AdultLock.offersChallenge(at: date, calendar: calendar) && AdultLock.offersChallenge(to: model.introAnswers?.ageGroup)
+                    && dismissedMonth != monthKey {
             invitation
         }
     }

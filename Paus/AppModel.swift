@@ -562,7 +562,8 @@ final class AppModel {
         ShieldController.refresh()
         runtime = SharedStore.runtime
         let status = PausStatus.at(.now, rules: effectiveRules, runtime: runtime, calendar: .current)
-        LiveActivities.sync(status: status, health: progress.health)
+        LiveActivities.sync(status: status, health: progress.health, level: progress.level,
+                            streak: progress.currentStreak(at: .now, calendar: .current))
     }
 
     /// Records giving in and tells the user what it cost.

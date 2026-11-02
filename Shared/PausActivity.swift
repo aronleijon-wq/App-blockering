@@ -7,6 +7,9 @@ struct PausActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         var status: PausStatus
         var health: Int
+        /// Pip's level and the streak, for Pip's colors and the flame. Missing in activities from older versions.
+        var level: Int? = nil
+        var streak: Int? = nil
     }
 }
 

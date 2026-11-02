@@ -214,6 +214,14 @@ final class PlayerProgressTests: XCTestCase {
         XCTAssertEqual(progress.weekCounts(at: day(2, from: monday), calendar: calendar).lowScrollDays, 1, "only the day under two hours")
     }
 
+    func testPipGetsSadderAsTheDayGoesWithoutPaus() {
+        XCTAssertNil(MascotMood.missing(hour: 9, streak: 5), "the morning is still early")
+        XCTAssertEqual(MascotMood.missing(hour: 14, streak: 5), .sad)
+        XCTAssertEqual(MascotMood.missing(hour: 19, streak: 5), .crying)
+        XCTAssertEqual(MascotMood.missing(hour: 22, streak: 5), .wrecked)
+        XCTAssertEqual(MascotMood.missing(hour: 22, streak: 0), .sad, "no streak to lose")
+    }
+
     func testWeeklyQuestsCountTheWholeWeek() {
         var progress = PlayerProgress()
         for offset in 0..<5 {

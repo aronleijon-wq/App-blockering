@@ -142,15 +142,21 @@ private struct PipWidgetView: View {
     var body: some View {
         HStack(alignment: .bottom, spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
+                if family == .systemSmall {
+                    HStack {
+                        Spacer(minLength: 0)
+                        pip(size: 54)
+                    }
+                }
                 Spacer(minLength: 0)
                 headline
-                    .font(.system(size: family == .systemSmall ? 30 : 40, weight: .black, design: .rounded))
+                    .font(.system(size: family == .systemSmall ? 26 : 40, weight: .black, design: .rounded))
                     .monospacedDigit()
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
                     .contentTransition(.numericText())
                 Text(subline)
-                    .font(.system(size: family == .systemSmall ? 14 : 18, weight: .semibold, design: .rounded))
+                    .font(.system(size: family == .systemSmall ? 13 : 18, weight: .semibold, design: .rounded))
                     .opacity(0.9)
                     .lineLimit(2)
                 Spacer(minLength: 0)
@@ -158,12 +164,24 @@ private struct PipWidgetView: View {
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity, alignment: .leading)
             if family != .systemSmall {
-                WidgetPip(mood: entry.mood, level: entry.level)
-                    .frame(width: 120, height: 120)
-                    .shadow(color: .black.opacity(0.25), radius: 8, y: 6)
+                pip(size: 120)
             }
         }
         .containerBackground(background, for: .widget)
+    }
+
+    /// Pip, whose new face slides in whenever the mood changes during the day.
+    private func pip(size: CGFloat) -> some View {
+        WidgetPip(mood: entry.mood, level: entry.level)
+            .frame(width: size, height: size)
+            .shadow(color: .black.opacity(0.25), radius: size * 0.07, y: size * 0.05)
+            .id(entry.mood)
+            .transition(.push(from: .bottom))
+    }
+
+    /// Whether the streak is at risk tonight: nothing done today and the evening has come.
+    private var streakAtRisk: Bool {
+        !entry.activeToday && entry.streak > 0 && entry.hour >= 18
     }
 
     @ViewBuilder
@@ -175,7 +193,15 @@ private struct PipWidgetView: View {
         } else if entry.health < 40 {
             Text("\(entry.health) %")
         } else if !entry.activeToday {
-            Text(L("Pip väntar"))
+            if entry.hour >= 21 && entry.streak > 0 {
+                Text(L("Sista chansen!"))
+            } else if streakAtRisk {
+                Text(L("Streak i fara"))
+            } else if entry.hour >= 12 {
+                Text(L("Pip saknar dig"))
+            } else {
+                Text(L("Pip väntar"))
+            }
         } else if entry.streak >= 2 {
             Text(L("\(entry.streak) dagar"))
         } else {
@@ -193,7 +219,12 @@ private struct PipWidgetView: View {
             }
         }
         if entry.health < 40 { return L("Pip mår dåligt. Ett fokuspass hjälper.") }
-        if !entry.activeToday { return entry.streak > 0 ? L("Rädda din streak i dag") : L("på att du ska fokusera") }
+        if !entry.activeToday {
+            if entry.hour >= 21 && entry.streak > 0 { return L("Din streak på \(entry.streak) dagar försvinner vid midnatt") }
+            if streakAtRisk { return L("Pip gråter. Rädda din streak på \(entry.streak) dagar!") }
+            if entry.hour >= 12 { return entry.streak > 0 ? L("Rädda din streak i dag") : L("Ett fokuspass gör Pip glad igen") }
+            return entry.streak > 0 ? L("Rädda din streak i dag") : L("på att du ska fokusera")
+        }
         if entry.streak >= 2 { return L("i rad. Pip är stolt!") }
         return Level.title(for: entry.level)
     }
@@ -204,6 +235,8 @@ private struct PipWidgetView: View {
             colors = status.kind == .focus
                 ? [Color(red: 0.36, green: 0.22, blue: 0.9), Color(red: 0.2, green: 0.45, blue: 1)]
                 : [Palette.pink, Palette.violet]
+        } else if streakAtRisk {
+            colors = [Color(red: 1, green: 0.55, blue: 0.2), Color(red: 0.95, green: 0.25, blue: 0.3)]
         } else if entry.health < 40 || !entry.activeToday {
             colors = [Color(red: 0.32, green: 0.36, blue: 0.5), Color(red: 0.5, green: 0.56, blue: 0.7)]
         } else {

@@ -916,6 +916,19 @@ enum MascotMood: String, CaseIterable {
     }
 }
 
+extension MascotMood {
+    /// Pip's mood on a day without Paus so far, getting worse as the day goes, like a pet left alone. Nil in the
+    /// morning, when there's still plenty of time. Without a streak to lose, Pip stays merely sad.
+    static func missing(hour: Int, streak: Int) -> MascotMood? {
+        switch hour {
+        case ..<12: return nil
+        case ..<18: return .sad
+        case ..<21: return streak > 0 ? .crying : .sad
+        default: return streak > 0 ? .wrecked : .sad
+        }
+    }
+}
+
 extension PausRules {
     /// The rules in force without Pro: one schedule, no daily limit, no strict focus and no uninstall protection.
     func effective(isPro: Bool) -> PausRules {

@@ -68,4 +68,13 @@ final class AdultLockTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(progress.seeds, AdultLock.rewardSeeds(days: 29))
         XCTAssertEqual(progress.challengesWon, 1)
     }
+
+    func testTheChallengeIsOfferedUpTo34() {
+        XCTAssertTrue(AdultLock.offersChallenge(to: .under18))
+        XCTAssertTrue(AdultLock.offersChallenge(to: .from18))
+        XCTAssertTrue(AdultLock.offersChallenge(to: .from25))
+        XCTAssertFalse(AdultLock.offersChallenge(to: .from35))
+        XCTAssertFalse(AdultLock.offersChallenge(to: .from55))
+        XCTAssertTrue(AdultLock.offersChallenge(to: nil), "no answer from the intro")
+    }
 }
