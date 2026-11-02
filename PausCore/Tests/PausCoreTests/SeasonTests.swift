@@ -55,9 +55,9 @@ final class SeasonTests: XCTestCase {
     func testSeasonsHaveTheirOwnQuestsItemsAndTrophy() {
         let season = Season.at(november2, calendar: calendar)
         XCTAssertEqual(season.key, "2026-11")
-        XCTAssertEqual(season.items, ["color-iron", "neck-iron-medal"])
+        XCTAssertEqual(season.items, ["color-iron"])
         XCTAssertEqual(Season.containing(questID: season.quests[1].id), season)
-        XCTAssertEqual(Achievement.with(id: season.trophyID)?.title, "Säsong: NNN")
+        XCTAssertEqual(Achievement.with(id: season.trophyID)?.title, "Säsong: Järnvilja")
         XCTAssertEqual(Season.with(key: "2027-05").items, [], "a month without items of its own")
         XCTAssertEqual(season.daysLeft(from: november2, calendar: calendar), 29)
 

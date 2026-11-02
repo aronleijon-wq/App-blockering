@@ -85,7 +85,7 @@ struct AdultLockCard: View {
         let xp = AdultLock.rewardXP(days: days)
         let seeds = AdultLock.rewardSeeds(days: days)
         return trophy
-            ? L("Klarar du hela vägen: en trofé, +\(xp) XP och \(seeds) frön")
+            ? L("Klarar du hela vägen: en trofé, NNN-medaljen till Pip, +\(xp) XP och \(seeds) frön")
             : L("Klarar du hela vägen: +\(xp) XP och \(seeds) frön")
     }
 

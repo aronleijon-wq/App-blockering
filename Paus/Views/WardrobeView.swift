@@ -24,7 +24,7 @@ struct WardrobeView: View {
                     .pickerStyle(.segmented)
 
                     LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(WardrobeItem.all.filter { $0.kind == kind }) { item in
+                        ForEach(items) { item in
                             Button { tap(item) } label: { tile(item) }
                                 .buttonStyle(.plain)
                         }
@@ -62,6 +62,14 @@ struct WardrobeView: View {
         }
     }
 
+    /// The items of the chosen kind. The NNN medal is only shown to those the challenge is offered to, or who won it.
+    private var items: [WardrobeItem] {
+        let offersChallenge = AdultLock.offersChallenge(to: model.introAnswers?.ageGroup)
+        return WardrobeItem.all.filter { item in
+            item.kind == kind && (item.id != AdultLock.challengeItem || offersChallenge || model.progress.owns(item))
+        }
+    }
+
     private func tap(_ item: WardrobeItem) {
         if model.progress.owns(item) {
             model.toggle(item)
@@ -89,7 +97,8 @@ struct WardrobeView: View {
                 } else if owned {
                     Text(L("Ägd")).foregroundStyle(.secondary)
                 } else if item.isSeasonal {
-                    Label(Season.giving(item: item.id)?.name ?? L("Säsong"), systemImage: "sparkles")
+                    Label(item.id == AdultLock.challengeItem ? L("NNN-utmaningen") : Season.giving(item: item.id)?.name ?? L("Säsong"),
+                          systemImage: "sparkles")
                         .foregroundStyle(Theme.orange)
                 } else if item.needsPro && !model.isPro {
                     Label("PRO", systemImage: "lock.fill").foregroundStyle(Theme.pink)

@@ -67,6 +67,15 @@ final class AdultLockTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(progress.xp, AdultLock.rewardXP(days: 29))
         XCTAssertGreaterThanOrEqual(progress.seeds, AdultLock.rewardSeeds(days: 29))
         XCTAssertEqual(progress.challengesWon, 1)
+        XCTAssertTrue(rewards.contains(.item(AdultLock.challengeItem)), "the NNN medal")
+        XCTAssertTrue(progress.owns(WardrobeItem.with(id: AdultLock.challengeItem)!))
+        XCTAssertEqual(progress.buy(WardrobeItem.with(id: AdultLock.challengeItem)!, isPro: true), .alreadyOwned)
+
+        var other = PlayerProgress()
+        other.seeds = 10_000
+        other.record(.finishedAdultLock(days: 30, challenge: false), at: november2, calendar: calendar)
+        XCTAssertFalse(other.owns(WardrobeItem.with(id: AdultLock.challengeItem)!), "only the NNN challenge gives the medal")
+        XCTAssertEqual(other.buy(WardrobeItem.with(id: AdultLock.challengeItem)!, isPro: true), .seasonOnly)
     }
 
     func testTheChallengeIsOfferedUpTo34() {

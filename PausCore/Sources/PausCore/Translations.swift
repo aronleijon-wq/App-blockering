@@ -462,6 +462,7 @@ extension Translations {
         "Klarade NNN": "Made it through NNN",
         "Klarar du hela vägen: +%@ XP och %@ frön": "Make it all the way: +%@ XP and %@ seeds",
         "Klarar du hela vägen: en trofé, +%@ XP och %@ frön": "Make it all the way: a trophy, +%@ XP and %@ seeds",
+        "Klarar du hela vägen: en trofé, NNN-medaljen till Pip, +%@ XP och %@ frön": "Make it all the way: a trophy, the NNN medal for Pip, +%@ XP and %@ seeds",
         "Klart": "Done",
         "KLART": "DONE",
         "Klart %@. Du får %@ XP.": "Done at %@. You'll get %@ XP.",

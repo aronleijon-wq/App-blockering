@@ -14,7 +14,7 @@ struct Season: Equatable {
 
     /// The months with a name and items of their own. Other months get the month's name and quests only.
     private static var named: [String: (name: String, symbol: String, items: [String])] { [
-        "2026-11": ("NNN", "flame.fill", ["color-iron", "neck-iron-medal"]),
+        "2026-11": (L("Järnvilja"), "shield.fill", ["color-iron"]),
         "2026-12": (L("Vinter"), "snowflake", ["hat-santa", "color-frost"]),
         "2027-01": (L("Nystart"), "sunrise.fill", ["glasses-gold", "color-dawn"]),
     ] }

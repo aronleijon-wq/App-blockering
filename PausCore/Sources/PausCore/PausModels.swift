@@ -136,6 +136,8 @@ enum AdultLock {
 
     /// The month the challenge runs in.
     static let challengeMonth = 11
+    /// Pip's medal for making it through the challenge. It can't be bought or earned any other way.
+    static let challengeItem = "neck-iron-medal"
 
     /// The oldest age group the challenge is offered to: under 18, 18–24 and 25–34 see it. Without an answer
     /// from the intro, it is offered.

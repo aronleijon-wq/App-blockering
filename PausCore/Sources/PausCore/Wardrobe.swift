@@ -12,8 +12,8 @@ struct WardrobeItem: Identifiable, Equatable {
     let price: Int
     var needsPro = false
 
-    /// Only earned with a season's quests, never bought. See `Season`.
-    var isSeasonal: Bool { Season.isSeasonItem(id) }
+    /// Only earned, never bought: with a season's quests (see `Season`), or the NNN challenge's medal.
+    var isSeasonal: Bool { Season.isSeasonItem(id) || id == AdultLock.challengeItem }
     var isFree: Bool { price == 0 && !isSeasonal }
 
     static var all: [WardrobeItem] { [

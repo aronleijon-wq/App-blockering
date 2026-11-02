@@ -462,8 +462,14 @@ struct PlayerProgress: Codable, Equatable {
             guard days >= AdultLock.minRewardDays else { return [] }
             gained = AdultLock.rewardXP(days: days)
             seeds += AdultLock.rewardSeeds(days: days)
-            if challenge { challengesWon += 1 }
             celebrated.append(.lockCompleted(days: days))
+            if challenge {
+                challengesWon += 1
+                if !ownedItems.contains(AdultLock.challengeItem) {
+                    ownedItems.insert(AdultLock.challengeItem)
+                    celebrated.append(.item(AdultLock.challengeItem))
+                }
+            }
         }
         health = min(PipHealth.maximum, max(0, health + healthChange))
         weeklyPoints = max(0, weeklyPoints + points)
