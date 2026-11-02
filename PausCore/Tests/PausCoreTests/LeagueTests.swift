@@ -117,8 +117,11 @@ final class LeagueTests: XCTestCase {
         XCTAssertEqual(progress.lastWeek?.points, points, "last week is kept for settling duels")
         XCTAssertEqual(progress.lastWeek?.weekKey, "2026-W43")
 
+        // Opening Paus first settles the quests of the last day played, so only the duel is measured.
+        let nextMonday = monday.addingTimeInterval(7 * 86_400)
+        progress.record(.checkIn, at: nextMonday, calendar: calendar)
         let xp = progress.xp
-        progress.record(.wonDuel, at: monday.addingTimeInterval(7 * 86_400), calendar: calendar)
+        progress.record(.wonDuel, at: nextMonday, calendar: calendar)
         XCTAssertEqual(progress.xp, xp + Duel.winXP)
     }
 
