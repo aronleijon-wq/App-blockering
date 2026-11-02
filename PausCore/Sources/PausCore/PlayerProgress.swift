@@ -878,7 +878,7 @@ struct Achievement: Identifiable {
         Achievement(id: "streak-7", title: L("En hel vecka"), detail: L("Håll igång en streak i 7 dagar"), symbol: "flame.fill") { $0.bestStreak >= 7 },
         Achievement(id: "streak-30", title: L("Månadens legend"), detail: L("Håll igång en streak i 30 dagar"), symbol: "calendar") { $0.bestStreak >= 30 },
         Achievement(id: "close-10", title: L("Nej tack!"), detail: L("Stäng en blockerad app 10 gånger"), symbol: "hand.raised.fill") { $0.closes >= 10 },
-        Achievement(id: "november", title: L("Klarade november"), detail: L("Håll vuxenfiltret låst resten av november"), symbol: "trophy.fill") { $0.challengesWon >= 1 },
+        Achievement(id: "november", title: L("Klarade NNN"), detail: L("Håll vuxenfiltret låst resten av november"), symbol: "trophy.fill") { $0.challengesWon >= 1 },
         Achievement(id: "close-100", title: L("Järnvilja"), detail: L("Stäng en blockerad app 100 gånger"), symbol: "shield.fill") { $0.closes >= 100 },
         Achievement(id: "decline-5", title: L("Andades och avstod"), detail: L("Tacka nej till en paus 5 gånger"), symbol: "wind") { $0.declines >= 5 },
         Achievement(id: "level-5", title: L("Skärmtämjare"), detail: L("Nå nivå 5"), symbol: "star.fill") { $0.level >= 5 },

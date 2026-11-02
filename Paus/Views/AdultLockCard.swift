@@ -39,7 +39,7 @@ struct AdultLockCard: View {
                     .foregroundStyle(Theme.brand)
                     .frame(width: 32)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(isChallenge ? L("Novemberutmaningen") : L("Vuxenfiltret är låst"))
+                    Text(isChallenge ? L("NNN-utmaningen") : L("Vuxenfiltret är låst"))
                         .font(.headline)
                     Text(L("Dag \(day) av \(total)"))
                         .font(.subheadline.weight(.semibold).monospacedDigit())
@@ -98,7 +98,7 @@ struct AdultLockCard: View {
                 PipAvatar(outfit: model.progress.outfit, level: model.progress.level, size: 44)
                     .frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(L("Novemberutmaningen"))
+                    Text(L("NNN-utmaningen"))
                         .font(.title3.bold())
                     Text(L("Lås vuxenfiltret resten av november. \(days) dagar, inga undantag. Klarar du det?"))
                         .font(.subheadline)
