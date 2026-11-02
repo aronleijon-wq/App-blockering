@@ -1061,6 +1061,25 @@ struct Achievement: Identifiable {
         Achievement(id: "november", title: L("Klarade NNN"), detail: L("Håll vuxenfiltret låst resten av november"), symbol: "trophy.fill") { $0.challengesWon >= 1 },
     ] }
 
+    /// How far `progress` has come toward this trophy, for a progress bar.
+    func count(in progress: PlayerProgress) -> (current: Int, goal: Int)? {
+        switch id {
+        case "first-focus": return (progress.focusSessions, 1)
+        case "decline-5": return (progress.declines, 5)
+        case "november": return (progress.challengesWon, 1)
+        default: break
+        }
+        guard let family, let goal = Int(id.split(separator: "-").last ?? "") else { return nil }
+        switch family {
+        case "focus": return (progress.focusSessions, goal)
+        case "hours": return (progress.focusMinutes / 60, goal)
+        case "streak": return (progress.bestStreak, goal)
+        case "level": return (progress.level, goal)
+        case "close": return (progress.closes, goal)
+        default: return nil
+        }
+    }
+
     /// The trophies grouped for the shelf: each family together, the others one by one, in the order of `all`.
     static var shelf: [[Achievement]] {
         var groups: [[Achievement]] = []

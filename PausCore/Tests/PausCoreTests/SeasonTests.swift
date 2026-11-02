@@ -50,6 +50,15 @@ final class SeasonTests: XCTestCase {
         XCTAssertEqual(silver.achievement.tier, .silver)
         XCTAssertEqual(silver.next?.id, "focus-500")
         XCTAssertEqual(Set(Achievement.all.map(\.id)).count, Achievement.all.count, "ids are unique")
+
+        var progress = PlayerProgress()
+        progress.focusSessions = 73
+        XCTAssertEqual(Achievement.with(id: "focus-100")?.count(in: progress)?.current, 73)
+        XCTAssertEqual(Achievement.with(id: "focus-100")?.count(in: progress)?.goal, 100)
+        XCTAssertEqual(Achievement.with(id: "first-focus")?.count(in: progress)?.goal, 1)
+        for achievement in Achievement.all {
+            XCTAssertNotNil(achievement.count(in: progress), "\(achievement.id) has a progress bar")
+        }
     }
 
     func testSeasonsHaveTheirOwnQuestsItemsAndTrophy() {
