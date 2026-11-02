@@ -30,7 +30,7 @@ struct WardrobeView: View {
                         }
                     }
 
-                    Text(L("Tjäna frön med uppdrag, fokuspass och dagens belöning."))
+                    Text(L("Tjäna frön med uppdrag, fokuspass och dagens belöning. Säsongssakerna får du bara med månadens säsongsuppdrag."))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -65,6 +65,8 @@ struct WardrobeView: View {
     private func tap(_ item: WardrobeItem) {
         if model.progress.owns(item) {
             model.toggle(item)
+        } else if item.isSeasonal {
+            return
         } else if item.needsPro && !model.isPro {
             isPaywallPresented = true
         } else if model.progress.seeds >= item.price {
@@ -86,6 +88,9 @@ struct WardrobeView: View {
                     Text(L("På")).foregroundStyle(Theme.mint)
                 } else if owned {
                     Text(L("Ägd")).foregroundStyle(.secondary)
+                } else if item.isSeasonal {
+                    Label(Season.giving(item: item.id)?.name ?? L("Säsong"), systemImage: "sparkles")
+                        .foregroundStyle(Theme.orange)
                 } else if item.needsPro && !model.isPro {
                     Label("PRO", systemImage: "lock.fill").foregroundStyle(Theme.pink)
                 } else {
@@ -102,7 +107,7 @@ struct WardrobeView: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(worn ? AnyShapeStyle(Theme.brand) : AnyShapeStyle(Color.clear), lineWidth: 2)
         }
-        .opacity(owned || model.progress.seeds >= item.price || (item.needsPro && !model.isPro) ? 1 : 0.55)
+        .opacity(owned || model.progress.seeds >= item.price || item.isSeasonal || (item.needsPro && !model.isPro) ? 1 : 0.55)
         .accessibilityElement(children: .combine)
     }
 }

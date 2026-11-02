@@ -43,6 +43,8 @@ enum Reward: Codable, Equatable, Hashable {
     case xpLost(Int)
     /// An adult filter lock of this many days ran its course.
     case lockCompleted(days: Int)
+    /// A season item for Pip, earned with a season quest.
+    case item(String)
 
     /// Rewards worth a celebration screen; plain XP and losses only move the progress bar.
     var isCelebration: Bool {
@@ -203,6 +205,8 @@ struct PlayerProgress: Codable, Equatable {
     var healthDay: String?
     /// This league week's counters, for the weekly quests.
     var week = WeeklyCounts()
+    /// This month's counters, for the season quests. Keyed by `Season.key`.
+    var month = WeeklyCounts()
     /// Whether quests for Pro features, such as step sessions, can be picked. Set before each event.
     var includesProQuests = false
     /// November challenges finished: the adult filter locked for the rest of November.
@@ -292,6 +296,7 @@ struct PlayerProgress: Codable, Equatable {
         health = try container.decodeIfPresent(Int.self, forKey: .health) ?? PipHealth.start
         healthDay = try container.decodeIfPresent(String.self, forKey: .healthDay)
         week = try container.decodeIfPresent(WeeklyCounts.self, forKey: .week) ?? WeeklyCounts()
+        month = try container.decodeIfPresent(WeeklyCounts.self, forKey: .month) ?? WeeklyCounts()
         includesProQuests = try container.decodeIfPresent(Bool.self, forKey: .includesProQuests) ?? false
         challengesWon = try container.decodeIfPresent(Int.self, forKey: .challengesWon) ?? 0
         tracksUsage = try container.decodeIfPresent(Bool.self, forKey: .tracksUsage) ?? true
@@ -344,6 +349,8 @@ struct PlayerProgress: Codable, Equatable {
         }
         rollWeek(at: date, calendar: calendar)
         if week.key != weekKey { week = WeeklyCounts(key: weekKey) }
+        let monthKey = Season.key(for: date, calendar: calendar)
+        if month.key != monthKey { month = WeeklyCounts(key: monthKey) }
         recoverOvernight(at: date, calendar: calendar)
         let levelBefore = level
         var gained = 0
@@ -364,11 +371,14 @@ struct PlayerProgress: Codable, Equatable {
             if hour >= 20 { today.eveningSessions += 1 }
             if case .stepFocusCompleted = event {
                 today.stepSessions += 1
-                week.stepSessions += 1
+                count { $0.stepSessions += 1 }
             }
-            week.focusSessions += 1
-            week.focusMinutes += minutes
-            if today.focusSessions == 1 { week.focusDays += 1 }
+            let firstToday = today.focusSessions == 1
+            count { counts in
+                counts.focusSessions += 1
+                counts.focusMinutes += minutes
+                if firstToday { counts.focusDays += 1 }
+            }
             seeds += Seeds.forFocus(minutes: minutes)
             gained = minutes + XP.focusBonus
             points = min(minutes, max(0, League.Points.focusDailyCap - today.focusPoints))
@@ -402,7 +412,7 @@ struct PlayerProgress: Codable, Equatable {
             points = League.Points.dailyReward
             healthChange = PipHealth.dailyReward
         case .dayUnderLimit:
-            week.daysUnderLimit += 1
+            count { $0.daysUnderLimit += 1 }
             seeds += Seeds.dayUnderLimit
             gained = XP.dayUnderLimit
             points = League.Points.dayUnderLimit
@@ -468,29 +478,32 @@ struct PlayerProgress: Codable, Equatable {
         if gained > 0 { rewards.append(.xp(gained)) }
         rewards.append(contentsOf: celebrated)
 
-        for quest in Quest.available(for: day, week: week.key ?? "", includesPro: includesProQuests)
+        for quest in Quest.available(for: day, week: week.key ?? "", includesPro: includesProQuests, level: level)
         where !isDone(quest) && canComplete(quest) && quest.isMet(today: today, week: week, dayIsOver: false, hour: hour) {
             if quest.tier == .weekly {
                 week.completedQuests.insert(quest.id)
             } else {
                 today.completedQuests.insert(quest.id)
-                week.dailyQuests += 1
+                count { $0.dailyQuests += 1 }
             }
             seeds += Seeds.forQuest(quest)
             gained += quest.xp
             rewards.append(.quest(quest.id))
         }
         // Finishing the three daily quests can unlock the bonus quest, which may already be done.
-        if let bonus = Quest.bonus(for: day, includesPro: includesProQuests),
-           Quest.daily(for: day, includesPro: includesProQuests).allSatisfy({ today.completedQuests.contains($0.id) }),
+        if let bonus = Quest.bonus(for: day, includesPro: includesProQuests, level: level),
+           Quest.daily(for: day, includesPro: includesProQuests, level: level).allSatisfy({ today.completedQuests.contains($0.id) }),
            !today.completedQuests.contains(bonus.id), canComplete(bonus),
            bonus.isMet(today: today, week: week, dayIsOver: false, hour: hour) {
             today.completedQuests.insert(bonus.id)
-            week.dailyQuests += 1
+            count { $0.dailyQuests += 1 }
             seeds += Seeds.forQuest(bonus)
             gained += bonus.xp
             rewards.append(.quest(bonus.id))
         }
+        let season = completeSeasonQuests()
+        gained += season.xp
+        rewards.append(contentsOf: season.rewards)
 
         xp += gained
         if level > levelBefore {
@@ -518,13 +531,13 @@ struct PlayerProgress: Codable, Equatable {
     private mutating func settleEndedDay() -> [Reward] {
         guard let ended = today.day, tracksUsage else { return [] }
         if today.scrolledMinutes < Quest.calmDayMinutes {
-            week.lowScrollDays += 1
+            count { $0.lowScrollDays += 1 }
         }
         let levelBefore = level
         var rewards: [Reward] = []
-        let daily = Quest.daily(for: ended, includesPro: includesProQuests)
+        let daily = Quest.daily(for: ended, includesPro: includesProQuests, level: level)
         var candidates = daily.filter(\.isEvening)
-        if let bonus = Quest.bonus(for: ended, includesPro: includesProQuests) {
+        if let bonus = Quest.bonus(for: ended, includesPro: includesProQuests, level: level) {
             candidates.append(bonus)
         }
         for quest in candidates where !today.completedQuests.contains(quest.id) {
@@ -532,14 +545,14 @@ struct PlayerProgress: Codable, Equatable {
             if isBonus && !daily.allSatisfy({ today.completedQuests.contains($0.id) }) { continue }
             guard quest.isMet(today: today, week: week, dayIsOver: true, hour: 0) else { continue }
             today.completedQuests.insert(quest.id)
-            week.dailyQuests += 1
+            count { $0.dailyQuests += 1 }
             seeds += Seeds.forQuest(quest)
             xp += quest.xp
             rewards.append(.quest(quest.id))
         }
         // The last day of a league week can finish a weekly quest before the week rolls over.
         if let key = week.key {
-            for quest in Quest.weekly(for: key, includesPro: includesProQuests)
+            for quest in Quest.weekly(for: key, includesPro: includesProQuests, level: level)
             where !week.completedQuests.contains(quest.id) && quest.isMet(today: today, week: week, dayIsOver: true, hour: 0) {
                 week.completedQuests.insert(quest.id)
                 seeds += Seeds.forQuest(quest)
@@ -547,11 +560,52 @@ struct PlayerProgress: Codable, Equatable {
                 rewards.append(.quest(quest.id))
             }
         }
+        // And the last day of a month a season quest.
+        let season = completeSeasonQuests()
+        xp += season.xp
+        rewards += season.rewards
         if level > levelBefore {
             rewards.append(contentsOf: (levelBefore + 1...level).map(Reward.levelUp))
         }
         queueCelebrations(rewards)
         return rewards
+    }
+
+    /// Counts toward this week's and this month's quests alike.
+    private mutating func count(_ change: (inout WeeklyCounts) -> Void) {
+        change(&week)
+        change(&month)
+    }
+
+    /// Completes this month's season quests that are met. Each of the first quests gives Pip one of the season's
+    /// items, and finishing all of them the season's trophy. Returns the XP for the caller to add.
+    private mutating func completeSeasonQuests() -> (xp: Int, rewards: [Reward]) {
+        guard let key = month.key else { return (0, []) }
+        let season = Season.with(key: key)
+        var xpGained = 0
+        var rewards: [Reward] = []
+        for (index, quest) in season.quests.enumerated()
+        where !month.completedQuests.contains(quest.id) && canComplete(quest) && quest.isMet(today: today, week: month, dayIsOver: false, hour: 0) {
+            month.completedQuests.insert(quest.id)
+            seeds += Seeds.forQuest(quest)
+            xpGained += quest.xp
+            rewards.append(.quest(quest.id))
+            if index < season.items.count, !ownedItems.contains(season.items[index]) {
+                ownedItems.insert(season.items[index])
+                rewards.append(.item(season.items[index]))
+            }
+        }
+        if !unlocked.contains(season.trophyID), season.quests.allSatisfy({ month.completedQuests.contains($0.id) }) {
+            unlocked.insert(season.trophyID)
+            rewards.append(.achievement(season.trophyID))
+        }
+        return (xpGained, rewards)
+    }
+
+    /// This month's counters as of `date`; empty when the stored ones belong to an earlier month.
+    func monthCounts(at date: Date, calendar: Calendar) -> WeeklyCounts {
+        let key = Season.key(for: date, calendar: calendar)
+        return month.key == key ? month : WeeklyCounts(key: key)
     }
 
     /// Quests about screen time need it measured.
@@ -668,8 +722,29 @@ enum Level {
         return level
     }
 
+    /// The title for `level`. Past Legend, every level is another round of it: Legend II, Legend III and so on.
     static func title(for level: Int) -> String {
-        titles[min(max(level, 1), titles.count) - 1]
+        guard level > titles.count else { return titles[max(level, 1) - 1] }
+        return "Legend \(roman(level - titles.count + 1))"
+    }
+
+    /// Rounds past Legend: 0 below level 11, 1 for Legend II, 2 for Legend III, …
+    static func prestige(for level: Int) -> Int {
+        max(0, level - titles.count)
+    }
+
+    static func roman(_ number: Int) -> String {
+        let numerals: [(Int, String)] = [(1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
+                                         (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")]
+        var rest = max(1, number)
+        var out = ""
+        for (value, numeral) in numerals {
+            while rest >= value {
+                out += numeral
+                rest -= value
+            }
+        }
+        return out
     }
 
     /// PlayerProgress from the start of the current level to the next, 0...1.
@@ -700,6 +775,8 @@ struct Quest: Identifiable {
 
     enum Tier {
         case easy, medium, hard, weekly
+        /// A month's quest, counted from the month's counters. See `Season`.
+        case season
     }
 
     let id: String
@@ -712,13 +789,16 @@ struct Quest: Identifiable {
     /// Needs a Pro feature, so it's only picked for Pro users.
     var needsPro = false
 
+    /// Whether the quest counts over a week or a month rather than a day.
+    var countsLonger: Bool { tier == .weekly || tier == .season }
+
     func progress(today counts: DailyCounts, week: WeeklyCounts) -> Int {
         switch metric {
-        case .focusSessions: return tier == .weekly ? week.focusSessions : counts.focusSessions
-        case .focusMinutes: return tier == .weekly ? week.focusMinutes : counts.focusMinutes
-        case .closes: return tier == .weekly ? week.closes : counts.closes
-        case .declines: return tier == .weekly ? week.declines : counts.declines
-        case .stepSessions: return tier == .weekly ? week.stepSessions : counts.stepSessions
+        case .focusSessions: return countsLonger ? week.focusSessions : counts.focusSessions
+        case .focusMinutes: return countsLonger ? week.focusMinutes : counts.focusMinutes
+        case .closes: return countsLonger ? week.closes : counts.closes
+        case .declines: return countsLonger ? week.declines : counts.declines
+        case .stepSessions: return countsLonger ? week.stepSessions : counts.stepSessions
         case .morningSessions: return counts.morningSessions
         case .eveningSessions: return counts.eveningSessions
         case .rewardClaimed: return counts.rewardClaimed
@@ -828,7 +908,8 @@ struct Quest: Identifiable {
     }
 
     /// One easy, one medium and one hard quest for `day`, the same on every device and process.
-    static func daily(for day: String, includesPro: Bool = false) -> [Quest] {
+    /// One easy, one medium and one hard quest for `day`, the same on every device and process, sized for `level`.
+    static func daily(for day: String, includesPro: Bool = false, level: Int = 1) -> [Quest] {
         let seed = seedValue(day)
         var picked: [Quest] = []
         for (salt, quests) in [(1, easyPool), (2, mediumPool), (3, hardPool)] as [(UInt32, [Quest])] {
@@ -836,57 +917,169 @@ struct Quest: Identifiable {
                 picked.append(quest)
             }
         }
-        return picked
+        return picked.map { $0.scaled(forLevel: level) }
     }
 
     /// The extra quest that opens once the three daily ones are done: another hard one.
-    static func bonus(for day: String, includesPro: Bool = false) -> Quest? {
-        pick(from: pool(hardPool, includesPro: includesPro), avoiding: daily(for: day, includesPro: includesPro), seed: seedValue(day), salt: 4)
+    static func bonus(for day: String, includesPro: Bool = false, level: Int = 1) -> Quest? {
+        pick(from: pool(hardPool, includesPro: includesPro), avoiding: daily(for: day, includesPro: includesPro), seed: seedValue(day), salt: 4)?
+            .scaled(forLevel: level)
     }
 
     /// Two quests for the league week `week`, with bigger rewards.
-    static func weekly(for week: String, includesPro: Bool = false) -> [Quest] {
+    static func weekly(for week: String, includesPro: Bool = false, level: Int = 1) -> [Quest] {
         let quests = pool(weeklyPool, includesPro: includesPro)
         let seed = seedValue(week)
         guard let first = pick(from: quests, avoiding: [], seed: seed, salt: 5),
               let second = pick(from: quests, avoiding: [first], seed: seed, salt: 6) else { return [] }
-        return [first, second]
+        return [first, second].map { $0.scaled(forLevel: level) }
     }
 
     /// The daily and weekly quests that can complete now. The bonus quest is handled on its own.
-    static func available(for day: String, week: String, includesPro: Bool) -> [Quest] {
-        daily(for: day, includesPro: includesPro) + (week.isEmpty ? [] : weekly(for: week, includesPro: includesPro))
+    static func available(for day: String, week: String, includesPro: Bool, level: Int = 1) -> [Quest] {
+        daily(for: day, includesPro: includesPro, level: level) + (week.isEmpty ? [] : weekly(for: week, includesPro: includesPro, level: level))
     }
 
-    static func with(id: String) -> Quest? {
-        (easyPool + mediumPool + hardPool + weeklyPool).first { $0.id == id }
+    /// The quest with `id` as sized for `level`, including a season's quests.
+    static func with(id: String, level: Int = 1) -> Quest? {
+        if let season = Season.containing(questID: id) {
+            return season.quests.first { $0.id == id }
+        }
+        return (easyPool + mediumPool + hardPool + weeklyPool).first { $0.id == id }?.scaled(forLevel: level)
+    }
+
+    // MARK: Growing with the player
+
+    /// How much bigger focus quests get with the player's level, so they keep being a stretch.
+    static func scale(forLevel level: Int) -> Double {
+        switch level {
+        case ..<5: return 1
+        case ..<10: return 1.5
+        case ..<15: return 2
+        default: return 2.5
+        }
+    }
+
+    /// The quest with its target and XP grown for `level`. Only quests about focus grow; screen time quests don't,
+    /// since less scrolling than the player's own limit would be the wrong kind of harder.
+    func scaled(forLevel level: Int) -> Quest {
+        let factor = Quest.scale(forLevel: level)
+        guard factor > 1 else { return self }
+        let weekly = tier == .weekly
+        let grown = Double(target) * factor
+        let newTarget: Int
+        let newTitle: String
+        switch metric {
+        case .focusMinutes:
+            if weekly {
+                let hours = min(30, Int((grown / 60).rounded()))
+                newTarget = hours * 60
+                newTitle = L("Fokusera \(hours) timmar den här veckan")
+            } else {
+                newTarget = min(240, Int((grown / 5).rounded()) * 5)
+                newTitle = newTarget % 60 == 0 ? L("Fokusera \(newTarget / 60) timmar") : L("Fokusera \(newTarget) minuter")
+            }
+        case .focusSessions:
+            newTarget = min(weekly ? 30 : 6, Int(grown.rounded()))
+            newTitle = weekly ? L("Klara \(newTarget) fokuspass den här veckan") : L("Klara \(newTarget) fokuspass")
+        case .longestSession:
+            newTarget = min(120, Int((grown / 15).rounded()) * 15)
+            newTitle = L("Klara ett pass på minst \(newTarget) minuter")
+        default:
+            return self
+        }
+        guard newTarget > target else { return self }
+        let newXP = Int((Double(xp) * Double(newTarget) / Double(target)).rounded())
+        return Quest(id: id, title: newTitle, symbol: symbol, metric: metric, target: newTarget, xp: newXP, tier: tier, needsPro: needsPro)
     }
 }
 
 struct Achievement: Identifiable {
+    /// The medal a trophy in a family of harder and harder ones gives.
+    enum Tier: Int, Comparable {
+        case bronze, silver, gold, diamond
+
+        static func < (lhs: Tier, rhs: Tier) -> Bool { lhs.rawValue < rhs.rawValue }
+
+        var name: String {
+            switch self {
+            case .bronze: return L("Brons")
+            case .silver: return L("Silver")
+            case .gold: return L("Guld")
+            case .diamond: return L("Diamant")
+            }
+        }
+    }
+
     let id: String
     let title: String
     let detail: String
     let symbol: String
+    /// Set for trophies in a family, such as 10, 100, 500 and 2 000 focus sessions.
+    var family: String? = nil
+    var tier: Tier? = nil
     let isEarned: (PlayerProgress) -> Bool
+
+    init(id: String, title: String, detail: String, symbol: String, family: String? = nil, tier: Tier? = nil,
+         isEarned: @escaping (PlayerProgress) -> Bool) {
+        self.id = id
+        self.title = title
+        self.detail = detail
+        self.symbol = symbol
+        self.family = family
+        self.tier = tier
+        self.isEarned = isEarned
+    }
 
     static var all: [Achievement] { [
         Achievement(id: "first-focus", title: L("Första fokuset"), detail: L("Klara ett fokuspass"), symbol: "scope") { $0.focusSessions >= 1 },
-        Achievement(id: "focus-10", title: L("Fokusmaskin"), detail: L("Klara 10 fokuspass"), symbol: "bolt.fill") { $0.focusSessions >= 10 },
-        Achievement(id: "hours-10", title: L("Tio timmar"), detail: L("Fokusera 10 timmar totalt"), symbol: "hourglass") { $0.focusMinutes >= 600 },
-        Achievement(id: "streak-3", title: L("Tre i rad"), detail: L("Håll igång en streak i 3 dagar"), symbol: "flame") { $0.bestStreak >= 3 },
-        Achievement(id: "streak-7", title: L("En hel vecka"), detail: L("Håll igång en streak i 7 dagar"), symbol: "flame.fill") { $0.bestStreak >= 7 },
-        Achievement(id: "streak-30", title: L("Månadens legend"), detail: L("Håll igång en streak i 30 dagar"), symbol: "calendar") { $0.bestStreak >= 30 },
-        Achievement(id: "close-10", title: L("Nej tack!"), detail: L("Stäng en blockerad app 10 gånger"), symbol: "hand.raised.fill") { $0.closes >= 10 },
-        Achievement(id: "november", title: L("Klarade NNN"), detail: L("Håll vuxenfiltret låst resten av november"), symbol: "trophy.fill") { $0.challengesWon >= 1 },
-        Achievement(id: "close-100", title: L("Järnvilja"), detail: L("Stäng en blockerad app 100 gånger"), symbol: "shield.fill") { $0.closes >= 100 },
+        Achievement(id: "focus-10", title: L("Fokusmaskin"), detail: L("Klara 10 fokuspass"), symbol: "bolt.fill", family: "focus", tier: .bronze) { $0.focusSessions >= 10 },
+        Achievement(id: "focus-100", title: L("Fokusmaskin"), detail: L("Klara 100 fokuspass"), symbol: "bolt.fill", family: "focus", tier: .silver) { $0.focusSessions >= 100 },
+        Achievement(id: "focus-500", title: L("Fokusmaskin"), detail: L("Klara 500 fokuspass"), symbol: "bolt.fill", family: "focus", tier: .gold) { $0.focusSessions >= 500 },
+        Achievement(id: "focus-2000", title: L("Fokusmaskin"), detail: L("Klara 2 000 fokuspass"), symbol: "bolt.fill", family: "focus", tier: .diamond) { $0.focusSessions >= 2000 },
+        Achievement(id: "hours-10", title: L("Tid tillbaka"), detail: L("Fokusera 10 timmar totalt"), symbol: "hourglass", family: "hours", tier: .bronze) { $0.focusMinutes >= 600 },
+        Achievement(id: "hours-100", title: L("Tid tillbaka"), detail: L("Fokusera 100 timmar totalt"), symbol: "hourglass", family: "hours", tier: .silver) { $0.focusMinutes >= 6000 },
+        Achievement(id: "hours-500", title: L("Tid tillbaka"), detail: L("Fokusera 500 timmar totalt"), symbol: "hourglass", family: "hours", tier: .gold) { $0.focusMinutes >= 30000 },
+        Achievement(id: "hours-2000", title: L("Tid tillbaka"), detail: L("Fokusera 2 000 timmar totalt"), symbol: "hourglass", family: "hours", tier: .diamond) { $0.focusMinutes >= 120000 },
+        Achievement(id: "streak-3", title: L("Tre i rad"), detail: L("Håll igång en streak i 3 dagar"), symbol: "flame", family: "streak", tier: .bronze) { $0.bestStreak >= 3 },
+        Achievement(id: "streak-7", title: L("En hel vecka"), detail: L("Håll igång en streak i 7 dagar"), symbol: "flame.fill", family: "streak", tier: .silver) { $0.bestStreak >= 7 },
+        Achievement(id: "streak-30", title: L("Månadens legend"), detail: L("Håll igång en streak i 30 dagar"), symbol: "calendar", family: "streak", tier: .gold) { $0.bestStreak >= 30 },
+        Achievement(id: "streak-100", title: L("Hundra dagar"), detail: L("Håll igång en streak i 100 dagar"), symbol: "flame.circle.fill", family: "streak", tier: .diamond) { $0.bestStreak >= 100 },
+        Achievement(id: "level-5", title: L("Skärmtämjare"), detail: L("Nå nivå 5"), symbol: "star.fill", family: "level", tier: .bronze) { $0.level >= 5 },
+        Achievement(id: "level-10", title: "Legend", detail: L("Nå nivå 10"), symbol: "crown.fill", family: "level", tier: .silver) { $0.level >= 10 },
+        Achievement(id: "level-15", title: "Legend VI", detail: L("Nå nivå 15"), symbol: "crown.fill", family: "level", tier: .gold) { $0.level >= 15 },
+        Achievement(id: "level-20", title: "Legend XI", detail: L("Nå nivå 20"), symbol: "crown.fill", family: "level", tier: .diamond) { $0.level >= 20 },
+        Achievement(id: "close-10", title: L("Nej tack!"), detail: L("Stäng en blockerad app 10 gånger"), symbol: "hand.raised.fill", family: "close", tier: .bronze) { $0.closes >= 10 },
+        Achievement(id: "close-100", title: L("Järnvilja"), detail: L("Stäng en blockerad app 100 gånger"), symbol: "shield.fill", family: "close", tier: .silver) { $0.closes >= 100 },
         Achievement(id: "decline-5", title: L("Andades och avstod"), detail: L("Tacka nej till en paus 5 gånger"), symbol: "wind") { $0.declines >= 5 },
-        Achievement(id: "level-5", title: L("Skärmtämjare"), detail: L("Nå nivå 5"), symbol: "star.fill") { $0.level >= 5 },
-        Achievement(id: "level-10", title: "Legend", detail: L("Nå nivå 10"), symbol: "crown.fill") { $0.level >= 10 },
+        Achievement(id: "november", title: L("Klarade NNN"), detail: L("Håll vuxenfiltret låst resten av november"), symbol: "trophy.fill") { $0.challengesWon >= 1 },
     ] }
 
+    /// The trophies grouped for the shelf: each family together, the others one by one, in the order of `all`.
+    static var shelf: [[Achievement]] {
+        var groups: [[Achievement]] = []
+        for achievement in all {
+            if let family = achievement.family, let index = groups.firstIndex(where: { $0.first?.family == family }) {
+                groups[index].append(achievement)
+            } else {
+                groups.append([achievement])
+            }
+        }
+        return groups
+    }
+
+    /// The trophy a group shows: the best one unlocked, or the first to aim for.
+    static func shown(in group: [Achievement], unlocked: Set<String>) -> (achievement: Achievement, isUnlocked: Bool, next: Achievement?) {
+        guard let best = group.last(where: { unlocked.contains($0.id) }) else {
+            return (group[0], false, nil)
+        }
+        let next = group.first { !unlocked.contains($0.id) }
+        return (best, true, next)
+    }
+
     static func with(id: String) -> Achievement? {
-        all.first { $0.id == id }
+        if let season = Season.containing(trophyID: id) { return season.trophy }
+        return all.first { $0.id == id }
     }
 }
 

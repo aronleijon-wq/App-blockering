@@ -400,10 +400,13 @@ private struct LeaderboardRow: View {
             PipAvatar(outfit: entry.outfit, level: entry.level, size: 30)
                 .frame(width: 42, height: 42)
             VStack(alignment: .leading, spacing: 1) {
-                Text(entry.isMe ? "\(entry.nickname) (du)" : entry.nickname)
-                    .font(.subheadline.weight(entry.isMe ? .bold : .semibold))
-                    .lineLimit(1)
-                Text(L("Nivå \(entry.level)"))
+                HStack(spacing: 4) {
+                    Text(entry.isMe ? "\(entry.nickname) (du)" : entry.nickname)
+                        .font(.subheadline.weight(entry.isMe ? .bold : .semibold))
+                        .lineLimit(1)
+                    PrestigeStars(level: entry.level, size: 10)
+                }
+                Text(entry.level >= Level.titles.count ? Level.title(for: entry.level) : L("Nivå \(entry.level)"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }

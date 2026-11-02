@@ -9,7 +9,7 @@ struct CelebrationView: View {
         rewards.reduce(0) { total, reward in
             switch reward {
             case .xp(let amount): return total + amount
-            case .quest(let id): return total + (Quest.with(id: id)?.xp ?? 0)
+            case .quest(let id): return total + (Quest.with(id: id, level: model.progress.level)?.xp ?? 0)
             default: return total
             }
         }
@@ -106,8 +106,11 @@ struct CelebrationView: View {
             guard let achievement = Achievement.with(id: id) else { return nil }
             return (achievement.symbol, L("Trofé: \(achievement.title)"))
         case .quest(let id):
-            guard let quest = Quest.with(id: id) else { return nil }
+            guard let quest = Quest.with(id: id, level: model.progress.level) else { return nil }
             return ("checkmark", L("Uppdrag klart: \(quest.title) (+\(quest.xp) XP)"))
+        case .item(let id):
+            guard let item = WardrobeItem.with(id: id) else { return nil }
+            return ("tshirt.fill", L("Ny sak till Pip: \(item.name)"))
         case .lockCompleted(let days):
             return ("lock.open.fill", L("Låset klart: \(days) dagar utan vuxensajter (+\(AdultLock.rewardXP(days: days)) XP, \(AdultLock.rewardSeeds(days: days)) frön)"))
         case .division(let raw, let promoted):

@@ -69,27 +69,74 @@ struct TrophiesView: View {
                 .opacity(reached ? 1 : 0.55)
                 .accessibilityElement(children: .combine)
             }
+            HStack(spacing: 14) {
+                Image(systemName: "star.fill")
+                    .foregroundStyle(Theme.orange)
+                    .frame(width: 36, height: 36)
+                    .background(Theme.cardRaised, in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(progress.level >= Level.titles.count
+                         ? L("Nästa: \(Level.title(for: progress.level + 1)) vid \(Level.xpRequired(for: progress.level + 1)) XP")
+                         : L("Efter Legend: Legend II, III, IV …"))
+                        .font(.subheadline.weight(.semibold))
+                    Text(L("Varje varv efter Legend ger Pip en stjärna i ligan."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .card()
     }
 
     private func achievementsCard(_ progress: PlayerProgress) -> some View {
+        TrophyShelf(unlocked: progress.unlocked, current: Season.at(.now, calendar: .current))
+            .card()
+    }
+}
+
+/// The trophies: one badge per family, showing its best medal and the next to reach, then the season trophies.
+struct TrophyShelf: View {
+    let unlocked: Set<String>
+    /// The running season, shown locked until it's won.
+    var current: Season?
+
+    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+
+    private var seasons: [Season] {
+        var keys = unlocked.compactMap { Season.containing(trophyID: $0)?.key }
+        if let current, !keys.contains(current.key) { keys.append(current.key) }
+        return keys.sorted(by: >).map(Season.with(key:))
+    }
+
+    var body: some View {
+        let total = Achievement.all.count
+        let earned = Achievement.all.filter { unlocked.contains($0.id) }.count
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text(L("Troféer"))
                     .font(.title3.bold())
                 Spacer()
-                Text("\(progress.unlocked.count)/\(Achievement.all.count)")
+                Text("\(earned)/\(total)")
                     .font(.headline.monospacedDigit())
                     .foregroundStyle(Theme.brand)
             }
             LazyVGrid(columns: columns, spacing: 16) {
-                ForEach(Achievement.all) { achievement in
-                    AchievementBadge(achievement: achievement, isUnlocked: progress.unlocked.contains(achievement.id))
+                ForEach(Achievement.shelf, id: \.first?.id) { group in
+                    let shown = Achievement.shown(in: group, unlocked: unlocked)
+                    AchievementBadge(achievement: shown.achievement, isUnlocked: shown.isUnlocked, next: shown.next)
+                }
+            }
+            if !seasons.isEmpty {
+                Text(L("Säsonger"))
+                    .font(.headline)
+                    .padding(.top, 6)
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(seasons, id: \.key) { season in
+                        AchievementBadge(achievement: season.trophy, isUnlocked: unlocked.contains(season.trophyID))
+                    }
                 }
             }
         }
-        .card()
     }
 }
 
@@ -121,6 +168,17 @@ private struct Stat: View {
 struct AchievementBadge: View {
     let achievement: Achievement
     let isUnlocked: Bool
+    /// The next medal in the family, if there is one.
+    var next: Achievement?
+
+    static func color(for tier: Achievement.Tier) -> Color {
+        switch tier {
+        case .bronze: return Color(red: 0.85, green: 0.55, blue: 0.3)
+        case .silver: return Color(red: 0.82, green: 0.84, blue: 0.9)
+        case .gold: return Color(red: 1, green: 0.82, blue: 0.3)
+        case .diamond: return Color(red: 0.55, green: 0.9, blue: 1)
+        }
+    }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -133,11 +191,28 @@ struct AchievementBadge: View {
                     .foregroundStyle(isUnlocked ? Color.white : Color.secondary)
             }
             .frame(width: 64, height: 64)
+            .overlay {
+                if isUnlocked, let tier = achievement.tier {
+                    Circle()
+                        .strokeBorder(Self.color(for: tier), lineWidth: 4)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if isUnlocked, let tier = achievement.tier {
+                    Text(tier.name.uppercased())
+                        .font(.system(size: 9, weight: .heavy, design: .rounded))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Self.color(for: tier), in: Capsule())
+                        .foregroundStyle(Color.black.opacity(0.75))
+                        .offset(y: 6)
+                }
+            }
             Text(achievement.title)
                 .font(.caption.weight(.semibold))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
-            Text(achievement.detail)
+            Text(next.map { L("Nästa: \($0.detail.lowercased())") } ?? achievement.detail)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

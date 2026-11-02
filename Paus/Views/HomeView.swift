@@ -28,6 +28,7 @@ struct HomeView: View {
                             focusCard(at: context.date)
                         }
                         scoreCard(at: context.date)
+                        TimeBackCard(focusMinutes: model.progress.focusMinutes)
                         ScreenTimeCard()
                         questsCard(at: context.date)
                     }
@@ -88,6 +89,7 @@ struct HomeView: View {
             .sheet(isPresented: $isWardrobePresented) {
                 WardrobeView()
             }
+            PrestigeStars(level: level, size: 16)
 
             Button {
                 isWardrobePresented = true
@@ -442,7 +444,8 @@ struct HomeView: View {
         let counts = progress.counts(at: date, calendar: .current)
         let week = progress.weekCounts(at: date, calendar: .current)
         let day = DayKey.string(for: date, calendar: .current)
-        let daily = Quest.daily(for: day, includesPro: model.isPro)
+        let level = progress.level
+        let daily = Quest.daily(for: day, includesPro: model.isPro, level: level)
         let doneDaily = daily.filter { counts.completedQuests.contains($0.id) }.count
         let weekKey = League.weekKey(for: date, calendar: .current)
         // Screen time isn't measured without picked apps or on vacation, so those quests can't be done then.
@@ -461,7 +464,7 @@ struct HomeView: View {
                 QuestRow(quest: quest, progress: quest.progress(today: counts, week: week), isDone: counts.completedQuests.contains(quest.id),
                          holds: quest.isHolding(today: counts), untracked: untracked)
             }
-            if let bonus = Quest.bonus(for: day, includesPro: model.isPro) {
+            if let bonus = Quest.bonus(for: day, includesPro: model.isPro, level: level) {
                 if doneDaily == daily.count {
                     QuestRow(quest: bonus, progress: bonus.progress(today: counts, week: week), isDone: counts.completedQuests.contains(bonus.id),
                              holds: bonus.isHolding(today: counts), untracked: untracked, label: L("Bonus"))
@@ -482,12 +485,70 @@ struct HomeView: View {
             Divider().overlay(Color.white.opacity(0.08))
             Text(L("Veckans uppdrag"))
                 .font(.headline)
-            ForEach(Quest.weekly(for: weekKey, includesPro: model.isPro)) { quest in
+            ForEach(Quest.weekly(for: weekKey, includesPro: model.isPro, level: level)) { quest in
                 QuestRow(quest: quest, progress: quest.progress(today: counts, week: week), isDone: week.completedQuests.contains(quest.id),
                          untracked: untracked)
             }
+            seasonSection(at: date, untracked: untracked)
         }
         .card()
+    }
+}
+
+extension HomeView {
+    /// This month's season: its quests, what each gives Pip, and the trophy for finishing them all.
+    fileprivate func seasonSection(at date: Date, untracked: String?) -> some View {
+        let season = Season.at(date, calendar: .current)
+        let month = model.progress.monthCounts(at: date, calendar: .current)
+        let counts = model.progress.counts(at: date, calendar: .current)
+        let daysLeft = season.daysLeft(from: date, calendar: .current)
+        return VStack(alignment: .leading, spacing: 14) {
+            Divider().overlay(Color.white.opacity(0.08))
+            HStack(spacing: 8) {
+                Image(systemName: season.symbol)
+                    .foregroundStyle(Theme.brand)
+                Text(L("Säsong: \(season.name)"))
+                    .font(.headline)
+                Spacer()
+                Text(daysLeft == 1 ? L("1 dag kvar") : L("\(daysLeft) dagar kvar"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(Array(season.quests.enumerated()), id: \.element.id) { index, quest in
+                QuestRow(quest: quest, progress: quest.progress(today: counts, week: month), isDone: month.completedQuests.contains(quest.id),
+                         untracked: untracked, label: index < season.items.count ? WardrobeItem.with(id: season.items[index])?.name : nil)
+            }
+            Label(L("Klara alla tre för säsongens trofé. Sakerna finns bara den här månaden."), systemImage: "trophy.fill")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// All the time won back in focus, as hours and as whole days of the player's life.
+private struct TimeBackCard: View {
+    let focusMinutes: Int
+
+    var body: some View {
+        let hours = focusMinutes / 60
+        if hours >= 1 {
+            HStack(spacing: 14) {
+                Image(systemName: "hourglass")
+                    .font(.title2)
+                    .foregroundStyle(Theme.mint)
+                    .frame(width: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L("Du har tagit tillbaka \(hours) timmar"))
+                        .font(.headline)
+                    Text(hours >= 24 ? L("Det är \(hours / 24) hela dygn av ditt liv, i fokus.") : L("Varje fokuspass lägger till mer."))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .card()
+            .accessibilityElement(children: .combine)
+        }
     }
 }
 

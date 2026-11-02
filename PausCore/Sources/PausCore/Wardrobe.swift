@@ -12,7 +12,9 @@ struct WardrobeItem: Identifiable, Equatable {
     let price: Int
     var needsPro = false
 
-    var isFree: Bool { price == 0 }
+    /// Only earned with a season's quests, never bought. See `Season`.
+    var isSeasonal: Bool { Season.isSeasonItem(id) }
+    var isFree: Bool { price == 0 && !isSeasonal }
 
     static var all: [WardrobeItem] { [
         WardrobeItem(id: "hat-cap", name: L("Keps"), kind: .hat, price: 40),
@@ -28,6 +30,7 @@ struct WardrobeItem: Identifiable, Equatable {
         WardrobeItem(id: "hat-halo", name: L("Gloria"), kind: .hat, price: 180, needsPro: true),
         WardrobeItem(id: "hat-crown", name: L("Krona"), kind: .hat, price: 300, needsPro: true),
         WardrobeItem(id: "hat-fire", name: L("Eldfrisyr"), kind: .hat, price: 350, needsPro: true),
+        WardrobeItem(id: "hat-santa", name: L("Tomteluva"), kind: .hat, price: 0),
         WardrobeItem(id: "glasses-round", name: L("Runda glasögon"), kind: .glasses, price: 60),
         WardrobeItem(id: "glasses-3d", name: L("3D-glasögon"), kind: .glasses, price: 60),
         WardrobeItem(id: "glasses-sun", name: L("Solglasögon"), kind: .glasses, price: 70),
@@ -35,12 +38,14 @@ struct WardrobeItem: Identifiable, Equatable {
         WardrobeItem(id: "glasses-pixel", name: L("Pixelbrillor"), kind: .glasses, price: 110),
         WardrobeItem(id: "glasses-heart", name: L("Hjärtglasögon"), kind: .glasses, price: 120, needsPro: true),
         WardrobeItem(id: "glasses-visor", name: L("Cybervisir"), kind: .glasses, price: 200, needsPro: true),
+        WardrobeItem(id: "glasses-gold", name: L("Guldbågar"), kind: .glasses, price: 0),
         WardrobeItem(id: "neck-scarf", name: L("Halsduk"), kind: .neck, price: 50),
         WardrobeItem(id: "neck-tie", name: L("Slips"), kind: .neck, price: 50),
         WardrobeItem(id: "neck-bow", name: L("Fluga"), kind: .neck, price: 70),
         WardrobeItem(id: "neck-lei", name: L("Blomkrans"), kind: .neck, price: 80),
         WardrobeItem(id: "neck-medal", name: L("Medalj"), kind: .neck, price: 150),
         WardrobeItem(id: "neck-chain", name: L("Guldkedja"), kind: .neck, price: 160),
+        WardrobeItem(id: "neck-iron-medal", name: L("NNN-medalj"), kind: .neck, price: 0),
         WardrobeItem(id: "back-cape", name: L("Superhjältemantel"), kind: .back, price: 120),
         WardrobeItem(id: "back-bat", name: L("Fladdermusvingar"), kind: .back, price: 150),
         WardrobeItem(id: "back-wings", name: L("Änglavingar"), kind: .back, price: 220, needsPro: true),
@@ -56,6 +61,9 @@ struct WardrobeItem: Identifiable, Equatable {
         WardrobeItem(id: "color-galaxy", name: L("Galax"), kind: .color, price: 150, needsPro: true),
         WardrobeItem(id: "color-midnight", name: L("Midnatt"), kind: .color, price: 180, needsPro: true),
         WardrobeItem(id: "color-gold", name: L("Guld"), kind: .color, price: 400, needsPro: true),
+        WardrobeItem(id: "color-iron", name: L("Järnvilja"), kind: .color, price: 0),
+        WardrobeItem(id: "color-frost", name: L("Frost"), kind: .color, price: 0),
+        WardrobeItem(id: "color-dawn", name: L("Gryning"), kind: .color, price: 0),
     ] }
 
     static func with(id: String) -> WardrobeItem? {
@@ -114,6 +122,8 @@ enum Seeds {
 extension PlayerProgress {
     enum PurchaseResult: Equatable {
         case bought, alreadyOwned, needsPro, tooFewSeeds
+        /// A season item, only earned with the season's quests.
+        case seasonOnly
     }
 
     func owns(_ item: WardrobeItem) -> Bool {
@@ -123,6 +133,7 @@ extension PlayerProgress {
     /// Buys `item` with seeds. Pro items need Pro.
     mutating func buy(_ item: WardrobeItem, isPro: Bool) -> PurchaseResult {
         guard !owns(item) else { return .alreadyOwned }
+        guard !item.isSeasonal else { return .seasonOnly }
         guard !item.needsPro || isPro else { return .needsPro }
         guard seeds >= item.price else { return .tooFewSeeds }
         seeds -= item.price

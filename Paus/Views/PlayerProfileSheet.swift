@@ -4,14 +4,6 @@ import SwiftUI
 struct PlayerProfileSheet: View {
     let entry: LeaderboardEntry
 
-    private let columns = [GridItem(.adaptive(minimum: 96), spacing: 12)]
-
-    /// Every trophy, the unlocked ones first, so the player's collection reads at a glance.
-    private var achievements: [Achievement] {
-        let all = Achievement.all
-        return all.filter { entry.trophies.contains($0.id) } + all.filter { !entry.trophies.contains($0.id) }
-    }
-
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
@@ -21,8 +13,9 @@ struct PlayerProfileSheet: View {
                 Text(entry.isMe ? L("\(entry.nickname) (du)") : entry.nickname)
                     .font(.title2.bold())
                     .lineLimit(1)
+                PrestigeStars(level: entry.level, size: 16)
                 HStack(spacing: 10) {
-                    stat(L("Nivå"), "\(entry.level)")
+                    stat(L("Nivå"), entry.level >= Level.titles.count ? Level.title(for: entry.level) : "\(entry.level)")
                     stat(L("Division"), entry.division.title)
                     stat(L("Poäng i veckan"), "\(entry.points)")
                 }
@@ -38,23 +31,8 @@ struct PlayerProfileSheet: View {
     }
 
     private var trophies: some View {
-        let unlocked = Achievement.all.filter { entry.trophies.contains($0.id) }.count
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text(L("Troféer"))
-                    .font(.title3.bold())
-                Spacer()
-                Text("\(unlocked)/\(Achievement.all.count)")
-                    .font(.headline.monospacedDigit())
-                    .foregroundStyle(Theme.brand)
-            }
-            LazyVGrid(columns: columns, spacing: 16) {
-                ForEach(achievements) { achievement in
-                    AchievementBadge(achievement: achievement, isUnlocked: entry.trophies.contains(achievement.id))
-                }
-            }
-        }
-        .padding(.top, 8)
+        TrophyShelf(unlocked: entry.trophies)
+            .padding(.top, 8)
     }
 
     private func stat(_ label: String, _ value: String) -> some View {

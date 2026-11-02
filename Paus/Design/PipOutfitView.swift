@@ -22,6 +22,7 @@ struct PipItemView: View {
         case "hat-wizard": wizardHat
         case "hat-halo": halo
         case "hat-fire": fireHair
+        case "hat-santa": santaHat
         case "glasses-round": roundGlasses
         case "glasses-sun": sunglasses
         case "glasses-heart": heartGlasses
@@ -29,12 +30,14 @@ struct PipItemView: View {
         case "glasses-star": starGlasses
         case "glasses-pixel": pixelShades
         case "glasses-visor": visor
+        case "glasses-gold": goldGlasses
         case "neck-scarf": scarf
         case "neck-bow": bowTie
         case "neck-medal": medal
         case "neck-tie": tie
         case "neck-lei": lei
         case "neck-chain": goldChain
+        case "neck-iron-medal": ironMedal
         case "back-cape": cape
         case "back-bat": wings(angel: false)
         case "back-wings": wings(angel: true)
@@ -232,6 +235,25 @@ struct PipItemView: View {
         }
     }
 
+    private var santaHat: some View {
+        let red = Color(red: 0.88, green: 0.12, blue: 0.2)
+        return ZStack {
+            WizardCone()
+                .fill(LinearGradient(colors: [Color(red: 1, green: 0.3, blue: 0.3), red], startPoint: .top, endPoint: .bottom))
+                .frame(width: size * 0.42, height: size * 0.46)
+                .rotationEffect(.degrees(14))
+                .offset(x: size * 0.04, y: -size * 0.12)
+            Capsule()
+                .fill(.white)
+                .frame(width: size * 0.62, height: size * 0.12)
+                .offset(y: size * 0.09)
+            Circle()
+                .fill(.white)
+                .frame(width: size * 0.12)
+                .offset(x: size * 0.17, y: -size * 0.32)
+        }
+    }
+
     private var wizardHat: some View {
         let deep = Color(red: 0.25, green: 0.12, blue: 0.6)
         let star = Color(red: 1, green: 0.88, blue: 0.3)
@@ -316,6 +338,14 @@ struct PipItemView: View {
         glasses {
             Circle()
                 .stroke(Color.black.opacity(0.8), lineWidth: size * 0.025)
+                .frame(width: size * 0.22)
+        }
+    }
+
+    private var goldGlasses: some View {
+        glasses {
+            Circle()
+                .stroke(Self.gold, lineWidth: size * 0.03)
                 .frame(width: size * 0.22)
         }
     }
@@ -440,6 +470,26 @@ struct PipItemView: View {
                 Image(systemName: "star.fill")
                     .font(.system(size: size * 0.07))
                     .foregroundStyle(Theme.orange)
+            }
+        }
+        .offset(y: size * 0.04)
+    }
+
+    /// The NNN season's medal: steel with a violet ribbon and a flame.
+    private var ironMedal: some View {
+        VStack(spacing: -size * 0.02) {
+            Triangle()
+                .fill(Color(red: 0.35, green: 0.2, blue: 0.75))
+                .frame(width: size * 0.16, height: size * 0.1)
+                .rotationEffect(.degrees(180))
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(colors: [Color(red: 0.88, green: 0.9, blue: 0.95), Color(red: 0.5, green: 0.55, blue: 0.65)],
+                                         startPoint: .top, endPoint: .bottom))
+                    .frame(width: size * 0.15)
+                Image(systemName: "flame.fill")
+                    .font(.system(size: size * 0.075))
+                    .foregroundStyle(Color(red: 0.35, green: 0.2, blue: 0.75))
             }
         }
         .offset(y: size * 0.04)
@@ -573,6 +623,9 @@ enum PipColors {
         case "color-toxic": return [Color(red: 0.78, green: 1, blue: 0.2), Color(red: 0.1, green: 0.7, blue: 0.3)]
         case "color-neon": return [Color(red: 0.2, green: 0.95, blue: 1), Color(red: 1, green: 0.2, blue: 0.85)]
         case "color-midnight": return [Color(red: 0.16, green: 0.13, blue: 0.42), Color(red: 0.48, green: 0.22, blue: 0.92)]
+        case "color-iron": return [Color(red: 0.62, green: 0.66, blue: 0.75), Color(red: 0.36, green: 0.22, blue: 0.78)]
+        case "color-frost": return [Color(red: 0.88, green: 0.96, blue: 1), Color(red: 0.42, green: 0.62, blue: 1)]
+        case "color-dawn": return [Color(red: 1, green: 0.8, blue: 0.6), Color(red: 0.72, green: 0.55, blue: 1)]
         default: return nil
         }
     }
