@@ -3,6 +3,7 @@ import SwiftUI
 struct LeagueView: View {
     @Environment(AppModel.self) private var model
     @State private var scope: LeagueService.Scope = .friends
+    @State private var period: LeagueService.Period = .week
     @State private var isAddFriendPresented = false
     @State private var isNicknamePresented = false
     @State private var reporting: LeaderboardEntry?
@@ -48,13 +49,13 @@ struct LeagueView: View {
             }
             .refreshable {
                 await model.syncLeague(force: true)
-                await league.load(scope, progress: model.progress)
+                await league.load(scope, period: period, progress: model.progress)
                 if scope == .friends { await league.loadDuels(progress: model.progress) }
             }
-            // Runs again after a new nickname, new points or a new level, so the list never lags behind.
-            .task(id: "\(scope.rawValue)|\(league.nickname ?? "")|\(model.progress.weeklyPoints)|\(model.progress.level)") {
+            // Runs again after a new nickname, new points or new XP, so the list never lags behind.
+            .task(id: "\(scope.rawValue)|\(period.rawValue)|\(league.nickname ?? "")|\(model.progress.weeklyPoints)|\(model.progress.xp)") {
                 await model.syncLeague(force: false)
-                await league.load(scope, progress: model.progress)
+                await league.load(scope, period: period, progress: model.progress)
                 if scope == .friends { await league.loadDuels(progress: model.progress) }
             }
             .sheet(isPresented: $isNicknamePresented) {
@@ -66,7 +67,7 @@ struct LeagueView: View {
             .sheet(isPresented: $isAddFriendPresented) {
                 AddFriendSheet {
                     await model.syncLeague(force: true)
-                    await league.load(.friends, progress: model.progress)
+                    await league.load(.friends, period: period, progress: model.progress)
                 }
             }
             .confirmationDialog(
@@ -149,20 +150,26 @@ struct LeagueView: View {
                 ForEach(LeagueService.Scope.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
+            Picker(L("Period"), selection: $period) {
+                ForEach(LeagueService.Period.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
 
             if scope == .friends {
                 friendCodeRow
-                if !league.duels.isEmpty {
+                // Duels are weekly, so they stay with this week's list.
+                if period == .week && !league.duels.isEmpty {
                     duelsSection
-                } else if (league.entries[.friends] ?? []).contains(where: { !$0.isMe }) {
+                } else if period == .week && hasFriendsThisWeek {
                     Label(L("Håll fingret på en vän för att utmana till duell."), systemImage: "figure.fencing")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
 
-            let rows = league.entries[scope] ?? []
-            if league.loadingScope == scope && rows.isEmpty {
+            let board = LeagueService.Board(scope: scope, period: period)
+            let rows = league.entries[board] ?? []
+            if league.loadingBoard == board && rows.isEmpty {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 24)
@@ -179,7 +186,7 @@ struct LeagueView: View {
                         .foregroundStyle(.secondary)
                 }
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, entry in
-                    LeaderboardRow(rank: index + 1, entry: entry)
+                    LeaderboardRow(rank: index + 1, entry: entry, period: period)
                         .contentShape(Rectangle())
                         .onTapGesture { profile = entry }
                         .contextMenu {
@@ -200,6 +207,11 @@ struct LeagueView: View {
             }
         }
         .card()
+    }
+
+    private var hasFriendsThisWeek: Bool {
+        let rows: [LeaderboardEntry] = league.entries[LeagueService.Board(scope: .friends, period: .week)] ?? []
+        return rows.contains { !$0.isMe }
     }
 
     private func canDuel(_ entry: LeaderboardEntry) -> Bool {
@@ -278,6 +290,11 @@ struct LeagueView: View {
     }
 
     private var emptyText: String {
+        if period == .allTime {
+            return scope == .friends
+                ? L("Lägg till en vän med deras kod, eller skicka din.")
+                : L("Topplistan genom tiderna fylls på när spelarna samlar XP. Bli först!")
+        }
         switch scope {
         case .friends:
             return L("Lägg till en vän med deras kod, eller skicka din. Den som scrollar minst vinner veckan.")
@@ -372,6 +389,7 @@ struct LeagueView: View {
 private struct LeaderboardRow: View {
     let rank: Int
     let entry: LeaderboardEntry
+    var period: LeagueService.Period = .week
 
     var body: some View {
         HStack(spacing: 12) {
@@ -390,7 +408,7 @@ private struct LeaderboardRow: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Text("\(entry.points)")
+            Text(period == .allTime ? L("\(entry.xp) XP") : "\(entry.points)")
                 .font(.headline.monospacedDigit())
         }
         .padding(.vertical, 6)
