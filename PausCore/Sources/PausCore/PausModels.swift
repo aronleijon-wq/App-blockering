@@ -37,6 +37,8 @@ struct PausRules: Codable, Equatable {
     var preventUninstall: Bool
     /// Keeps Apple's adult website filter on at all times.
     var adultFilter: Bool
+    /// The adult filter stays on until this date and can't be turned off before. See `AdultLock`.
+    var adultFilterLockedUntil: Date?
     /// Schedules and the daily limit rest until this date. Focus sessions still work.
     var vacationUntil: Date?
     /// The guarded apps stay blocked, but each can be opened this many times a day in all, from the shield.
@@ -51,6 +53,7 @@ struct PausRules: Codable, Equatable {
         pause: PauseRules = PauseRules(),
         preventUninstall: Bool = false,
         adultFilter: Bool = false,
+        adultFilterLockedUntil: Date? = nil,
         vacationUntil: Date? = nil,
         openLimit: Int? = nil,
         openMinutes: Int = 5
@@ -61,6 +64,7 @@ struct PausRules: Codable, Equatable {
         self.pause = pause
         self.preventUninstall = preventUninstall
         self.adultFilter = adultFilter
+        self.adultFilterLockedUntil = adultFilterLockedUntil
         self.vacationUntil = vacationUntil
         self.openLimit = openLimit
         self.openMinutes = openMinutes
@@ -69,6 +73,16 @@ struct PausRules: Codable, Equatable {
     func isOnVacation(at date: Date) -> Bool {
         guard let vacationUntil else { return false }
         return vacationUntil > date
+    }
+
+    func isAdultFilterLocked(at date: Date) -> Bool {
+        guard let adultFilterLockedUntil else { return false }
+        return adultFilterLockedUntil > date
+    }
+
+    /// Whether adult websites are blocked at `date`: the filter is on, or locked on.
+    func blocksAdultSites(at date: Date) -> Bool {
+        adultFilter || isAdultFilterLocked(at: date)
     }
 
     init(from decoder: Decoder) throws {
@@ -80,9 +94,37 @@ struct PausRules: Codable, Equatable {
         pause = try container.decodeIfPresent(PauseRules.self, forKey: .pause) ?? defaults.pause
         preventUninstall = try container.decodeIfPresent(Bool.self, forKey: .preventUninstall) ?? defaults.preventUninstall
         adultFilter = try container.decodeIfPresent(Bool.self, forKey: .adultFilter) ?? defaults.adultFilter
+        adultFilterLockedUntil = try container.decodeIfPresent(Date.self, forKey: .adultFilterLockedUntil)
         vacationUntil = try container.decodeIfPresent(Date.self, forKey: .vacationUntil)
         openLimit = try container.decodeIfPresent(Int.self, forKey: .openLimit)
         openMinutes = try container.decodeIfPresent(Int.self, forKey: .openMinutes) ?? defaults.openMinutes
+    }
+}
+
+/// Locks Apple's adult website filter on for a number of days, such as the rest of November, so it can't be
+/// turned off in a weak moment.
+enum AdultLock {
+    /// The lengths offered, in days.
+    static let lengths = [7, 30, 90]
+    static let maxDays = 365
+    /// "The rest of the month" is only offered while at least this many days of it are left.
+    static let minDaysForMonth = 3
+
+    /// The end of the month `date` is in: midnight as the next month starts.
+    static func endOfMonth(after date: Date, calendar: Calendar) -> Date {
+        calendar.dateInterval(of: .month, for: date)?.end ?? date
+    }
+
+    /// When a lock of `days` days started at `date` ends: midnight after its last day, counting `date`'s day.
+    static func end(days: Int, from date: Date, calendar: Calendar) -> Date {
+        let start = calendar.startOfDay(for: date)
+        return calendar.date(byAdding: .day, value: min(max(1, days), maxDays), to: start) ?? date
+    }
+
+    /// Days left of a lock that ends at `end`, counting `date`'s day.
+    static func daysLeft(until end: Date, from date: Date, calendar: Calendar) -> Int {
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: date), to: calendar.startOfDay(for: end)).day ?? 0
+        return max(0, days)
     }
 }
 

@@ -28,7 +28,7 @@ enum ShieldController {
         } else {
             store.clearAllSettings()
         }
-        store.webContent.blockedByFilter = rules.adultFilter ? .auto() : nil
+        store.webContent.blockedByFilter = rules.blocksAdultSites(at: date) ? .auto() : nil
         WidgetRefresher.reload()
     }
 

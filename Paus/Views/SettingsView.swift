@@ -86,13 +86,25 @@ struct SettingsView: View {
                         .disabled(model.isStrictFocusActive && model.effectiveRules.preventUninstall)
                         SettingsDivider()
                         Toggle(isOn: Binding(
-                            get: { model.rules.adultFilter },
+                            get: { model.rules.adultFilter || model.isAdultFilterLocked },
                             set: { newValue in model.updateRules { $0.adultFilter = newValue } }
                         )) {
                             SettingsRow(
                                 symbol: "18.circle.fill",
                                 title: L("Vuxenfilter"),
                                 detail: L("Apples filter mot vuxensajter i Safari, alltid på.")
+                            )
+                        }
+                        .disabled(model.isAdultFilterLocked)
+                        SettingsDivider()
+                        NavigationLink {
+                            AdultLockView()
+                        } label: {
+                            SettingsRow(
+                                symbol: model.isAdultFilterLocked ? "lock.fill" : "lock.open.fill",
+                                title: L("Lås vuxenfiltret"),
+                                detail: adultLockDetail,
+                                accessory: .chevron
                             )
                         }
                         SettingsDivider()
@@ -202,6 +214,15 @@ struct SettingsView: View {
             SettingsRow(symbol: symbol, title: title, detail: detail)
         }
         .tint(Theme.pink)
+    }
+
+    private var adultLockDetail: String {
+        guard model.isAdultFilterLocked, let end = model.rules.adultFilterLockedUntil else {
+            return L("Gör så att filtret inte går att stänga av på ett tag, till exempel hela november.")
+        }
+        // The lock ends at midnight, so the last whole day is the one before.
+        let lastDay = end.addingTimeInterval(-1)
+        return L("Låst till och med \(lastDay.formatted(.dateTime.day().month(.wide).locale(Language.current.locale)))")
     }
 
     private var vacationDetail: String {
@@ -360,6 +381,125 @@ struct SettingsDivider: View {
         Divider()
             .overlay(Color.white.opacity(0.06))
             .padding(.leading, 44)
+    }
+}
+
+// MARK: - Adult filter lock
+
+/// Locks the adult filter on for the rest of the month or a number of days.
+private struct AdultLockView: View {
+    @Environment(AppModel.self) private var model
+    @State private var customDays = 14
+    @State private var pendingEnd: Date?
+
+    private var calendar: Calendar { .current }
+    private var locale: Locale { Language.current.locale }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                Image(systemName: model.isAdultFilterLocked ? "lock.shield.fill" : "18.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(Theme.brand)
+                    .symbolEffect(.bounce, value: model.rules.adultFilterLockedUntil)
+                    .padding(.top, 20)
+                if model.isAdultFilterLocked, let end = model.rules.adultFilterLockedUntil {
+                    lockedContent(until: end)
+                } else {
+                    unlockedContent
+                }
+            }
+            .padding(20)
+        }
+        .screenBackground()
+        .navigationTitle(L("Lås vuxenfiltret"))
+        .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog(
+            L("Lås till och med \(pendingText)?"),
+            isPresented: Binding(get: { pendingEnd != nil }, set: { if !$0 { pendingEnd = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button(L("Lås")) {
+                if let end = pendingEnd { model.lockAdultFilter(until: end) }
+                pendingEnd = nil
+            }
+            Button(L("Avbryt"), role: .cancel) { pendingEnd = nil }
+        } message: {
+            Text(L("Fram till dess går vuxenfiltret inte att stänga av, inte ens för dig."))
+        }
+    }
+
+    private var pendingText: String {
+        guard let pendingEnd else { return "" }
+        return dateText(pendingEnd)
+    }
+
+    private func dateText(_ date: Date) -> String {
+        // The lock ends at midnight, so the last whole day is the one before.
+        let lastDay = date.addingTimeInterval(-1)
+        return lastDay.formatted(.dateTime.day().month(.wide).locale(locale))
+    }
+
+    private func lockedContent(until end: Date) -> some View {
+        let left = AdultLock.daysLeft(until: end, from: .now, calendar: calendar)
+        return VStack(spacing: 16) {
+            Text(L("Vuxenfiltret är låst"))
+                .font(.title2.bold())
+            VStack(spacing: 2) {
+                Text("\(left)")
+                    .font(.system(size: 56, weight: .heavy, design: .rounded).monospacedDigit())
+                    .foregroundStyle(Theme.brand)
+                Text(left == 1 ? L("dag kvar") : L("dagar kvar"))
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
+            Text(L("Vuxensajter är blockerade till och med \(dateText(end)). Pip tror på dig."))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+            Text(L("Förläng låset"))
+                .font(.headline)
+                .padding(.top, 8)
+            HStack(spacing: 10) {
+                ForEach(AdultLock.lengths, id: \.self) { days in
+                    Button(L("+\(days) dagar")) {
+                        pendingEnd = AdultLock.end(days: days, from: end, calendar: calendar)
+                    }
+                    .buttonStyle(ChipButtonStyle())
+                }
+            }
+        }
+    }
+
+    private var unlockedContent: some View {
+        let now = Date.now
+        let monthEnd = AdultLock.endOfMonth(after: now, calendar: calendar)
+        let monthDays = AdultLock.daysLeft(until: monthEnd, from: now, calendar: calendar)
+        let month = now.formatted(.dateTime.month(.wide).locale(locale))
+        return VStack(spacing: 16) {
+            Text(L("Lås vuxenfiltret"))
+                .font(.title2.bold())
+            Text(L("Apples filter blockerar vuxensajter i Safari och andra webbläsare. Med låset på går det inte att stänga av, inte ens för dig, förrän tiden är ute."))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+            if monthDays >= AdultLock.minDaysForMonth {
+                Button(L("Resten av \(month) · \(monthDays) dagar")) { pendingEnd = monthEnd }
+                    .buttonStyle(GlowButtonStyle())
+            }
+            ForEach(AdultLock.lengths, id: \.self) { days in
+                Button(L("\(days) dagar")) { pendingEnd = AdultLock.end(days: days, from: now, calendar: calendar) }
+                    .buttonStyle(ChipButtonStyle())
+            }
+            VStack(spacing: 10) {
+                Stepper(value: $customDays, in: 1...AdultLock.maxDays) {
+                    Text(customDays == 1 ? L("1 dag") : L("\(customDays) dagar"))
+                        .font(.headline.monospacedDigit())
+                }
+                Button(L("Lås i \(customDays) dagar")) { pendingEnd = AdultLock.end(days: customDays, from: now, calendar: calendar) }
+                    .buttonStyle(ChipButtonStyle())
+            }
+            .padding(16)
+            .background(Theme.cardRaised, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
     }
 }
 

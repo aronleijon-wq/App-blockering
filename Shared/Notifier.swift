@@ -23,6 +23,7 @@ enum Notifier {
         static let scheduleStarted = "paus.schedule-started"
         static let health = "paus.health"
         static let vacationOver = "paus.vacation-over"
+        static let adultLockOver = "paus.adult-lock-over"
         static let stepsDone = "paus.steps-done"
     }
 
@@ -60,6 +61,10 @@ enum Notifier {
 
     static func scheduleVacationOver(at end: Date) {
         schedule(ID.vacationOver, at: end, title: L("Välkommen tillbaka! 👋"), body: L("Semesterläget är slut och dina regler gäller igen."))
+    }
+
+    static func scheduleAdultLockOver(at end: Date) {
+        schedule(ID.adultLockOver, at: end, title: L("Du klarade det! 🏆"), body: L("Låset är slut. Vuxenfiltret är fortfarande på tills du själv stänger av det."))
     }
 
     // MARK: Pip

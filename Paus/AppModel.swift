@@ -236,7 +236,7 @@ final class AppModel {
 
     // MARK: Privacy
 
-    /// Deletes the league record, local progress, rules and selection, and lifts every block.
+    /// Deletes the league record, local progress, rules and selection, and lifts every block but a locked adult filter.
     /// Not offered during strict focus, where it would be a way around the session.
     func deleteAllData() async {
         guard !isStrictFocusActive else { return }
@@ -256,13 +256,19 @@ final class AppModel {
                 return
             }
         }
+        // A locked adult filter outlives the data, or deleting it would be the way out of the lock.
+        let adultLock = isAdultFilterLocked ? rules.adultFilterLockedUntil : nil
         ActivityScheduler.stopAll()
         SharedStore.eraseUserData()
+        if let adultLock {
+            SharedStore.rules = PausRules(adultFilter: true, adultFilterLockedUntil: adultLock)
+        }
         signOut()
         introAnswers = nil
         IntroStore.answers = nil
         refreshShield()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        if let adultLock { Notifier.scheduleAdultLockOver(at: adultLock) }
         selection = SharedStore.selection
         rules = SharedStore.rules
         runtime = SharedStore.runtime
@@ -525,6 +531,11 @@ final class AppModel {
         if isStrictFocusActive, !new.strictFocus { new.strictFocus = true }
         // Strict focus can't be escaped by deleting the app either.
         if isStrictFocusActive, oldRules.preventUninstall { new.preventUninstall = true }
+        // A locked adult filter stays on, and the lock can only be made longer.
+        if oldRules.isAdultFilterLocked(at: .now), let lock = oldRules.adultFilterLockedUntil {
+            new.adultFilter = true
+            new.adultFilterLockedUntil = max(lock, new.adultFilterLockedUntil ?? lock)
+        }
         rules = new
         SharedStore.rules = new
 
@@ -613,6 +624,19 @@ final class AppModel {
         }
         updateRules { $0.vacationUntil = end }
         Notifier.scheduleVacationOver(at: end)
+    }
+
+    var isAdultFilterLocked: Bool { rules.isAdultFilterLocked(at: .now) }
+
+    /// Turns the adult filter on and locks it until `end`. A running lock can only be made longer.
+    func lockAdultFilter(until end: Date) {
+        updateRules { rules in
+            rules.adultFilter = true
+            rules.adultFilterLockedUntil = max(end, rules.adultFilterLockedUntil ?? end)
+        }
+        if let lock = rules.adultFilterLockedUntil {
+            Notifier.scheduleAdultLockOver(at: lock)
+        }
     }
 
     func endVacation() {
