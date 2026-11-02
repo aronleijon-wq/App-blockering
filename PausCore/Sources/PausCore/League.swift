@@ -63,7 +63,8 @@ enum League {
         static let close = 5
         static let decline = 10
         static let dailyReward = 10
-        static let dayUnderLimit = 30
+        /// The most a day can give besides focus: it means the user really did scroll less.
+        static let dayUnderLimit = 40
         static let disabledProtectionPenalty = 100
         static let abandonedFocus = 10
         static let escapedBlock = 20

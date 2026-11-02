@@ -361,8 +361,8 @@ struct LeagueView: View {
                 .font(.headline)
             PointRow(symbol: "scope", text: L("Fokuspass"), value: L("1 / min, max \(League.Points.focusDailyCap) per dag"))
             PointRow(symbol: "checkmark.shield", text: L("Dag under din gräns"), value: "+\(League.Points.dayUnderLimit)")
-            PointRow(symbol: "hand.raised.fill", text: L("Stänga en blockerad app"), value: "+\(League.Points.close)")
-            PointRow(symbol: "wind", text: L("Tacka nej till en paus"), value: "+\(League.Points.decline)")
+            PointRow(symbol: "hand.raised.fill", text: L("Stänga en blockerad app"), value: L("+\(League.Points.close), max \(PlayerProgress.XP.closeDailyCap) per dag"))
+            PointRow(symbol: "wind", text: L("Tacka nej till en paus"), value: L("+\(League.Points.decline), max \(PlayerProgress.XP.declineDailyCap) per dag"))
             PointRow(symbol: "gift.fill", text: L("Dagens belöning"), value: "+\(League.Points.dailyReward)")
         }
         .card()

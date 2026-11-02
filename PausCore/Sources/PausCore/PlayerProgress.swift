@@ -143,9 +143,10 @@ struct PlayerProgress: Codable, Equatable {
     enum XP {
         static let focusBonus = 10
         static let close = 5
-        static let closeDailyCap = 10
+        /// Low, so closing a blocked app over and over can't be farmed for points.
+        static let closeDailyCap = 3
         static let decline = 10
-        static let declineDailyCap = 5
+        static let declineDailyCap = 2
         static let dailyRewardBase = 10
         static let dailyRewardPerStreakDay = 5
         static let dailyRewardMaxStreakBonus = 6

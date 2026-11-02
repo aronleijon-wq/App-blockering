@@ -141,9 +141,12 @@ struct PauseView: View {
                 costCard
 
                 VStack(spacing: 12) {
-                    Button(L("Nej tack, jag klarar mig (+\(PlayerProgress.XP.decline) XP)")) {
+                    // Saying no counts once the breathing is done, so the pause screen can't be opened and closed for points.
+                    Button(remaining > 0 ? L("Nej tack, jag klarar mig") : L("Nej tack, jag klarar mig (+\(PlayerProgress.XP.decline) XP)")) {
                         dismiss()
-                        model.declinePause()
+                        if remaining == 0 {
+                            model.declinePause()
+                        }
                     }
                     .buttonStyle(GlowButtonStyle())
 
