@@ -24,6 +24,8 @@ struct LeaderboardEntry: Identifiable, Equatable {
     var outfit: Outfit = .none
     /// All the XP the player has earned, for the all-time leaderboard.
     var xp = 0
+    /// Ids of the trophies the player has unlocked, shown on their profile.
+    var trophies: Set<String> = []
 }
 
 /// The league in CloudKit's public database. Each player owns one `Player` record per device account,
@@ -110,6 +112,8 @@ final class LeagueService {
         static let outfit = "outfit"
         /// All the XP the player has earned. Queryable and sortable, for the all-time leaderboard.
         static let totalXP = "totalXP"
+        /// Unlocked trophy ids, comma separated.
+        static let trophies = "trophies"
         static let joinedAt = "joinedAt"
         static let friendCode = "friendCode"
         static let friends = "friends"
@@ -149,10 +153,13 @@ final class LeagueService {
     @ObservationIgnored private var playerRecordName: String?
     @ObservationIgnored private var uploadedSignature: String?
     @ObservationIgnored private var uploadedGroupID: String?
-    /// False once CloudKit has refused the outfit field, which happens until it is deployed to Production.
-    @ObservationIgnored private var sendsOutfit = true
-    /// The same for the all-time XP field.
-    @ObservationIgnored private var sendsTotalXP = true
+    /// Fields added after launch. Until one is deployed to the Production schema, CloudKit refuses records that carry
+    /// it, so it is left out for the rest of the session and the league keeps working without it.
+    enum Extra: CaseIterable {
+        case outfit, totalXP, trophies
+    }
+
+    @ObservationIgnored private var sentExtras = Set(Extra.allCases)
 
     private var database: CKDatabase { container.publicCloudDatabase }
 
@@ -224,22 +231,17 @@ final class LeagueService {
         let week = progress.weekKey.flatMap { progress.weeklyPoints > 0 ? $0 : nil }
         let qualified = progress.focusSessions > 0
         let lastWeek = progress.lastWeek
-        let signature = "\(lastWeek?.weekKey ?? "")|\(lastWeek?.points ?? 0)|\(nickname ?? "")|\(friendCode)|\(friends)|\(invitedBy ?? "")|\(qualified)|\(week ?? "")|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)|\(progress.outfit.code)|\(progress.xp)"
+        let signature = "\(lastWeek?.weekKey ?? "")|\(lastWeek?.points ?? 0)|\(nickname ?? "")|\(friendCode)|\(friends)|\(invitedBy ?? "")|\(qualified)|\(week ?? "")|\(progress.weeklyPoints)|\(progress.level)|\(progress.division.rawValue)|\(progress.outfit.code)|\(progress.xp)|\(progress.unlocked.sorted())"
         guard signature != uploadedSignature else { return }
 
         let recordID = try await myRecordID()
-        // Until a new field is deployed to the Production schema, CloudKit refuses records that carry it. The league
-        // keeps working without that field then: first without all-time XP, then without the outfit, then without both.
-        var attempts: [(outfit: Bool, totalXP: Bool)] = [(sendsOutfit, sendsTotalXP)]
-        if sendsTotalXP { attempts.append((sendsOutfit, false)) }
-        if sendsOutfit { attempts.append((false, sendsTotalXP)) }
-        if sendsOutfit && sendsTotalXP { attempts.append((false, false)) }
+        // Every combination of the newer fields, keeping as many as possible: if one isn't in the schema yet, the next
+        // try leaves it out.
         var failure: Error?
-        for attempt in attempts {
+        for extras in Self.attempts(from: sentExtras) {
             do {
-                try await savePlayer(playerRecord(recordID, progress: progress, outfit: attempt.outfit, totalXP: attempt.totalXP))
-                sendsOutfit = attempt.outfit
-                sendsTotalXP = attempt.totalXP
+                try await savePlayer(playerRecord(recordID, progress: progress, extras: extras))
+                sentExtras = extras
                 failure = nil
                 break
             } catch {
@@ -251,13 +253,23 @@ final class LeagueService {
         uploadedGroupID = progress.leagueGroupID
     }
 
+    /// The subsets of `extras`, largest first.
+    private static func attempts(from extras: Set<Extra>) -> [Set<Extra>] {
+        let all = Extra.allCases.filter { extras.contains($0) }
+        var subsets: [Set<Extra>] = [[]]
+        for extra in all {
+            subsets += subsets.map { $0.union([extra]) }
+        }
+        return subsets.sorted { $0.count > $1.count }
+    }
+
     private func savePlayer(_ record: CKRecord) async throws {
         // Changed keys only, so the record can be saved without fetching it first.
         let (results, _) = try await database.modifyRecords(saving: [record], deleting: [], savePolicy: .changedKeys, atomically: false)
         if case .failure(let error) = results[record.recordID] { throw error }
     }
 
-    private func playerRecord(_ recordID: CKRecord.ID, progress: PlayerProgress, outfit: Bool, totalXP: Bool) -> CKRecord {
+    private func playerRecord(_ recordID: CKRecord.ID, progress: PlayerProgress, extras: Set<Extra>) -> CKRecord {
         let friends = friendIDs.sorted()
         let week = progress.weekKey.flatMap { progress.weeklyPoints > 0 ? $0 : nil }
         let qualified = progress.focusSessions > 0
@@ -293,11 +305,14 @@ final class LeagueService {
                 record[Field.joinedAt] = Date.now
             }
         }
-        if outfit, nickname != nil {
+        if extras.contains(.outfit), nickname != nil {
             record[Field.outfit] = progress.outfit.code
         }
         // Every league player is on the all-time leaderboard, also in weeks without points.
-        if totalXP, nickname != nil {
+        if extras.contains(.trophies), nickname != nil {
+            record[Field.trophies] = progress.unlocked.sorted().joined(separator: ",")
+        }
+        if extras.contains(.totalXP), nickname != nil {
             record[Field.totalXP] = progress.xp
             record[Field.level] = progress.level
             record[Field.country] = Self.countryCode
@@ -473,6 +488,7 @@ final class LeagueService {
                 // A friend who hasn't scored this week still shows last week's numbers in CloudKit.
                 let thisWeek = record[Field.weekKey] as? String == weekKey
                 let theirXP: Int = record[Field.totalXP] as? Int ?? 0
+                let theirTrophies = Set((record[Field.trophies] as? String ?? "").split(separator: ",").map(String.init))
                 // CloudKit can take a while to return a record that was just saved, so the player's own
                 // row always shows what this phone knows.
                 return LeaderboardEntry(
@@ -483,13 +499,14 @@ final class LeagueService {
                     division: isMe ? progress.division : Division(rawValue: record[Field.division] as? Int ?? 0) ?? .brons,
                     isMe: isMe,
                     outfit: isMe ? progress.outfit : Outfit(code: record[Field.outfit] as? String),
-                    xp: isMe ? progress.xp : theirXP
+                    xp: isMe ? progress.xp : theirXP,
+                    trophies: isMe ? progress.unlocked : theirTrophies
                 )
             }
             if scope == .friends, let me, !rows.contains(where: \.isMe) {
                 rows.append(LeaderboardEntry(id: me, nickname: nickname ?? "?", points: progress.weeklyPoints,
                                              level: progress.level, division: progress.division, isMe: true, outfit: progress.outfit,
-                                             xp: progress.xp))
+                                             xp: progress.xp, trophies: progress.unlocked))
             }
             switch period {
             case .week: entries[board] = rows.sorted { $0.points > $1.points }
