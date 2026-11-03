@@ -656,7 +656,8 @@ final class AppModel {
         guard let end = rules.adultFilterLockedUntil, end <= .now, let start = rules.adultFilterLockedAt else { return }
         let calendar = Calendar.current
         let days = AdultLock.daysLeft(until: end, from: start, calendar: calendar)
-        let challenge = AdultLock.isChallenge(from: start, to: end, calendar: calendar)
+        // The NNN trophy and medal only go to those the challenge is offered to.
+        let challenge = AdultLock.offersChallenge(to: introAnswers?.ageGroup) && AdultLock.isChallenge(from: start, to: end, calendar: calendar)
         updateRules { $0.adultFilterLockedAt = nil }
         ProgressRecorder.record(.finishedAdultLock(days: days, challenge: challenge))
         progress = SharedStore.progress

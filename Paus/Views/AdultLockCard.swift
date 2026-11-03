@@ -31,7 +31,9 @@ struct AdultLockCard: View {
         let start: Date? = model.rules.adultFilterLockedAt
         let total: Int = start.map { AdultLock.daysLeft(until: end, from: $0, calendar: calendar) } ?? left
         let day: Int = min(max(1, total - left + 1), max(1, total))
-        let isChallenge: Bool = start.map { AdultLock.isChallenge(from: $0, to: end, calendar: calendar) } ?? false
+        // Only those the NNN challenge is offered to see a lock for the rest of November as the challenge.
+        let offered = AdultLock.offersChallenge(to: model.introAnswers?.ageGroup)
+        let isChallenge: Bool = offered && (start.map { AdultLock.isChallenge(from: $0, to: end, calendar: calendar) } ?? false)
         let fraction = Double(day) / Double(max(1, total))
         return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
