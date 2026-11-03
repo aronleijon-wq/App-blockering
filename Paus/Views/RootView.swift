@@ -32,6 +32,11 @@ struct RootView: View {
                 IntroView()
             }
         }
+        .overlay {
+            if case .required = model.updateNeed {
+                UpdateRequiredView()
+            }
+        }
         // A new identity redraws every screen in the newly chosen language.
         .id(model.language)
         .environment(\.locale, model.language.locale)

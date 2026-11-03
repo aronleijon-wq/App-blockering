@@ -62,6 +62,9 @@ final class AppModel {
     let store = Store()
     let league = LeagueService()
     @ObservationIgnored private var lastLeagueSync: Date?
+    /// Whether a newer Paus is out, or this one is too old to use. See `AppUpdateChecker`.
+    private(set) var updateNeed: AppVersion.Need = .none
+    @ObservationIgnored private var lastUpdateCheck: Date?
     @ObservationIgnored private var pendingLeagueSync: Task<Void, Never>?
     /// Screen Time can't be authorized in the Simulator, so there the app skips onboarding to let the design be tried out.
     /// Blocking itself only works on a real iPhone.
@@ -124,6 +127,7 @@ final class AppModel {
     func reload() {
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
         Task { await checkAccount() }
+        Task { await checkForUpdate() }
         checkProtection()
         runtime = SharedStore.runtime
         progress = SharedStore.progress
@@ -656,6 +660,13 @@ final class AppModel {
         updateRules { $0.adultFilterLockedAt = nil }
         ProgressRecorder.record(.finishedAdultLock(days: days, challenge: challenge))
         progress = SharedStore.progress
+    }
+
+    /// Looks for a newer version at most once an hour.
+    func checkForUpdate() async {
+        if let lastUpdateCheck, Date.now.timeIntervalSince(lastUpdateCheck) < 3600 { return }
+        lastUpdateCheck = .now
+        updateNeed = await AppUpdateChecker.check()
     }
 
     func endVacation() {

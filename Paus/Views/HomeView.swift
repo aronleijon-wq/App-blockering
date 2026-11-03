@@ -17,6 +17,7 @@ struct HomeView: View {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 ScrollView {
                     VStack(spacing: 16) {
+                        UpdateCard()
                         hero(at: context.date)
                         if !model.hasSelection {
                             setupCard
