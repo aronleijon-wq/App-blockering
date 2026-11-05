@@ -7,13 +7,17 @@ struct PipAvatar: View {
     var size: CGFloat = 30
 
     var body: some View {
-        ZStack {
+        let form = PipForm(item: outfit.shape)
+        return ZStack {
             if let back = outfit.back {
                 PipItemView(id: back, size: size)
             }
-            Ellipse()
+            BlobShape(form: form, phase: 0, wobble: 0, reach: 1)
                 .fill(LinearGradient(colors: MascotView.bodyColors(level: level, outfit: outfit), startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(width: size, height: size * 0.94)
+                .frame(width: size, height: size)
+            if let shirt = outfit.shirt {
+                PipShirtView(id: shirt, size: size, form: form, reach: 1)
+            }
             HStack(spacing: size * 0.2) {
                 eye
                 eye
@@ -26,7 +30,7 @@ struct PipAvatar: View {
                 .offset(y: size * 0.04)
             if let neck = outfit.neck {
                 PipItemView(id: neck, size: size)
-                    .offset(PipItemView.offset(for: .neck, size: size))
+                    .offset(PipItemView.offset(for: .neck, size: size, form: form))
             }
             if let glasses = outfit.glasses {
                 PipItemView(id: glasses, size: size)
@@ -34,7 +38,7 @@ struct PipAvatar: View {
             }
             if let hat = outfit.hat {
                 PipItemView(id: hat, size: size)
-                    .offset(PipItemView.offset(for: .hat, size: size))
+                    .offset(PipItemView.offset(for: .hat, size: size, form: form))
             }
         }
         .frame(width: size * 1.4, height: size * 1.4)

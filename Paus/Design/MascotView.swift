@@ -23,25 +23,30 @@ struct MascotView: View {
                     PipItemView(id: back, size: size, time: time)
                 }
 
-                BlobShape(phase: time * 1.6, wobble: mood == .hyped ? 0.055 : 0.03)
+                BlobShape(form: form, phase: time * 1.6, wobble: wobble)
                     .fill(bodyGradient)
                     .overlay {
-                        BlobShape(phase: time * 1.6, wobble: mood == .hyped ? 0.055 : 0.03)
+                        BlobShape(form: form, phase: time * 1.6, wobble: wobble)
                             .stroke(Color.white.opacity(0.3), lineWidth: 2)
                     }
                     .overlay {
                         if mood == .wrecked {
                             // A sickly green tinge.
-                            BlobShape(phase: time * 1.6, wobble: 0.03)
+                            BlobShape(form: form, phase: time * 1.6, wobble: wobble)
                                 .fill(Color(red: 0.45, green: 0.6, blue: 0.3).opacity(0.35))
                         }
                     }
                     .saturation(saturation)
 
+                if let shirt = outfit.shirt {
+                    PipShirtView(id: shirt, size: size, form: form, phase: time * 1.6, wobble: wobble)
+                        .saturation(saturation)
+                }
+
                 face(time: time)
                 if let neck = outfit.neck {
                     PipItemView(id: neck, size: size, time: time)
-                        .offset(PipItemView.offset(for: .neck, size: size))
+                        .offset(PipItemView.offset(for: .neck, size: size, form: form))
                 }
                 if let glasses = outfit.glasses, mood != .wrecked {
                     PipItemView(id: glasses, size: size, time: time)
@@ -59,6 +64,10 @@ struct MascotView: View {
         .accessibilityElement()
         .accessibilityLabel(L("Pip, nivå \(level), \(mood.label)"))
     }
+
+    private var form: PipForm { PipForm(item: outfit.shape) }
+
+    private var wobble: Double { mood == .hyped ? 0.055 : 0.03 }
 
     private var saturation: Double {
         switch mood {
@@ -196,7 +205,7 @@ struct MascotView: View {
 
     @ViewBuilder
     private func accessories(time: Double) -> some View {
-        let top = -size * 0.47
+        let top = -size * 0.47 + CGFloat(form.hatShift) * size * PipItemView.formScale
         if mood == .wrecked {
             // A plaster instead of the level accessory.
             RoundedRectangle(cornerRadius: size * 0.03, style: .continuous)
@@ -212,7 +221,7 @@ struct MascotView: View {
         } else if let hat = outfit.hat {
             // A hat from the wardrobe replaces the level accessory.
             PipItemView(id: hat, size: size, time: time)
-                .offset(PipItemView.offset(for: .hat, size: size))
+                .offset(PipItemView.offset(for: .hat, size: size, form: form))
         } else if level >= 8 {
             Image(systemName: "crown.fill")
                 .font(.system(size: size * 0.22))
@@ -261,22 +270,26 @@ extension MascotMood {
     }
 }
 
-/// A soft, slowly wobbling circle.
+/// Pip's body in its form, slowly wobbling. Round Pip is a soft circle.
 struct BlobShape: Shape {
+    var form: PipForm = .round
     var phase: Double
     var wobble: Double
+    /// How far the body reaches from the center toward the frame's edge.
+    var reach: Double = 0.86
 
     func path(in rect: CGRect) -> Path {
         let center = CGPoint(x: rect.midX, y: rect.midY)
-        let radius = Double(min(rect.width, rect.height)) / 2 * 0.86
-        let steps = 90
+        let radius = Double(min(rect.width, rect.height)) / 2 * reach
+        let steps = 120
         var path = Path()
         for step in 0...steps {
             let angle = Double(step) / Double(steps) * 2 * .pi
             let scale = 1 + wobble * sin(3 * angle + phase) + wobble * 0.6 * sin(5 * angle - phase * 1.3)
+            let unit = form.point(at: angle)
             let point = CGPoint(
-                x: center.x + CGFloat(radius * scale * cos(angle)),
-                y: center.y + CGFloat(radius * scale * sin(angle) * 0.94)
+                x: center.x + CGFloat(radius * scale * unit.x),
+                y: center.y + CGFloat(radius * scale * unit.y)
             )
             if step == 0 {
                 path.move(to: point)

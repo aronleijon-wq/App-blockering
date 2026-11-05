@@ -1,12 +1,13 @@
 import SwiftUI
 
-/// Pip's wardrobe: hats, glasses, things for the neck and colors, bought with seeds.
+/// Pip's wardrobe: hats, glasses, shirts, things for the neck and back, colors and shapes, bought with seeds.
 struct WardrobeView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var kind: WardrobeItem.Kind = .hat
     @State private var buying: WardrobeItem?
     @State private var isPaywallPresented = false
+    @State private var isPickingFlag = false
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -18,10 +19,16 @@ struct WardrobeView: View {
                         .padding(.top, 8)
                     SeedsChip(seeds: model.progress.seeds)
 
-                    Picker(L("Kategori"), selection: $kind) {
-                        ForEach(WardrobeItem.Kind.allCases, id: \.self) { Text($0.title).tag($0) }
+                    kindPicker
+
+                    if kind == .shirt, ownsFlagShirt {
+                        Button { isPickingFlag = true } label: {
+                            Label { Text(L("Byt flagga på tröjan")) } icon: { Text(Country.flag(flagCountry)) }
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(Theme.mint)
                     }
-                    .pickerStyle(.segmented)
 
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(items) { item in
@@ -59,7 +66,48 @@ struct WardrobeView: View {
             .sheet(isPresented: $isPaywallPresented) {
                 PaywallView()
             }
+            .sheet(isPresented: $isPickingFlag) {
+                FlagPicker(current: flagCountry) { model.chooseFlag($0) }
+            }
         }
+    }
+
+    /// The kinds as a row of chips, which scroll when they don't all fit.
+    private var kindPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(WardrobeItem.Kind.allCases, id: \.self) { option in
+                    kindChip(option)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+        .padding(.horizontal, -16)
+    }
+
+    private func kindChip(_ option: WardrobeItem.Kind) -> some View {
+        let isChosen = kind == option
+        return Button {
+            withAnimation(.snappy) { kind = option }
+        } label: {
+            Text(option.title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(isChosen ? Color.white : Color.primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(isChosen ? AnyShapeStyle(Theme.brand) : AnyShapeStyle(Theme.cardRaised), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isChosen ? .isSelected : [])
+    }
+
+    private var ownsFlagShirt: Bool {
+        WardrobeItem.with(id: WardrobeItem.flagShirt).map { model.progress.owns($0) } ?? false
+    }
+
+    /// The flag on Pip's flag shirt, or the one it gets when put on.
+    private var flagCountry: String {
+        WardrobeItem.flagCountry(of: model.progress.outfit.shirt) ?? model.flagCountry
     }
 
     /// The items of the chosen kind. The NNN medal is only shown to those the challenge is offered to, or who won it.
@@ -84,9 +132,9 @@ struct WardrobeView: View {
 
     private func tile(_ item: WardrobeItem) -> some View {
         let owned = model.progress.owns(item)
-        let worn = model.progress.outfit.item(for: item.kind) == item.id
+        let worn = model.progress.outfit.wears(item)
         return VStack(spacing: 8) {
-            ItemPreview(item: item)
+            ItemPreview(item: item, country: flagCountry)
                 .frame(width: 70, height: 70)
             Text(item.name)
                 .font(.caption.weight(.semibold))
@@ -124,31 +172,77 @@ struct WardrobeView: View {
 /// A still Pip wearing just this item, for the wardrobe grid, where dozens of animated ones would be too heavy.
 private struct ItemPreview: View {
     let item: WardrobeItem
+    /// The flag a flag shirt shows.
+    let country: String
 
     var body: some View {
         GeometryReader { proxy in
-            let size = min(proxy.size.width, proxy.size.height) * 0.78
-            ZStack {
-                if item.kind == .back {
-                    PipItemView(id: item.id, size: size)
-                }
-                Ellipse()
-                    .fill(LinearGradient(colors: PipColors.colors(for: item.kind == .color ? item.id : nil) ?? [Theme.mint, Color(red: 0.2, green: 0.75, blue: 0.95)],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: size, height: size * 0.94)
-                HStack(spacing: size * 0.2) {
-                    Circle().fill(.white).frame(width: size * 0.17)
-                    Circle().fill(.white).frame(width: size * 0.17)
-                }
-                .offset(y: -size * 0.07)
-                if item.kind != .color && item.kind != .back {
-                    PipItemView(id: item.id, size: size)
-                        .offset(PipItemView.offset(for: item.kind, size: size))
-                }
-            }
-            .frame(width: proxy.size.width, height: proxy.size.height)
+            let size = min(proxy.size.width, proxy.size.height) * 0.74
+            PipAvatar(outfit: Outfit(wearing: item, country: country), level: 1, size: size)
+                .frame(width: proxy.size.width, height: proxy.size.height)
         }
         .accessibilityHidden(true)
+    }
+}
+
+/// Picks the country whose flag Pip's flag shirt shows.
+private struct FlagPicker: View {
+    let current: String
+    let choose: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var search = ""
+
+    private struct Place: Identifiable {
+        let id: String
+        let name: String
+    }
+
+    private static let places: [Place] = {
+        let locale = Language.current.locale
+        let places = Locale.Region.isoRegions.compactMap { region -> Place? in
+            let code = region.identifier
+            guard Country.code(from: code) == code, let name = locale.localizedString(forRegionCode: code) else { return nil }
+            return Place(id: code, name: name)
+        }
+        return places.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }()
+
+    private var shown: [Place] {
+        let query = search.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return Self.places }
+        return Self.places.filter { $0.name.localizedCaseInsensitiveContains(query) || $0.id.caseInsensitiveCompare(query) == .orderedSame }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List(shown) { place in
+                Button {
+                    choose(place.id)
+                    dismiss()
+                } label: {
+                    HStack(spacing: 12) {
+                        Text(Country.flag(place.id))
+                            .font(.title2)
+                        Text(place.name)
+                            .foregroundStyle(Color.primary)
+                        Spacer()
+                        if place.id == current {
+                            Image(systemName: "checkmark")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(Theme.mint)
+                        }
+                    }
+                }
+            }
+            .searchable(text: $search, prompt: L("Sök land"))
+            .navigationTitle(L("Välj flagga"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L("Avbryt")) { dismiss() }
+                }
+            }
+        }
     }
 }
 
@@ -174,6 +268,8 @@ extension WardrobeItem.Kind {
         case .neck: return L("Hals")
         case .back: return L("Rygg")
         case .color: return L("Färger")
+        case .shirt: return L("Tröjor")
+        case .shape: return L("Former")
         }
     }
 }

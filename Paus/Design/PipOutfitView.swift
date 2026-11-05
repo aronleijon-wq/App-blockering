@@ -29,6 +29,7 @@ struct PipItemView: View {
         case "hat-grad": gradCap
         case "hat-pirate": pirateHat
         case "hat-tiara": tiara
+        case "hat-bucket": bucketHat
         case "glasses-round": roundGlasses
         case "glasses-sun": sunglasses
         case "glasses-heart": heartGlasses
@@ -40,6 +41,7 @@ struct PipItemView: View {
         case "glasses-monocle": monocle
         case "glasses-ski": skiGoggles
         case "glasses-laser": laserEyes
+        case "glasses-aviator": aviators
         case "neck-scarf": scarf
         case "neck-bow": bowTie
         case "neck-medal": medal
@@ -55,17 +57,27 @@ struct PipItemView: View {
         case "back-jetpack": jetpack
         case "back-guitar": guitar
         case "back-dragon": dragonWings
+        case "back-skateboard": skateboard
         default: EmptyView()
         }
     }
 
-    /// Where an item of `kind` sits on Pip, from Pip's center.
-    static func offset(for kind: WardrobeItem.Kind, size: CGFloat) -> CGSize {
+    /// How far a form's outline reaches per unit, as a share of Pip's size: between the animated Pip's 0.43 and the
+    /// still one's 0.5.
+    static let formScale: CGFloat = 0.45
+
+    /// Where an item of `kind` sits on Pip, from Pip's center. Hats sit on top of the head and things for the neck
+    /// at the bottom, wherever `form` puts them.
+    static func offset(for kind: WardrobeItem.Kind, size: CGFloat, form: PipForm = .round) -> CGSize {
         switch kind {
-        case .hat: return CGSize(width: 0, height: -size * 0.42)
+        case .hat:
+            let lift = CGFloat(form.hatShift) * formScale
+            return CGSize(width: 0, height: size * (lift - 0.42))
         case .glasses: return CGSize(width: 0, height: -size * 0.07)
-        case .neck: return CGSize(width: 0, height: size * 0.38)
-        case .back, .color: return .zero
+        case .neck:
+            let drop = CGFloat(form.neckShift) * formScale
+            return CGSize(width: 0, height: size * (0.38 + drop))
+        case .back, .color, .shirt, .shape: return .zero
         }
     }
 
@@ -426,6 +438,29 @@ struct PipItemView: View {
         }
     }
 
+    private var bucketHat: some View {
+        let cloth = Color(red: 0.14, green: 0.15, blue: 0.2)
+        return ZStack {
+            Ellipse()
+                .fill(Color(red: 0.22, green: 0.23, blue: 0.3))
+                .frame(width: size * 0.66, height: size * 0.17)
+                .overlay {
+                    Ellipse()
+                        .stroke(Color.white.opacity(0.25), style: StrokeStyle(lineWidth: size * 0.008, dash: [size * 0.02, size * 0.015]))
+                        .padding(size * 0.02)
+                }
+                .offset(y: size * 0.12)
+            RoundedRectangle(cornerRadius: size * 0.12, style: .continuous)
+                .fill(cloth)
+                .frame(width: size * 0.44, height: size * 0.27)
+                .offset(y: -size * 0.01)
+            Rectangle()
+                .fill(Color.white.opacity(0.85))
+                .frame(width: size * 0.44, height: size * 0.035)
+                .offset(y: size * 0.08)
+        }
+    }
+
     // MARK: Glasses
 
     private func glasses<Lens: View>(@ViewBuilder lens: () -> Lens) -> some View {
@@ -580,6 +615,31 @@ struct PipItemView: View {
         .frame(width: size * 0.82, height: size * 0.2)
         .clipShape(Capsule())
         .shadow(color: cyan.opacity(0.8), radius: size * 0.05)
+    }
+
+    private var aviators: some View {
+        let tint = LinearGradient(colors: [Color(red: 0.45, green: 0.62, blue: 0.55), Color(red: 0.08, green: 0.12, blue: 0.12)],
+                                  startPoint: .top, endPoint: .bottom)
+        return HStack(spacing: size * 0.05) {
+            aviatorLens(tint)
+                .scaleEffect(x: -1, y: 1)
+            aviatorLens(tint)
+        }
+        .overlay {
+            Capsule()
+                .fill(Self.gold)
+                .frame(width: size * 0.1, height: size * 0.018)
+                .offset(y: -size * 0.075)
+        }
+    }
+
+    private func aviatorLens(_ tint: LinearGradient) -> some View {
+        AviatorLens()
+            .fill(tint)
+            .overlay {
+                AviatorLens().stroke(Self.gold, lineWidth: size * 0.018)
+            }
+            .frame(width: size * 0.25, height: size * 0.21)
     }
 
     // MARK: Neck
@@ -768,6 +828,29 @@ struct PipItemView: View {
         .offset(x: size * 0.42, y: -size * 0.02)
     }
 
+    private var skateboard: some View {
+        let deck = LinearGradient(colors: [Theme.pink, Theme.violet], startPoint: .leading, endPoint: .trailing)
+        return ZStack {
+            Capsule()
+                .fill(deck)
+                .frame(width: size * 1.25, height: size * 0.3)
+            Capsule()
+                .fill(Color.white.opacity(0.85))
+                .frame(width: size * 0.9, height: size * 0.05)
+            skateWheels(at: -1)
+            skateWheels(at: 1)
+        }
+        .rotationEffect(.degrees(-50))
+    }
+
+    private func skateWheels(at end: CGFloat) -> some View {
+        VStack(spacing: size * 0.12) {
+            Circle().fill(Color(white: 0.95)).frame(width: size * 0.09)
+            Circle().fill(Color(white: 0.95)).frame(width: size * 0.09)
+        }
+        .offset(x: end * size * 0.5)
+    }
+
     private var dragonWings: some View {
         let flap: Double = sin(time * 3) * 14
         let fill = LinearGradient(colors: [Color(red: 0.95, green: 0.3, blue: 0.2), Color(red: 0.45, green: 0.05, blue: 0.1)], startPoint: .top, endPoint: .bottom)
@@ -854,6 +937,23 @@ struct Triangle: Shape {
         path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
         path.closeSubpath()
         return path
+    }
+}
+
+/// An aviator lens: flat on top, round below and deepest near the nose, which is on the left. Mirror it for the
+/// other eye.
+struct AviatorLens: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        let start = CGPoint(x: r.minX, y: r.minY + r.height * 0.08)
+        p.move(to: start)
+        p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.minY + r.height * 0.02),
+                       control: CGPoint(x: r.midX, y: r.minY - r.height * 0.04))
+        p.addQuadCurve(to: CGPoint(x: r.minX + r.width * 0.45, y: r.maxY),
+                       control: CGPoint(x: r.maxX + r.width * 0.02, y: r.maxY - r.height * 0.05))
+        p.addQuadCurve(to: start, control: CGPoint(x: r.minX - r.width * 0.02, y: r.maxY - r.height * 0.1))
+        p.closeSubpath()
+        return p
     }
 }
 

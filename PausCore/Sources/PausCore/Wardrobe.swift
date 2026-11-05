@@ -1,9 +1,9 @@
 import Foundation
 
-/// Things Pip can wear, bought with seeds earned from quests, focus sessions and daily rewards.
+/// Things Pip can wear, and the shapes Pip can take, bought with seeds earned from quests, focus sessions and daily rewards.
 struct WardrobeItem: Identifiable, Equatable {
     enum Kind: String, CaseIterable, Codable {
-        case hat, glasses, neck, back, color
+        case hat, glasses, shirt, neck, back, color, shape
     }
 
     let id: String
@@ -24,6 +24,7 @@ struct WardrobeItem: Identifiable, Equatable {
         WardrobeItem(id: "hat-party", name: L("Partyhatt"), kind: .hat, price: 90),
         WardrobeItem(id: "hat-cat", name: L("Kattöron"), kind: .hat, price: 120),
         WardrobeItem(id: "hat-bunny", name: L("Kaninöron"), kind: .hat, price: 140),
+        WardrobeItem(id: "hat-bucket", name: L("Buckethatt"), kind: .hat, price: 170),
         WardrobeItem(id: "hat-chef", name: L("Kockmössa"), kind: .hat, price: 150),
         WardrobeItem(id: "hat-headphones", name: L("Hörlurar"), kind: .hat, price: 160),
         WardrobeItem(id: "hat-cowboy", name: L("Cowboyhatt"), kind: .hat, price: 180),
@@ -42,12 +43,23 @@ struct WardrobeItem: Identifiable, Equatable {
         WardrobeItem(id: "glasses-sun", name: L("Solglasögon"), kind: .glasses, price: 90),
         WardrobeItem(id: "glasses-star", name: L("Stjärnglasögon"), kind: .glasses, price: 140),
         WardrobeItem(id: "glasses-monocle", name: L("Monokel"), kind: .glasses, price: 180),
+        WardrobeItem(id: "glasses-aviator", name: L("Pilotglasögon"), kind: .glasses, price: 200),
         WardrobeItem(id: "glasses-pixel", name: L("Pixelbrillor"), kind: .glasses, price: 220),
         WardrobeItem(id: "glasses-ski", name: L("Skidglasögon"), kind: .glasses, price: 250),
         WardrobeItem(id: "glasses-heart", name: L("Hjärtglasögon"), kind: .glasses, price: 300, needsPro: true),
         WardrobeItem(id: "glasses-visor", name: L("Cybervisir"), kind: .glasses, price: 500, needsPro: true),
         WardrobeItem(id: "glasses-laser", name: L("Laserögon"), kind: .glasses, price: 850, needsPro: true),
         WardrobeItem(id: "glasses-gold", name: L("Guldbågar"), kind: .glasses, price: 0),
+        WardrobeItem(id: "shirt-white", name: L("Vit t-shirt"), kind: .shirt, price: 60),
+        WardrobeItem(id: "shirt-black", name: L("Svart t-shirt"), kind: .shirt, price: 80),
+        WardrobeItem(id: "shirt-stripes", name: L("Randig tröja"), kind: .shirt, price: 140),
+        WardrobeItem(id: "shirt-hoodie", name: L("Hoodie"), kind: .shirt, price: 200),
+        WardrobeItem(id: "shirt-hawaii", name: L("Hawaiiskjorta"), kind: .shirt, price: 240),
+        WardrobeItem(id: "shirt-jersey", name: L("Fotbollströja"), kind: .shirt, price: 280),
+        WardrobeItem(id: "shirt-flag", name: L("Flaggtröja"), kind: .shirt, price: 300),
+        WardrobeItem(id: "shirt-leather", name: L("Skinnjacka"), kind: .shirt, price: 450),
+        WardrobeItem(id: "shirt-tux", name: L("Smoking"), kind: .shirt, price: 700, needsPro: true),
+        WardrobeItem(id: "shirt-armor", name: L("Rustning"), kind: .shirt, price: 950, needsPro: true),
         WardrobeItem(id: "neck-scarf", name: L("Halsduk"), kind: .neck, price: 50),
         WardrobeItem(id: "neck-tie", name: L("Slips"), kind: .neck, price: 60),
         WardrobeItem(id: "neck-bandana", name: L("Bandana"), kind: .neck, price: 90),
@@ -59,6 +71,7 @@ struct WardrobeItem: Identifiable, Equatable {
         WardrobeItem(id: "neck-iron-medal", name: L("NNN-medalj"), kind: .neck, price: 0),
         WardrobeItem(id: "back-cape", name: L("Superhjältemantel"), kind: .back, price: 250),
         WardrobeItem(id: "back-guitar", name: L("Gitarr"), kind: .back, price: 300),
+        WardrobeItem(id: "back-skateboard", name: L("Skateboard"), kind: .back, price: 320),
         WardrobeItem(id: "back-bat", name: L("Fladdermusvingar"), kind: .back, price: 350),
         WardrobeItem(id: "back-wings", name: L("Änglavingar"), kind: .back, price: 600, needsPro: true),
         WardrobeItem(id: "back-jetpack", name: L("Jetpack"), kind: .back, price: 700, needsPro: true),
@@ -81,10 +94,41 @@ struct WardrobeItem: Identifiable, Equatable {
         WardrobeItem(id: "color-iron", name: L("Järnvilja"), kind: .color, price: 0),
         WardrobeItem(id: "color-frost", name: L("Frost"), kind: .color, price: 0),
         WardrobeItem(id: "color-dawn", name: L("Gryning"), kind: .color, price: 0),
+        WardrobeItem(id: "shape-round", name: L("Rund"), kind: .shape, price: 0),
+        WardrobeItem(id: "shape-tall", name: L("Lång"), kind: .shape, price: 120),
+        WardrobeItem(id: "shape-wide", name: L("Bred"), kind: .shape, price: 120),
+        WardrobeItem(id: "shape-egg", name: L("Ägg"), kind: .shape, price: 150),
+        WardrobeItem(id: "shape-pear", name: L("Päron"), kind: .shape, price: 150),
+        WardrobeItem(id: "shape-square", name: L("Kub"), kind: .shape, price: 220),
+        WardrobeItem(id: "shape-drop", name: L("Droppe"), kind: .shape, price: 260),
+        WardrobeItem(id: "shape-ghost", name: L("Spöke"), kind: .shape, price: 400),
+        WardrobeItem(id: "shape-heart", name: L("Hjärta"), kind: .shape, price: 600, needsPro: true),
     ] }
 
+    /// The item with `id`. A worn flag shirt such as "shirt-flag-SE" is the flag shirt.
     static func with(id: String) -> WardrobeItem? {
-        all.first { $0.id == id }
+        let base = flagCountry(of: id) == nil ? id : flagShirt
+        return all.first { $0.id == base }
+    }
+
+    /// The shirt with the wearer's country's flag. Pip wears it with the country, as "shirt-flag-SE", so the league
+    /// shows the flag its owner chose.
+    static let flagShirt = "shirt-flag"
+
+    /// The id Pip wears this item as: the flag shirt with `country`'s flag, anything else as it is.
+    func wornID(country: String) -> String {
+        id == Self.flagShirt ? Self.flagShirtID(country: country) : id
+    }
+
+    static func flagShirtID(country: String) -> String {
+        "\(flagShirt)-\(Country.code(from: country))"
+    }
+
+    /// The country on a worn flag shirt, such as "SE" for "shirt-flag-SE".
+    static func flagCountry(of id: String?) -> String? {
+        guard let id, id.hasPrefix(flagShirt + "-") else { return nil }
+        let code = String(id.dropFirst(flagShirt.count + 1))
+        return Country.code(from: code) == code ? code : nil
     }
 }
 
@@ -96,8 +140,18 @@ struct Outfit: Codable, Equatable {
     /// Wings, a cape or a jetpack, drawn behind Pip.
     var back: String?
     var color: String?
+    /// A shirt, drawn over the lower part of Pip. A flag shirt carries its country, as "shirt-flag-SE".
+    var shirt: String?
+    /// Pip's shape, such as "shape-tall". Pip is round without one.
+    var shape: String?
 
     static let none = Outfit()
+
+    /// Whether Pip wears `item`, whatever country a flag shirt shows.
+    func wears(_ item: WardrobeItem) -> Bool {
+        guard let worn = self.item(for: item.kind) else { return false }
+        return worn == item.id || (item.id == WardrobeItem.flagShirt && WardrobeItem.flagCountry(of: worn) != nil)
+    }
 
     func item(for kind: WardrobeItem.Kind) -> String? {
         switch kind {
@@ -106,6 +160,8 @@ struct Outfit: Codable, Equatable {
         case .neck: return neck
         case .back: return back
         case .color: return color
+        case .shirt: return shirt
+        case .shape: return shape
         }
     }
 
@@ -116,6 +172,8 @@ struct Outfit: Codable, Equatable {
         case .neck: neck = id
         case .back: back = id
         case .color: color = id
+        case .shirt: shirt = id
+        case .shape: shape = id
         }
     }
 }
@@ -158,19 +216,44 @@ extension PlayerProgress {
         return .bought
     }
 
-    /// Puts `item` on Pip, or takes it off when Pip already wears it. Taking off a color goes back to Pip's own.
-    mutating func toggle(_ item: WardrobeItem) {
+    /// Puts `item` on Pip, or takes it off when Pip already wears it. Taking off a color or a shape goes back to
+    /// Pip's own. The flag shirt shows `country`'s flag.
+    mutating func toggle(_ item: WardrobeItem, country: String = "SE") {
         guard owns(item) else { return }
-        outfit.set(outfit.item(for: item.kind) == item.id ? nil : item.id, for: item.kind)
+        if outfit.wears(item) {
+            outfit.set(nil, for: item.kind)
+        } else {
+            outfit.set(item.wornID(country: country), for: item.kind)
+        }
+    }
+
+    /// Puts the flag shirt on Pip with `country`'s flag, when Pip has one.
+    mutating func wearFlagShirt(of country: String) {
+        guard let shirt = WardrobeItem.with(id: WardrobeItem.flagShirt), owns(shirt) else { return }
+        outfit.shirt = WardrobeItem.flagShirtID(country: country)
     }
 }
 
 extension Outfit {
-    private static let order: [WardrobeItem.Kind] = [.hat, .glasses, .neck, .back, .color]
+    /// The kinds in the order `code` lists them. New kinds go last, so older apps read the ones they know and skip
+    /// the rest.
+    private static let order: [WardrobeItem.Kind] = [.hat, .glasses, .neck, .back, .color, .shirt, .shape]
+    private static let firstKinds = 5
 
-    /// The outfit as one short string for the league, such as "hat-cap|glasses-sun|||color-neon".
+    /// The outfit as one short string for the league, such as "hat-cap|glasses-sun|||color-neon". A shirt and a
+    /// shape follow when Pip has them: "hat-cap||||color-neon|shirt-flag-SE|shape-tall".
     var code: String {
-        Self.order.map { item(for: $0) ?? "" }.joined(separator: "|")
+        var parts = Self.order.map { item(for: $0) ?? "" }
+        while parts.count > Self.firstKinds && parts.last == "" {
+            parts.removeLast()
+        }
+        return parts.joined(separator: "|")
+    }
+
+    /// An outfit of just `item`, to show it on its own.
+    init(wearing item: WardrobeItem, country: String = "SE") {
+        self.init()
+        set(item.wornID(country: country), for: item.kind)
     }
 
     /// The outfit in `code`, keeping only items that exist and sit where they belong, so an old app or a tampered

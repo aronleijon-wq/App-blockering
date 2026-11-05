@@ -406,9 +406,10 @@ final class AppModel {
     /// Buys a wardrobe item with seeds and puts it on Pip.
     func buy(_ item: WardrobeItem) {
         let isPro = isPro
+        let country = flagCountry
         _ = SharedStore.updateProgress { progress in
             if progress.buy(item, isPro: isPro) == .bought {
-                progress.toggle(item)
+                progress.toggle(item, country: country)
             }
             return []
         }
@@ -418,8 +419,27 @@ final class AppModel {
 
     /// Puts an owned item on Pip, or takes it off.
     func toggle(_ item: WardrobeItem) {
+        let country = flagCountry
         _ = SharedStore.updateProgress { progress in
-            progress.toggle(item)
+            progress.toggle(item, country: country)
+            return []
+        }
+        progress = SharedStore.progress
+        showOutfitInLeague()
+    }
+
+    private static let flagCountryKey = "wardrobe.flagCountry"
+
+    /// The country on Pip's flag shirt: the one the player picked, or the one the phone is set to.
+    var flagCountry: String {
+        UserDefaults.standard.string(forKey: Self.flagCountryKey) ?? LeagueService.countryCode
+    }
+
+    /// Puts the flag shirt on Pip with `country`'s flag, and keeps the flag for the next time it goes on.
+    func chooseFlag(_ country: String) {
+        UserDefaults.standard.set(country, forKey: Self.flagCountryKey)
+        _ = SharedStore.updateProgress { progress in
+            progress.wearFlagShirt(of: country)
             return []
         }
         progress = SharedStore.progress
