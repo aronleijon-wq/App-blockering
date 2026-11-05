@@ -22,10 +22,10 @@ struct PipShirtView: View {
         WardrobeItem.flagCountry(of: id) == nil ? id : WardrobeItem.flagShirt
     }
 
-    /// Where prints sit below Pip's center: halfway between the hem and the bottom of the body.
+    /// Where prints sit below Pip's center: halfway between the hem and the bottom of the body, clear of the collar.
     private var chest: CGFloat {
         let bottom = CGFloat(form.bottom * reach / 2)
-        return size * (Self.hem + bottom) / 2
+        return size * max(Self.hem + 0.085, (Self.hem + bottom) / 2)
     }
 
     var body: some View {
@@ -172,15 +172,15 @@ struct PipShirtView: View {
         case "shirt-hoodie":
             hood
         case "shirt-hawaii":
-            collar(Color(red: 0.85, green: 0.3, blue: 0.25), width: 0.24)
+            collar(Color(red: 0.85, green: 0.3, blue: 0.25), width: 0.3)
         case "shirt-jersey":
             collar(Color.white)
             Text(verbatim: "10")
-                .font(.system(size: size * 0.12, weight: .black, design: .rounded))
+                .font(.system(size: size * 0.11, weight: .black, design: .rounded))
                 .foregroundStyle(.white)
                 .offset(y: chest)
         case "shirt-leather":
-            collar(Color(red: 0.32, green: 0.24, blue: 0.21), width: 0.26)
+            collar(Color(red: 0.32, green: 0.24, blue: 0.21), width: 0.32)
         case "shirt-tux":
             bowTie
         case "shirt-armor":
@@ -197,12 +197,12 @@ struct PipShirtView: View {
     private static let gold = LinearGradient(colors: [Color(red: 1, green: 0.9, blue: 0.45), Color(red: 0.85, green: 0.6, blue: 0.15)],
                                              startPoint: .top, endPoint: .bottom)
 
-    /// A round neckline at the top of the shirt.
-    private func collar<S: ShapeStyle>(_ style: S, width: CGFloat = 0.2) -> some View {
+    /// A wide, shallow neckline at the top of the shirt.
+    private func collar<S: ShapeStyle>(_ style: S, width: CGFloat = 0.26) -> some View {
         Ellipse()
             .trim(from: 0, to: 0.5)
-            .stroke(style, style: StrokeStyle(lineWidth: size * 0.025, lineCap: .round))
-            .frame(width: size * width, height: size * 0.12)
+            .stroke(style, style: StrokeStyle(lineWidth: size * 0.02, lineCap: .round))
+            .frame(width: size * width, height: size * 0.08)
             .offset(y: size * Self.hem)
     }
 
@@ -212,7 +212,7 @@ struct PipShirtView: View {
             Ellipse()
                 .trim(from: 0, to: 0.5)
                 .stroke(shade, style: StrokeStyle(lineWidth: size * 0.05, lineCap: .round))
-                .frame(width: size * 0.3, height: size * 0.14)
+                .frame(width: size * 0.32, height: size * 0.12)
                 .offset(y: size * Self.hem)
             Capsule()
                 .fill(Color.white)
