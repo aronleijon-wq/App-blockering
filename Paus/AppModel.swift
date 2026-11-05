@@ -391,6 +391,18 @@ final class AppModel {
 
     // MARK: Wardrobe
 
+    /// Opens the journey's chest after `level`, returning the seeds it held.
+    @discardableResult
+    func openChest(after level: Int) -> Int? {
+        var found: Int?
+        _ = SharedStore.updateProgress { progress in
+            found = progress.openChest(after: level)
+            return []
+        }
+        progress = SharedStore.progress
+        return found
+    }
+
     /// Buys a wardrobe item with seeds and puts it on Pip.
     func buy(_ item: WardrobeItem) {
         let isPro = isPro

@@ -187,6 +187,8 @@ struct PlayerProgress: Codable, Equatable {
     var closes: Int
     var declines: Int
     var unlocked: Set<String>
+    /// The chests on the journey that have been opened, by the level they come after. See `Journey`.
+    var openedChests: Set<Int> = []
     var today: DailyCounts
     /// Celebrations earned while the app wasn't showing, oldest first.
     var pendingRewards: [Reward]
@@ -285,6 +287,7 @@ struct PlayerProgress: Codable, Equatable {
         closes = try container.decodeIfPresent(Int.self, forKey: .closes) ?? 0
         declines = try container.decodeIfPresent(Int.self, forKey: .declines) ?? 0
         unlocked = try container.decodeIfPresent(Set<String>.self, forKey: .unlocked) ?? []
+        openedChests = try container.decodeIfPresent(Set<Int>.self, forKey: .openedChests) ?? []
         today = try container.decodeIfPresent(DailyCounts.self, forKey: .today) ?? DailyCounts()
         pendingRewards = try container.decodeIfPresent([Reward].self, forKey: .pendingRewards) ?? []
         weekKey = try container.decodeIfPresent(String.self, forKey: .weekKey)

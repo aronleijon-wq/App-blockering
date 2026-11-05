@@ -8,14 +8,21 @@ struct TrophiesView: View {
     var body: some View {
         let progress = model.progress
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    statsCard(progress)
-                    levelsCard(progress)
-                    achievementsCard(progress)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 16) {
+                        statsCard(progress)
+                        levelsCard(progress)
+                        achievementsCard(progress)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
+                .task {
+                    // Start at the player's place on the journey, like opening a board game where you left off.
+                    try? await Task.sleep(for: .seconds(0.3))
+                    withAnimation(.easeInOut(duration: 0.6)) { proxy.scrollTo("journey-current", anchor: .center) }
+                }
             }
             .screenBackground()
             .navigationTitle(L("Troféer"))
@@ -32,7 +39,8 @@ struct TrophiesView: View {
     }
 
     private func levelsCard(_ progress: PlayerProgress) -> some View {
-        LevelPath(progress: progress)
+        let friends = model.league.entries[LeagueService.Board(scope: .friends, period: .week)] ?? []
+        return LevelPath(progress: progress, friends: friends.filter { !$0.isMe })
     }
 
     private func achievementsCard(_ progress: PlayerProgress) -> some View {
@@ -196,63 +204,167 @@ private struct TrophyDetailSheet: View {
     }
 }
 
-/// Paus's levels as a winding path, like a board game: done levels lit, the current one bouncing with Pip beside it,
-/// the next ones locked. Tapping a level tells what it takes and what it gives.
+/// Paus's levels as a journey, like a board game: four lands with a banner each, the levels as round buttons along a
+/// winding path, a chest after every level, Pip standing at the player's level (and walking there after a level-up),
+/// friends standing at theirs, and "You are here" above the current level. Tapping a level tells what it takes.
 private struct LevelPath: View {
+    @Environment(AppModel.self) private var model
     let progress: PlayerProgress
+    /// League friends, shown at their levels.
+    var friends: [LeaderboardEntry] = []
     @State private var picked: LevelPick?
     @State private var bounce = false
+    /// Where Pip stands. Starts at the level last seen, then walks to the current one.
+    @State private var pipLevel: Int?
+    @State private var opened: (level: Int, seeds: Int)?
+    @AppStorage("journey.seenLevel") private var seenLevel = 0
+    @Namespace private var path
 
-    private var levels: [Int] { Array(1...max(Level.titles.count, progress.level + 2)) }
+    private var lastLevel: Int {
+        max(Level.titles.count, progress.level + 2, friends.map(\.level).max() ?? 0)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(L("Din resa"))
                 .font(.title3.bold())
-            Text(L("Tryck på en nivå för att se vad som väntar."))
+            Text(L("Tryck på en nivå för att se vad som väntar. Öppna kistorna på vägen."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            VStack(spacing: 22) {
-                ForEach(levels, id: \.self) { level in
-                    node(level)
-                        .offset(x: Self.offset(level))
+            ForEach(Journey.lands, id: \.index) { land in
+                if land.firstLevel <= lastLevel {
+                    landSection(land)
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
         }
         .card()
-        .onAppear { bounce = true }
+        .onAppear(perform: walk)
         .sheet(item: $picked) { pick in
             LevelDetailSheet(level: pick.level, progress: progress)
         }
+        .sensoryFeedback(.success, trigger: pipLevel)
+    }
+
+    /// After a level-up, Pip walks from the level last seen to the new one.
+    private func walk() {
+        bounce = true
+        let current = progress.level
+        guard seenLevel > 0, seenLevel < current else {
+            pipLevel = current
+            seenLevel = current
+            return
+        }
+        pipLevel = seenLevel
+        seenLevel = current
+        Task {
+            try? await Task.sleep(for: .seconds(0.7))
+            withAnimation(.spring(response: 0.9, dampingFraction: 0.7)) { pipLevel = current }
+        }
+    }
+
+    static func colors(for land: Journey.Land) -> [Color] {
+        switch land.index {
+        case 1: return [Color(red: 0.2, green: 0.7, blue: 0.4), Color(red: 0.08, green: 0.45, blue: 0.3)]
+        case 2: return [Color(red: 0.2, green: 0.55, blue: 1), Color(red: 0.1, green: 0.3, blue: 0.75)]
+        case 3: return [Color(red: 0.55, green: 0.45, blue: 0.85), Color(red: 0.3, green: 0.22, blue: 0.55)]
+        default: return [Color(red: 1, green: 0.75, blue: 0.3), Theme.pink]
+        }
+    }
+
+    private func landSection(_ land: Journey.Land) -> some View {
+        let last = min(land.lastLevel ?? lastLevel, lastLevel)
+        let levels = Array(land.firstLevel...max(land.firstLevel, last))
+        let colors = Self.colors(for: land)
+        return VStack(spacing: 14) {
+            HStack(spacing: 12) {
+                Image(systemName: land.symbol)
+                    .font(.title2)
+                    .frame(width: 44, height: 44)
+                    .background(.white.opacity(0.2), in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L("DEL \(land.index)"))
+                        .font(.caption.weight(.heavy))
+                        .opacity(0.8)
+                    Text(land.name)
+                        .font(.title3.bold())
+                    Text(land.tagline)
+                        .font(.subheadline)
+                        .opacity(0.9)
+                }
+                Spacer()
+            }
+            .foregroundStyle(.white)
+            .padding(14)
+            .background(LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing),
+                        in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            ForEach(levels, id: \.self) { level in
+                node(level, tint: colors[0])
+                    .offset(x: Self.offset(level))
+                    .id(level == progress.level ? "journey-current" : "journey-\(level)")
+                dots(from: level)
+                chest(after: level)
+                    .offset(x: (Self.offset(level) + Self.offset(level + 1)) / 2)
+                dots(from: level)
+            }
+        }
+        .padding(.top, 6)
     }
 
     static func offset(_ level: Int) -> CGFloat {
         CGFloat(sin(Double(level) * 0.95)) * 72
     }
 
-    private func node(_ level: Int) -> some View {
+    /// Three dots leading on along the path.
+    private func dots(from level: Int) -> some View {
+        let reached = progress.level > level
+        return VStack(spacing: 5) {
+            ForEach(0..<2, id: \.self) { _ in
+                Circle()
+                    .fill(reached ? Theme.mint.opacity(0.7) : Color.white.opacity(0.15))
+                    .frame(width: 7, height: 7)
+            }
+        }
+        .offset(x: (Self.offset(level) * 3 + Self.offset(level + 1)) / 4)
+    }
+
+    private func node(_ level: Int, tint: Color) -> some View {
         let reached = progress.level >= level
         let current = progress.level == level
-        let size: CGFloat = current ? 80 : 64
+        let size: CGFloat = current ? 82 : 66
         let symbol = current ? "star.fill" : reached ? "checkmark" : level > Level.titles.count ? "crown.fill" : "lock.fill"
+        let here = friends.filter { $0.level == level }
         return Button {
             picked = LevelPick(level: level)
         } label: {
             VStack(spacing: 6) {
+                if current {
+                    Text(L("DU ÄR HÄR"))
+                        .font(.caption2.weight(.heavy))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(.white, in: Capsule())
+                        .foregroundStyle(tint)
+                        .offset(y: bounce ? -4 : 0)
+                        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: bounce)
+                }
                 ZStack {
                     Circle()
                         .fill(Color.black.opacity(0.3))
                         .offset(y: 6)
                     Circle()
-                        .fill(reached ? AnyShapeStyle(Theme.glow) : AnyShapeStyle(Theme.cardRaised))
+                        .fill(reached ? AnyShapeStyle(LinearGradient(colors: [tint, tint.opacity(0.7)], startPoint: .top, endPoint: .bottom))
+                                      : AnyShapeStyle(Theme.cardRaised))
+                    if current {
+                        Circle()
+                            .stroke(.white.opacity(0.8), lineWidth: 4)
+                            .padding(-6)
+                    }
                     Image(systemName: symbol)
                         .font(.system(size: current ? 30 : 22, weight: .heavy))
                         .foregroundStyle(reached ? Color.white : Color.secondary)
                 }
                 .frame(width: size, height: size)
-                .scaleEffect(current && bounce ? 1.1 : 1)
+                .scaleEffect(current && bounce ? 1.08 : 1)
                 .animation(current ? .easeInOut(duration: 0.8).repeatForever(autoreverses: true) : nil, value: bounce)
                 Text(Level.title(for: level))
                     .font(.caption.weight(.semibold))
@@ -261,12 +373,60 @@ private struct LevelPath: View {
         }
         .buttonStyle(PressScaleStyle())
         .overlay(alignment: Self.offset(level) > 0 ? .leading : .trailing) {
-            if current {
-                PipAvatar(outfit: progress.outfit, level: progress.level, size: 46)
-                    .frame(width: 52, height: 52)
-                    .offset(x: Self.offset(level) > 0 ? -64 : 64, y: -12)
+            HStack(spacing: -10) {
+                if pipLevel == level {
+                    PipAvatar(outfit: progress.outfit, level: progress.level, size: 46)
+                        .frame(width: 52, height: 52)
+                        .matchedGeometryEffect(id: "pip", in: path)
+                }
+                ForEach(here.prefix(2)) { friend in
+                    VStack(spacing: 0) {
+                        PipAvatar(outfit: friend.outfit, level: friend.level, size: 30)
+                            .frame(width: 36, height: 36)
+                        Text(friend.nickname)
+                            .font(.system(size: 9, weight: .bold))
+                            .lineLimit(1)
+                            .frame(maxWidth: 52)
+                    }
+                }
+            }
+            .offset(x: Self.offset(level) > 0 ? -70 : 70, y: -8)
+        }
+    }
+
+    /// A chest after `level`: locked until the next level, then shaking to be opened, then open.
+    private func chest(after level: Int) -> some View {
+        let canOpen = progress.canOpenChest(after: level)
+        let isOpen = progress.openedChests.contains(level)
+        let justOpened = opened?.level == level
+        return Button {
+            guard canOpen, let found = model.openChest(after: level) else { return }
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) { opened = (level, found) }
+        } label: {
+            ZStack {
+                Image(systemName: isOpen ? "gift" : "gift.fill")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(canOpen ? AnyShapeStyle(LinearGradient(colors: [Color(red: 1, green: 0.88, blue: 0.35), Theme.orange],
+                                                                            startPoint: .top, endPoint: .bottom))
+                                     : AnyShapeStyle(isOpen ? Color.secondary.opacity(0.6) : Color.secondary.opacity(0.35)))
+                    .frame(width: 54, height: 54)
+                    .background(canOpen ? Theme.orange.opacity(0.18) : Color.clear, in: Circle())
+                    .rotationEffect(.degrees(canOpen && bounce ? 8 : 0))
+                    .animation(canOpen ? .easeInOut(duration: 0.18).repeatForever(autoreverses: true) : nil, value: bounce)
+                    .scaleEffect(justOpened ? 1.25 : 1)
+                if justOpened, let seeds = opened?.seeds {
+                    Label("+\(seeds)", systemImage: "leaf.fill")
+                        .font(.headline.weight(.heavy))
+                        .foregroundStyle(Theme.mint)
+                        .offset(y: -44)
+                        .transition(.scale.combined(with: .opacity))
+                }
             }
         }
+        .buttonStyle(PressScaleStyle())
+        .disabled(!canOpen)
+        .sensoryFeedback(.success, trigger: justOpened)
+        .accessibilityLabel(canOpen ? L("Öppna kistan") : isOpen ? L("Öppnad kista") : L("Låst kista"))
     }
 }
 
