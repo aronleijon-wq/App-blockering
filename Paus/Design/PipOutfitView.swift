@@ -23,6 +23,12 @@ struct PipItemView: View {
         case "hat-halo": halo
         case "hat-fire": fireHair
         case "hat-santa": santaHat
+        case "hat-cat": catEars
+        case "hat-bunny": bunnyEars
+        case "hat-cowboy": cowboyHat
+        case "hat-grad": gradCap
+        case "hat-pirate": pirateHat
+        case "hat-tiara": tiara
         case "glasses-round": roundGlasses
         case "glasses-sun": sunglasses
         case "glasses-heart": heartGlasses
@@ -31,6 +37,9 @@ struct PipItemView: View {
         case "glasses-pixel": pixelShades
         case "glasses-visor": visor
         case "glasses-gold": goldGlasses
+        case "glasses-monocle": monocle
+        case "glasses-ski": skiGoggles
+        case "glasses-laser": laserEyes
         case "neck-scarf": scarf
         case "neck-bow": bowTie
         case "neck-medal": medal
@@ -38,10 +47,14 @@ struct PipItemView: View {
         case "neck-lei": lei
         case "neck-chain": goldChain
         case "neck-iron-medal": ironMedal
+        case "neck-bandana": bandana
+        case "neck-diamond": diamondChain
         case "back-cape": cape
         case "back-bat": wings(angel: false)
         case "back-wings": wings(angel: true)
         case "back-jetpack": jetpack
+        case "back-guitar": guitar
+        case "back-dragon": dragonWings
         default: EmptyView()
         }
     }
@@ -254,6 +267,95 @@ struct PipItemView: View {
         }
     }
 
+    private var catEars: some View {
+        let fur = Color(red: 0.35, green: 0.3, blue: 0.4)
+        return HStack(spacing: size * 0.2) {
+            ForEach([-1.0, 1.0], id: \.self) { side in
+                ZStack {
+                    Triangle().fill(fur).frame(width: size * 0.2, height: size * 0.2)
+                    Triangle().fill(Theme.pink.opacity(0.85)).frame(width: size * 0.1, height: size * 0.1).offset(y: size * 0.03)
+                }
+                .rotationEffect(.degrees(side * 14))
+            }
+        }
+        .offset(y: size * 0.02)
+    }
+
+    private var bunnyEars: some View {
+        let twitch: Double = sin(time * 2.5) * 4
+        return HStack(spacing: size * 0.1) {
+            ForEach([-1.0, 1.0], id: \.self) { side in
+                ZStack {
+                    Capsule().fill(.white).frame(width: size * 0.13, height: size * 0.36)
+                    Capsule().fill(Color(red: 1, green: 0.7, blue: 0.8)).frame(width: size * 0.06, height: size * 0.26)
+                }
+                .rotationEffect(.degrees(side * 12 + side * twitch), anchor: .bottom)
+            }
+        }
+        .offset(y: -size * 0.08)
+    }
+
+    private var cowboyHat: some View {
+        let brown = Color(red: 0.6, green: 0.38, blue: 0.2)
+        let dark = Color(red: 0.42, green: 0.25, blue: 0.12)
+        return ZStack {
+            Ellipse().fill(dark).frame(width: size * 0.82, height: size * 0.16).offset(y: size * 0.1)
+            RoundedRectangle(cornerRadius: size * 0.08, style: .continuous)
+                .fill(LinearGradient(colors: [brown, dark], startPoint: .top, endPoint: .bottom))
+                .frame(width: size * 0.42, height: size * 0.26)
+                .offset(y: -size * 0.02)
+            Capsule().fill(Color(red: 0.2, green: 0.12, blue: 0.08)).frame(width: size * 0.43, height: size * 0.05).offset(y: size * 0.06)
+        }
+    }
+
+    private var gradCap: some View {
+        let swing: Double = sin(time * 3) * 8
+        return ZStack {
+            RoundedRectangle(cornerRadius: size * 0.03).fill(Color(white: 0.12)).frame(width: size * 0.34, height: size * 0.14).offset(y: size * 0.08)
+            Rectangle().fill(Color(white: 0.18)).frame(width: size * 0.42, height: size * 0.42)
+                .rotationEffect(.degrees(45)).scaleEffect(x: 1, y: 0.32).offset(y: -size * 0.01)
+            VStack(spacing: 0) {
+                Rectangle().fill(Color(red: 1, green: 0.82, blue: 0.3)).frame(width: size * 0.012, height: size * 0.16)
+                Capsule().fill(Color(red: 1, green: 0.82, blue: 0.3)).frame(width: size * 0.05, height: size * 0.06)
+            }
+            .rotationEffect(.degrees(swing), anchor: .top)
+            .offset(x: size * 0.17, y: size * 0.08)
+        }
+    }
+
+    private var pirateHat: some View {
+        let black = Color(white: 0.1)
+        return ZStack {
+            Ellipse().trim(from: 0.5, to: 1).fill(black).frame(width: size * 0.74, height: size * 0.46).offset(y: size * 0.12)
+            Capsule().fill(Color(red: 1, green: 0.82, blue: 0.3)).frame(width: size * 0.66, height: size * 0.03).offset(y: size * 0.12)
+            ZStack {
+                Circle().fill(.white).frame(width: size * 0.11)
+                HStack(spacing: size * 0.02) {
+                    Circle().fill(black).frame(width: size * 0.03)
+                    Circle().fill(black).frame(width: size * 0.03)
+                }
+            }
+            .offset(y: -size * 0.02)
+        }
+    }
+
+    private var tiara: some View {
+        let sparkle: Double = 0.75 + 0.25 * sin(time * 5)
+        return ZStack {
+            Image(systemName: "crown.fill")
+                .font(.system(size: size * 0.2))
+                .foregroundStyle(LinearGradient(colors: [Color(white: 0.98), Color(red: 0.75, green: 0.8, blue: 0.9)], startPoint: .top, endPoint: .bottom))
+                .scaleEffect(x: 1.3, y: 0.8)
+            Image(systemName: "diamond.fill")
+                .font(.system(size: size * 0.08))
+                .foregroundStyle(Theme.pink)
+                .opacity(sparkle)
+                .offset(y: -size * 0.01)
+        }
+        .shadow(color: Theme.pink.opacity(0.5), radius: size * 0.03)
+        .offset(y: size * 0.06)
+    }
+
     private var wizardHat: some View {
         let deep = Color(red: 0.25, green: 0.12, blue: 0.6)
         let star = Color(red: 1, green: 0.88, blue: 0.3)
@@ -348,6 +450,50 @@ struct PipItemView: View {
                 .stroke(Self.gold, lineWidth: size * 0.03)
                 .frame(width: size * 0.22)
         }
+    }
+
+    private var monocle: some View {
+        ZStack {
+            Circle().stroke(Self.gold, lineWidth: size * 0.025).frame(width: size * 0.23)
+            Circle().fill(Color.white.opacity(0.15)).frame(width: size * 0.21)
+            Path { path in
+                path.move(to: CGPoint(x: size * 0.1, y: size * 0.04))
+                path.addQuadCurve(to: CGPoint(x: size * 0.16, y: size * 0.3), control: CGPoint(x: size * 0.22, y: size * 0.14))
+            }
+            .stroke(Self.gold, lineWidth: size * 0.01)
+        }
+        .frame(width: size * 0.23, height: size * 0.23)
+        .offset(x: size * 0.13)
+    }
+
+    private var skiGoggles: some View {
+        ZStack {
+            Capsule().fill(Color(white: 0.15)).frame(width: size * 0.86, height: size * 0.07)
+            RoundedRectangle(cornerRadius: size * 0.08, style: .continuous)
+                .fill(LinearGradient(colors: [Theme.orange, Theme.pink, Theme.violet], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .frame(width: size * 0.6, height: size * 0.2)
+                .overlay(RoundedRectangle(cornerRadius: size * 0.08, style: .continuous).stroke(Color(white: 0.95), lineWidth: size * 0.02))
+            Capsule().fill(Color.white.opacity(0.5)).frame(width: size * 0.2, height: size * 0.03).offset(x: -size * 0.12, y: -size * 0.05)
+        }
+    }
+
+    private var laserEyes: some View {
+        let pulse: CGFloat = 0.7 + 0.3 * CGFloat(sin(time * 9))
+        let red = Color(red: 1, green: 0.15, blue: 0.2)
+        return HStack(spacing: size * 0.2) {
+            ForEach([-1.0, 1.0], id: \.self) { side in
+                ZStack {
+                    Capsule()
+                        .fill(LinearGradient(colors: [red, red.opacity(0)], startPoint: .leading, endPoint: .trailing))
+                        .frame(width: size * 0.5 * pulse, height: size * 0.04)
+                        .offset(x: size * 0.25 * pulse * CGFloat(side))
+                        .scaleEffect(x: CGFloat(side), y: 1)
+                    Circle().fill(red).frame(width: size * 0.12).blur(radius: size * 0.01)
+                    Circle().fill(.white).frame(width: size * 0.05)
+                }
+            }
+        }
+        .shadow(color: red, radius: size * 0.05 * pulse)
     }
 
     private var sunglasses: some View {
@@ -495,6 +641,37 @@ struct PipItemView: View {
         .offset(y: size * 0.04)
     }
 
+    private var bandana: some View {
+        ZStack {
+            Triangle()
+                .fill(LinearGradient(colors: [Color(red: 0.9, green: 0.18, blue: 0.22), Color(red: 0.65, green: 0.08, blue: 0.14)], startPoint: .top, endPoint: .bottom))
+                .frame(width: size * 0.4, height: size * 0.2)
+                .rotationEffect(.degrees(180))
+            HStack(spacing: size * 0.06) {
+                ForEach(0..<3, id: \.self) { _ in Circle().fill(.white.opacity(0.85)).frame(width: size * 0.025) }
+            }
+            .offset(y: -size * 0.03)
+        }
+        .offset(y: size * 0.02)
+    }
+
+    private var diamondChain: some View {
+        let sparkle: Double = 0.8 + 0.2 * sin(time * 6)
+        return VStack(spacing: -size * 0.01) {
+            Circle()
+                .trim(from: 0.08, to: 0.42)
+                .stroke(Color(white: 0.92), style: StrokeStyle(lineWidth: size * 0.02, dash: [size * 0.02, size * 0.01]))
+                .frame(width: size * 0.5, height: size * 0.5)
+                .frame(height: size * 0.12, alignment: .bottom)
+                .clipped()
+            Image(systemName: "diamond.fill")
+                .font(.system(size: size * 0.12))
+                .foregroundStyle(LinearGradient(colors: [.white, Color(red: 0.55, green: 0.9, blue: 1)], startPoint: .top, endPoint: .bottom))
+                .scaleEffect(CGFloat(sparkle))
+                .shadow(color: Color(red: 0.55, green: 0.9, blue: 1), radius: size * 0.04)
+        }
+    }
+
     private var tie: some View {
         VStack(spacing: -size * 0.01) {
             Triangle()
@@ -578,6 +755,38 @@ struct PipItemView: View {
         .shadow(color: angel ? .white.opacity(0.6) : Theme.violet.opacity(0.5), radius: size * 0.04)
     }
 
+    private var guitar: some View {
+        let wood = Color(red: 0.85, green: 0.45, blue: 0.2)
+        return ZStack {
+            Rectangle().fill(Color(red: 0.3, green: 0.18, blue: 0.1)).frame(width: size * 0.06, height: size * 0.6).offset(y: -size * 0.32)
+            RoundedRectangle(cornerRadius: size * 0.02).fill(Color(red: 0.3, green: 0.18, blue: 0.1)).frame(width: size * 0.1, height: size * 0.08).offset(y: -size * 0.62)
+            Ellipse().fill(wood).frame(width: size * 0.3, height: size * 0.24).offset(y: -size * 0.04)
+            Ellipse().fill(wood).frame(width: size * 0.36, height: size * 0.3).offset(y: size * 0.16)
+            Circle().fill(Color(red: 0.25, green: 0.12, blue: 0.06)).frame(width: size * 0.09).offset(y: size * 0.06)
+        }
+        .rotationEffect(.degrees(-35))
+        .offset(x: size * 0.42, y: -size * 0.02)
+    }
+
+    private var dragonWings: some View {
+        let flap: Double = sin(time * 3) * 14
+        let fill = LinearGradient(colors: [Color(red: 0.95, green: 0.3, blue: 0.2), Color(red: 0.45, green: 0.05, blue: 0.1)], startPoint: .top, endPoint: .bottom)
+        return ZStack {
+            WingShape(spiky: true)
+                .fill(fill)
+                .frame(width: size * 0.66, height: size * 0.72)
+                .rotationEffect(.degrees(-flap), anchor: .trailing)
+                .offset(x: -size * 0.56, y: -size * 0.1)
+            WingShape(spiky: true)
+                .fill(fill)
+                .frame(width: size * 0.66, height: size * 0.72)
+                .scaleEffect(x: -1, y: 1)
+                .rotationEffect(.degrees(flap), anchor: .leading)
+                .offset(x: size * 0.56, y: -size * 0.1)
+        }
+        .shadow(color: Theme.orange.opacity(0.6), radius: size * 0.05)
+    }
+
     private var jetpack: some View {
         ZStack {
             jetpackTank(side: -1)
@@ -623,6 +832,12 @@ enum PipColors {
         case "color-toxic": return [Color(red: 0.78, green: 1, blue: 0.2), Color(red: 0.1, green: 0.7, blue: 0.3)]
         case "color-neon": return [Color(red: 0.2, green: 0.95, blue: 1), Color(red: 1, green: 0.2, blue: 0.85)]
         case "color-midnight": return [Color(red: 0.16, green: 0.13, blue: 0.42), Color(red: 0.48, green: 0.22, blue: 0.92)]
+        case "color-shadow": return [Color(red: 0.3, green: 0.3, blue: 0.36), Color(red: 0.06, green: 0.06, blue: 0.1)]
+        case "color-ruby": return [Color(red: 1, green: 0.35, blue: 0.5), Color(red: 0.6, green: 0.02, blue: 0.18)]
+        case "color-emerald": return [Color(red: 0.4, green: 1, blue: 0.6), Color(red: 0.02, green: 0.5, blue: 0.3)]
+        case "color-rainbow":
+            return [Color(red: 1, green: 0.3, blue: 0.3), Color(red: 1, green: 0.7, blue: 0.2), Color(red: 1, green: 0.95, blue: 0.3),
+                    Color(red: 0.3, green: 0.9, blue: 0.5), Color(red: 0.3, green: 0.6, blue: 1), Color(red: 0.7, green: 0.4, blue: 1)]
         case "color-iron": return [Color(red: 0.62, green: 0.66, blue: 0.75), Color(red: 0.36, green: 0.22, blue: 0.78)]
         case "color-frost": return [Color(red: 0.88, green: 0.96, blue: 1), Color(red: 0.42, green: 0.62, blue: 1)]
         case "color-dawn": return [Color(red: 1, green: 0.8, blue: 0.6), Color(red: 0.72, green: 0.55, blue: 1)]
