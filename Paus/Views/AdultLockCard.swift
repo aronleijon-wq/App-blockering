@@ -16,10 +16,10 @@ struct AdultLockCard: View {
     }
 
     var body: some View {
-        if let end = model.rules.adultFilterLockedUntil, end > date {
+        if model.rules.isAdultFilterLocked(at: date), let end = model.rules.adultFilterLockedUntil {
             progressCard(until: end)
         } else if AdultLock.offersChallenge(at: date, calendar: calendar) && AdultLock.offersChallenge(to: model.introAnswers?.ageGroup)
-                    && dismissedMonth != monthKey {
+                    && !model.rules.hasForfeitedChallenge(at: date, calendar: calendar) && dismissedMonth != monthKey {
             invitation
         }
     }
@@ -32,7 +32,7 @@ struct AdultLockCard: View {
         let total: Int = start.map { AdultLock.daysLeft(until: end, from: $0, calendar: calendar) } ?? left
         let day: Int = min(max(1, total - left + 1), max(1, total))
         // Only those the NNN challenge is offered to see a lock for the rest of November as the challenge.
-        let offered = AdultLock.offersChallenge(to: model.introAnswers?.ageGroup)
+        let offered = AdultLock.offersChallenge(to: model.introAnswers?.ageGroup) && !model.rules.hasForfeitedChallenge(at: date, calendar: calendar)
         let isChallenge: Bool = offered && (start.map { AdultLock.isChallenge(from: $0, to: end, calendar: calendar) } ?? false)
         let fraction = Double(day) / Double(max(1, total))
         return VStack(alignment: .leading, spacing: 12) {
@@ -60,11 +60,12 @@ struct AdultLockCard: View {
             GradientBar(fraction: fraction, height: 8)
             Text(cheer(day: day, total: total, left: left))
                 .font(.subheadline)
-            if total >= AdultLock.minRewardDays {
+            if total >= AdultLock.minRewardDays && !model.rules.isGivingUpAdultLock(at: date) {
                 Label(rewardText(days: total, trophy: isChallenge), systemImage: "gift.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.mint)
             }
+            GiveUpLockControl(date: date)
         }
         .card()
         .accessibilityElement(children: .combine)
@@ -126,5 +127,60 @@ struct AdultLockCard: View {
         } message: {
             Text(L("Fram till dess går vuxenfiltret inte att stänga av, inte ens för dig."))
         }
+    }
+}
+
+/// A way out of a running adult filter lock that costs: it lets go a day later, unless taken back before, and
+/// then takes XP, and the NNN challenge's medal for the year.
+struct GiveUpLockControl: View {
+    @Environment(AppModel.self) private var model
+    let date: Date
+    @State private var isConfirming = false
+
+    var body: some View {
+        if let end = model.rules.adultFilterLockedUntil, model.rules.isAdultFilterLocked(at: date) {
+            if let release = model.rules.adultFilterReleaseAt {
+                givingUp(release: release, end: end)
+            } else if AdultLock.canGiveUp(until: end, at: date) {
+                Button(L("Ge upp")) { isConfirming = true }
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .confirmationDialog(L("Ge upp?"), isPresented: $isConfirming, titleVisibility: .visible) {
+                        Button(L("Ge upp"), role: .destructive) { model.giveUpAdultLock() }
+                        Button(L("Kör vidare"), role: .cancel) {}
+                    } message: {
+                        Text(cost(end: end))
+                    }
+            }
+        }
+    }
+
+    private func givingUp(release: Date, end: Date) -> some View {
+        let hours = max(1, Int((release.timeIntervalSince(date) / 3600).rounded(.up)))
+        return VStack(spacing: 10) {
+            Label(L("Du har gett upp. Låset släpper om \(hours) h."), systemImage: "flag.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.pink)
+            Text(cost(end: end))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button(L("Ångra, jag kör vidare")) { model.keepAdultLock() }
+                .buttonStyle(GlowButtonStyle())
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func cost(end: Date) -> String {
+        let calendar = Calendar.current
+        let start = model.rules.adultFilterLockedAt ?? date
+        let days = AdultLock.daysLeft(until: end, from: start, calendar: calendar)
+        let xp = AdultLock.giveUpXP(days: days)
+        let medal = AdultLock.offersChallenge(to: model.introAnswers?.ageGroup) && AdultLock.isChallenge(from: start, to: end, calendar: calendar)
+            && !model.rules.hasForfeitedChallenge(at: start, calendar: calendar)
+        return medal
+            ? L("Låset släpper 24 timmar efter att du gett upp, om du inte ångrar dig. Det kostar \(xp) XP och NNN-medaljen i år.")
+            : L("Låset släpper 24 timmar efter att du gett upp, om du inte ångrar dig. Det kostar \(xp) XP.")
     }
 }

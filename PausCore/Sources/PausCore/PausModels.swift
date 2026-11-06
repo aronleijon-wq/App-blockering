@@ -41,6 +41,10 @@ struct PausRules: Codable, Equatable {
     var adultFilterLockedUntil: Date?
     /// When the running adult filter lock started, so its length can be shown and rewarded once it ends.
     var adultFilterLockedAt: Date?
+    /// The lock was given up and lets go at this date instead, unless taken back before. See `AdultLock.giveUpDelay`.
+    var adultFilterReleaseAt: Date?
+    /// The year the November challenge was given up in. Giving up costs the challenge's medal for that year.
+    var adultChallengeForfeitedYear: Int?
     /// Schedules and the daily limit rest until this date. Focus sessions still work.
     var vacationUntil: Date?
     /// The guarded apps stay blocked, but each can be opened this many times a day in all, from the shield.
@@ -57,6 +61,8 @@ struct PausRules: Codable, Equatable {
         adultFilter: Bool = false,
         adultFilterLockedUntil: Date? = nil,
         adultFilterLockedAt: Date? = nil,
+        adultFilterReleaseAt: Date? = nil,
+        adultChallengeForfeitedYear: Int? = nil,
         vacationUntil: Date? = nil,
         openLimit: Int? = nil,
         openMinutes: Int = 5
@@ -69,6 +75,8 @@ struct PausRules: Codable, Equatable {
         self.adultFilter = adultFilter
         self.adultFilterLockedUntil = adultFilterLockedUntil
         self.adultFilterLockedAt = adultFilterLockedAt
+        self.adultFilterReleaseAt = adultFilterReleaseAt
+        self.adultChallengeForfeitedYear = adultChallengeForfeitedYear
         self.vacationUntil = vacationUntil
         self.openLimit = openLimit
         self.openMinutes = openMinutes
@@ -80,8 +88,19 @@ struct PausRules: Codable, Equatable {
     }
 
     func isAdultFilterLocked(at date: Date) -> Bool {
-        guard let adultFilterLockedUntil else { return false }
-        return adultFilterLockedUntil > date
+        guard let adultFilterLockedUntil, adultFilterLockedUntil > date else { return false }
+        if let adultFilterReleaseAt, adultFilterReleaseAt <= date { return false }
+        return true
+    }
+
+    /// Whether the running lock has been given up and is waiting to let go.
+    func isGivingUpAdultLock(at date: Date) -> Bool {
+        isAdultFilterLocked(at: date) && adultFilterReleaseAt != nil
+    }
+
+    /// Whether the November challenge was given up in `date`'s year.
+    func hasForfeitedChallenge(at date: Date, calendar: Calendar) -> Bool {
+        adultChallengeForfeitedYear == calendar.component(.year, from: date)
     }
 
     /// Whether adult websites are blocked at `date`: the filter is on, or locked on.
@@ -100,6 +119,8 @@ struct PausRules: Codable, Equatable {
         adultFilter = try container.decodeIfPresent(Bool.self, forKey: .adultFilter) ?? defaults.adultFilter
         adultFilterLockedUntil = try container.decodeIfPresent(Date.self, forKey: .adultFilterLockedUntil)
         adultFilterLockedAt = try container.decodeIfPresent(Date.self, forKey: .adultFilterLockedAt)
+        adultFilterReleaseAt = try container.decodeIfPresent(Date.self, forKey: .adultFilterReleaseAt)
+        adultChallengeForfeitedYear = try container.decodeIfPresent(Int.self, forKey: .adultChallengeForfeitedYear)
         vacationUntil = try container.decodeIfPresent(Date.self, forKey: .vacationUntil)
         openLimit = try container.decodeIfPresent(Int.self, forKey: .openLimit)
         openMinutes = try container.decodeIfPresent(Int.self, forKey: .openMinutes) ?? defaults.openMinutes
@@ -172,6 +193,31 @@ enum AdultLock {
 
     static func rewardSeeds(days: Int) -> Int {
         days < minRewardDays ? 0 : min(days, maxRewardDays) * 5
+    }
+
+    // MARK: Giving up
+
+    /// A lock that's given up lets go this long after, so a weak moment passes before it does.
+    static let giveUpDelay: TimeInterval = 24 * 3600
+
+    /// Whether a lock that ends at `end` can still be given up: when it would last longer than the wait anyway.
+    static func canGiveUp(until end: Date, at date: Date) -> Bool {
+        end.timeIntervalSince(date) > giveUpDelay
+    }
+
+    /// The XP giving up a lock of `days` days costs: twice what finishing it earns, and at least 200.
+    static func giveUpXP(days: Int) -> Int {
+        max(200, rewardXP(days: days) * 2)
+    }
+}
+
+extension PlayerProgress {
+    /// Takes the XP giving up a lock of `days` days costs, never below zero. Returns how much was lost.
+    @discardableResult
+    mutating func giveUpAdultLock(days: Int) -> Int {
+        let lost = min(xp, AdultLock.giveUpXP(days: days))
+        xp -= lost
+        return lost
     }
 }
 

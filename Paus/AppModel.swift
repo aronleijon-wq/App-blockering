@@ -264,17 +264,28 @@ final class AppModel {
         // A locked adult filter outlives the data, or deleting it would be the way out of the lock.
         let adultLock = isAdultFilterLocked ? rules.adultFilterLockedUntil : nil
         let adultLockStart = rules.adultFilterLockedAt
+        let adultLockRelease = rules.adultFilterReleaseAt
+        // So is a given-up challenge, or deleting would win back the medal.
+        let forfeitedYear = rules.adultChallengeForfeitedYear
         ActivityScheduler.stopAll()
         SharedStore.eraseUserData()
-        if let adultLock {
-            SharedStore.rules = PausRules(adultFilter: true, adultFilterLockedUntil: adultLock, adultFilterLockedAt: adultLockStart)
+        if adultLock != nil || forfeitedYear != nil {
+            SharedStore.rules = PausRules(adultFilter: adultLock != nil, adultFilterLockedUntil: adultLock, adultFilterLockedAt: adultLockStart,
+                                          adultFilterReleaseAt: adultLock == nil ? nil : adultLockRelease,
+                                          adultChallengeForfeitedYear: forfeitedYear)
         }
         signOut()
         introAnswers = nil
         IntroStore.answers = nil
         refreshShield()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-        if let adultLock { Notifier.scheduleAdultLockOver(at: adultLock) }
+        if let adultLock {
+            if let adultLockRelease {
+                Notifier.scheduleAdultLockReleased(at: adultLockRelease)
+            } else {
+                Notifier.scheduleAdultLockOver(at: adultLock)
+            }
+        }
         selection = SharedStore.selection
         rules = SharedStore.rules
         runtime = SharedStore.runtime
@@ -677,20 +688,62 @@ final class AppModel {
             rules.adultFilter = true
             rules.adultFilterLockedUntil = max(end, rules.adultFilterLockedUntil ?? end)
             if isNew { rules.adultFilterLockedAt = .now }
+            // Locking again takes back giving up.
+            rules.adultFilterReleaseAt = nil
         }
         if let lock = rules.adultFilterLockedUntil {
             Notifier.scheduleAdultLockOver(at: lock)
         }
     }
 
-    /// Rewards an adult filter lock that ran its course, once.
+    /// Gives up the running adult filter lock. It lets go a day later, unless taken back before, and then costs XP,
+    /// and the NNN challenge's medal for the year.
+    func giveUpAdultLock() {
+        guard let end = rules.adultFilterLockedUntil, isAdultFilterLocked, rules.adultFilterReleaseAt == nil,
+              AdultLock.canGiveUp(until: end, at: .now) else { return }
+        let release = Date.now.addingTimeInterval(AdultLock.giveUpDelay)
+        updateRules { $0.adultFilterReleaseAt = release }
+        Notifier.scheduleAdultLockReleased(at: release)
+    }
+
+    /// Takes back giving up: the lock runs its course after all.
+    func keepAdultLock() {
+        guard isAdultFilterLocked, let end = rules.adultFilterLockedUntil else { return }
+        updateRules { $0.adultFilterReleaseAt = nil }
+        Notifier.scheduleAdultLockOver(at: end)
+    }
+
+    /// Rewards an adult filter lock that ran its course, once, or makes one that was given up cost what it costs.
     private func settleAdultLock() {
-        guard let end = rules.adultFilterLockedUntil, end <= .now, let start = rules.adultFilterLockedAt else { return }
         let calendar = Calendar.current
+        // Given up: it let go before its end, even if the end has passed too by now.
+        if let end = rules.adultFilterLockedUntil, let release = rules.adultFilterReleaseAt, release <= .now, release < end {
+            let start = rules.adultFilterLockedAt ?? release
+            let days = AdultLock.daysLeft(until: end, from: start, calendar: calendar)
+            let wasChallenge = AdultLock.isChallenge(from: start, to: end, calendar: calendar)
+            let year = calendar.component(.year, from: start)
+            updateRules { rules in
+                rules.adultFilterLockedUntil = nil
+                rules.adultFilterLockedAt = nil
+                rules.adultFilterReleaseAt = nil
+                if wasChallenge { rules.adultChallengeForfeitedYear = year }
+            }
+            _ = SharedStore.updateProgress { progress in
+                progress.giveUpAdultLock(days: days)
+                return []
+            }
+            progress = SharedStore.progress
+            return
+        }
+        guard let end = rules.adultFilterLockedUntil, end <= .now, let start = rules.adultFilterLockedAt else { return }
         let days = AdultLock.daysLeft(until: end, from: start, calendar: calendar)
-        // The NNN trophy and medal only go to those the challenge is offered to.
+        // The NNN trophy and medal only go to those the challenge is offered to, and who didn't give it up this year.
         let challenge = AdultLock.offersChallenge(to: introAnswers?.ageGroup) && AdultLock.isChallenge(from: start, to: end, calendar: calendar)
-        updateRules { $0.adultFilterLockedAt = nil }
+            && !rules.hasForfeitedChallenge(at: start, calendar: calendar)
+        updateRules { rules in
+            rules.adultFilterLockedAt = nil
+            rules.adultFilterReleaseAt = nil
+        }
         ProgressRecorder.record(.finishedAdultLock(days: days, challenge: challenge))
         progress = SharedStore.progress
     }

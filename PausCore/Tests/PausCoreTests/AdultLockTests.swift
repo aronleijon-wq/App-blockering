@@ -78,6 +78,40 @@ final class AdultLockTests: XCTestCase {
         XCTAssertEqual(other.buy(WardrobeItem.with(id: AdultLock.challengeItem)!, isPro: true), .seasonOnly)
     }
 
+    func testAGivenUpLockLetsGoADayLaterUnlessTakenBack() throws {
+        let end = AdultLock.endOfMonth(after: november2, calendar: calendar)
+        XCTAssertTrue(AdultLock.canGiveUp(until: end, at: november2))
+        XCTAssertFalse(AdultLock.canGiveUp(until: november2.addingTimeInterval(20 * 3600), at: november2), "ends sooner than the wait")
+
+        let release = november2.addingTimeInterval(AdultLock.giveUpDelay)
+        let rules = PausRules(adultFilter: true, adultFilterLockedUntil: end, adultFilterLockedAt: november2, adultFilterReleaseAt: release)
+        XCTAssertTrue(rules.isAdultFilterLocked(at: november2.addingTimeInterval(3600)), "still locked while waiting")
+        XCTAssertTrue(rules.isGivingUpAdultLock(at: november2.addingTimeInterval(3600)))
+        XCTAssertFalse(rules.isAdultFilterLocked(at: release))
+        XCTAssertTrue(rules.blocksAdultSites(at: release), "the filter stays on until turned off")
+
+        let roundTripped = try JSONDecoder().decode(PausRules.self, from: JSONEncoder().encode(rules))
+        XCTAssertEqual(roundTripped, rules)
+        XCTAssertNil(try JSONDecoder().decode(PausRules.self, from: Data(#"{"adultFilter": true}"#.utf8)).adultFilterReleaseAt)
+    }
+
+    func testGivingUpCostsALotOfXPAndTheMedalForTheYear() {
+        XCTAssertEqual(AdultLock.giveUpXP(days: 3), 200)
+        XCTAssertEqual(AdultLock.giveUpXP(days: 29), 2 * AdultLock.rewardXP(days: 29))
+
+        var progress = PlayerProgress()
+        progress.xp = 1_000
+        XCTAssertEqual(progress.giveUpAdultLock(days: 29), 580)
+        XCTAssertEqual(progress.xp, 420)
+        progress.giveUpAdultLock(days: 29)
+        XCTAssertEqual(progress.xp, 0, "never below zero")
+
+        let rules = PausRules(adultChallengeForfeitedYear: 2026)
+        XCTAssertTrue(rules.hasForfeitedChallenge(at: november2, calendar: calendar))
+        XCTAssertFalse(rules.hasForfeitedChallenge(at: TestCalendar.date(2027, 11, 2, 12, 0), calendar: calendar), "next November is a new chance")
+        XCTAssertFalse(PausRules().hasForfeitedChallenge(at: november2, calendar: calendar))
+    }
+
     func testTheChallengeIsOfferedUpTo34() {
         XCTAssertTrue(AdultLock.offersChallenge(to: .under18))
         XCTAssertTrue(AdultLock.offersChallenge(to: .from18))

@@ -67,6 +67,11 @@ enum Notifier {
         schedule(ID.adultLockOver, at: end, title: L("Du klarade det! 🏆"), body: L("Låset är slut. Vuxenfiltret är fortfarande på tills du själv stänger av det."))
     }
 
+    /// When a given-up lock lets go. It replaces the notice for the lock's end.
+    static func scheduleAdultLockReleased(at date: Date) {
+        schedule(ID.adultLockOver, at: date, title: L("Låset har släppt"), body: L("Vuxenfiltret är fortfarande på tills du själv stänger av det."))
+    }
+
     // MARK: Pip
 
     static func healthDropped(to stage: PipHealth.Stage, health: Int, scrolledMinutes: Int?) {

@@ -467,6 +467,8 @@ private struct AdultLockView: View {
                     .buttonStyle(ChipButtonStyle())
                 }
             }
+            GiveUpLockControl(date: .now)
+                .padding(.top, 12)
         }
     }
 
