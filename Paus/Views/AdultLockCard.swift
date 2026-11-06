@@ -131,29 +131,52 @@ struct AdultLockCard: View {
 }
 
 /// A way out of a running adult filter lock that costs: it lets go a day later, unless taken back before, and
-/// then takes XP, and the NNN challenge's medal for the year.
+/// then takes XP, and the NNN challenge's medal for the year. And, during the challenge, an honest "I failed",
+/// which gives up the medal but keeps the lock and its reward.
 struct GiveUpLockControl: View {
     @Environment(AppModel.self) private var model
     let date: Date
     @State private var isConfirming = false
+    @State private var isAdmitting = false
 
     var body: some View {
         if let end = model.rules.adultFilterLockedUntil, model.rules.isAdultFilterLocked(at: date) {
             if let release = model.rules.adultFilterReleaseAt {
                 givingUp(release: release, end: end)
-            } else if AdultLock.canGiveUp(until: end, at: date) {
-                Button(L("Ge upp")) { isConfirming = true }
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .confirmationDialog(L("Ge upp?"), isPresented: $isConfirming, titleVisibility: .visible) {
-                        Button(L("Ge upp"), role: .destructive) { model.giveUpAdultLock() }
-                        Button(L("Kör vidare"), role: .cancel) {}
-                    } message: {
-                        Text(cost(end: end))
+            } else {
+                HStack(spacing: 28) {
+                    if stakesMedal(end: end) {
+                        Button(L("Jag failade")) { isAdmitting = true }
+                            .confirmationDialog(L("Failade du?"), isPresented: $isAdmitting, titleVisibility: .visible) {
+                                Button(L("Ja, jag failade"), role: .destructive) { model.admitFailedChallenge() }
+                                Button(L("Avbryt"), role: .cancel) {}
+                            } message: {
+                                Text(L("Ärligt av dig. Du tappar NNN-medaljen och trofén i år, men låset fortsätter och du får fortfarande XP och frön när det är slut."))
+                            }
                     }
+                    if AdultLock.canGiveUp(until: end, at: date) {
+                        Button(L("Ge upp")) { isConfirming = true }
+                            .confirmationDialog(L("Ge upp?"), isPresented: $isConfirming, titleVisibility: .visible) {
+                                Button(L("Ge upp"), role: .destructive) { model.giveUpAdultLock() }
+                                Button(L("Kör vidare"), role: .cancel) {}
+                            } message: {
+                                Text(cost(end: end))
+                            }
+                    }
+                }
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
             }
         }
+    }
+
+    /// Whether the running lock is the NNN challenge with its medal still to win.
+    private func stakesMedal(end: Date) -> Bool {
+        let calendar = Calendar.current
+        let start = model.rules.adultFilterLockedAt ?? date
+        return AdultLock.offersChallenge(to: model.introAnswers?.ageGroup) && AdultLock.isChallenge(from: start, to: end, calendar: calendar)
+            && !model.rules.hasForfeitedChallenge(at: start, calendar: calendar)
     }
 
     private func givingUp(release: Date, end: Date) -> some View {
@@ -177,9 +200,7 @@ struct GiveUpLockControl: View {
         let start = model.rules.adultFilterLockedAt ?? date
         let days = AdultLock.daysLeft(until: end, from: start, calendar: calendar)
         let xp = AdultLock.giveUpXP(days: days)
-        let medal = AdultLock.offersChallenge(to: model.introAnswers?.ageGroup) && AdultLock.isChallenge(from: start, to: end, calendar: calendar)
-            && !model.rules.hasForfeitedChallenge(at: start, calendar: calendar)
-        return medal
+        return stakesMedal(end: end)
             ? L("Låset släpper 24 timmar efter att du gett upp, om du inte ångrar dig. Det kostar \(xp) XP och NNN-medaljen i år.")
             : L("Låset släpper 24 timmar efter att du gett upp, om du inte ångrar dig. Det kostar \(xp) XP.")
     }

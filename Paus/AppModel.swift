@@ -706,6 +706,14 @@ final class AppModel {
         Notifier.scheduleAdultLockReleased(at: release)
     }
 
+    /// Owns up to failing the NNN challenge: its medal and trophy are gone for the year, but the lock runs on and
+    /// still pays its XP and seeds when it ends.
+    func admitFailedChallenge() {
+        guard isAdultFilterLocked, let start = rules.adultFilterLockedAt else { return }
+        let year = Calendar.current.component(.year, from: start)
+        updateRules { $0.adultChallengeForfeitedYear = year }
+    }
+
     /// Takes back giving up: the lock runs its course after all.
     func keepAdultLock() {
         guard isAdultFilterLocked, let end = rules.adultFilterLockedUntil else { return }
