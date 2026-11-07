@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var isStopFocusConfirming = false
     @State private var isWardrobePresented = false
     @State private var isStatsPresented = false
+    @State private var isSelectionPresented = false
     /// The step goal waiting for the user to confirm, since a step session can't be undone.
     @State private var confirmingStepGoal: Int?
 
@@ -62,6 +63,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $isSettingsPresented) {
                 SettingsView()
+            }
+            .sheet(isPresented: $isSelectionPresented) {
+                SelectionView()
             }
         }
     }
@@ -156,7 +160,7 @@ struct HomeView: View {
                 .font(.headline)
             Text(L("Börja med apparna som tar mest av din tid, till exempel TikTok, Instagram och YouTube."))
                 .foregroundStyle(.secondary)
-            Button(L("Välj appar")) { model.selectedTab = .apps }
+            Button(L("Välj appar")) { isSelectionPresented = true }
                 .buttonStyle(GlowButtonStyle())
                 .padding(.top, 4)
         }
@@ -440,94 +444,37 @@ struct HomeView: View {
         }
     }
 
+    /// Today's quests in short, opening the quest board.
     private func questsCard(at date: Date) -> some View {
         let progress = model.progress
         let counts = progress.counts(at: date, calendar: .current)
-        let week = progress.weekCounts(at: date, calendar: .current)
         let day = DayKey.string(for: date, calendar: .current)
-        let level = progress.level
-        let daily = Quest.daily(for: day, includesPro: model.isPro, level: level)
-        let doneDaily = daily.filter { counts.completedQuests.contains($0.id) }.count
-        let weekKey = League.weekKey(for: date, calendar: .current)
-        // Screen time isn't measured without picked apps or on vacation, so those quests can't be done then.
-        let untracked: String? = !model.hasSelection ? L("Välj appar att skydda först")
-            : model.rules.isOnVacation(at: date) ? L("Räknas inte under semesterläget") : nil
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text(L("Dagens uppdrag"))
-                    .font(.title3.bold())
-                Spacer()
-                Text("\(doneDaily)/\(daily.count)")
-                    .font(.headline.monospacedDigit())
-                    .foregroundStyle(Theme.brand)
-            }
-            ForEach(daily) { quest in
-                QuestRow(quest: quest, progress: quest.progress(today: counts, week: week), isDone: counts.completedQuests.contains(quest.id),
-                         holds: quest.isHolding(today: counts), untracked: untracked)
-            }
-            if let bonus = Quest.bonus(for: day, includesPro: model.isPro, level: level) {
-                if doneDaily == daily.count {
-                    QuestRow(quest: bonus, progress: bonus.progress(today: counts, week: week), isDone: counts.completedQuests.contains(bonus.id),
-                             holds: bonus.isHolding(today: counts), untracked: untracked, label: L("Bonus"))
-                } else {
-                    HStack(spacing: 14) {
-                        Image(systemName: "lock.fill")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 42, height: 42)
-                            .background(Theme.cardRaised, in: Circle())
-                        Text(L("Klara alla tre för att låsa upp bonusuppdraget"))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
+        let daily = Quest.daily(for: day, includesPro: model.isPro, level: progress.level)
+        let done = daily.filter { counts.completedQuests.contains($0.id) }.count
+        let next = daily.first { !counts.completedQuests.contains($0.id) }
+        return Button {
+            model.selectedTab = .quests
+        } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text(L("Dagens uppdrag"))
+                        .font(.title3.bold())
+                    Spacer()
+                    QuestChest(isDone: done == daily.count, size: 38)
                 }
-            }
-
-            Divider().overlay(Color.white.opacity(0.08))
-            Text(L("Veckans uppdrag"))
-                .font(.headline)
-            ForEach(Quest.weekly(for: weekKey, includesPro: model.isPro, level: level)) { quest in
-                QuestRow(quest: quest, progress: quest.progress(today: counts, week: week), isDone: week.completedQuests.contains(quest.id),
-                         untracked: untracked)
-            }
-            seasonSection(at: date, untracked: untracked)
-        }
-        .card()
-    }
-}
-
-extension HomeView {
-    /// This month's season: its quests, what each gives Pip, and the trophy for finishing them all.
-    fileprivate func seasonSection(at date: Date, untracked: String?) -> some View {
-        let season = Season.at(date, calendar: .current)
-        let month = model.progress.monthCounts(at: date, calendar: .current)
-        let counts = model.progress.counts(at: date, calendar: .current)
-        let daysLeft = season.daysLeft(from: date, calendar: .current)
-        return VStack(alignment: .leading, spacing: 14) {
-            Divider().overlay(Color.white.opacity(0.08))
-            HStack(spacing: 8) {
-                Image(systemName: season.symbol)
-                    .foregroundStyle(Theme.brand)
-                Text(L("Säsong: \(season.name)"))
-                    .font(.headline)
-                Spacer()
-                Text(daysLeft == 1 ? L("1 dag kvar") : L("\(daysLeft) dagar kvar"))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            if let tagline = season.tagline {
-                Text(tagline)
+                QuestBar(value: done, target: daily.count)
+                Text(next.map { L("Nästa: \($0.title)") } ?? L("Alla klara! Kolla bonusuppdraget."))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                Label(L("Visa alla uppdrag"), systemImage: "chevron.right")
+                    .font(.subheadline.weight(.heavy))
+                    .foregroundStyle(Theme.pink)
             }
-            ForEach(Array(season.quests.enumerated()), id: \.element.id) { index, quest in
-                QuestRow(quest: quest, progress: quest.progress(today: counts, week: month), isDone: month.completedQuests.contains(quest.id),
-                         untracked: untracked, label: index < season.items.count ? WardrobeItem.with(id: season.items[index])?.name : nil)
-            }
-            Label(L("Klara alla tre för säsongens trofé. Sakerna finns bara den här månaden."), systemImage: "trophy.fill")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            .foregroundStyle(.white)
+            .card()
         }
+        .buttonStyle(PressScaleStyle())
     }
 }
 
@@ -555,70 +502,6 @@ private struct TimeBackCard: View {
             .card()
             .accessibilityElement(children: .combine)
         }
-    }
-}
-
-private struct QuestRow: View {
-    let quest: Quest
-    let progress: Int
-    let isDone: Bool
-    /// For a quest about the whole day: whether it still holds so far today.
-    var holds = true
-    /// Why screen time isn't measured right now, if it isn't.
-    var untracked: String?
-    var label: String?
-
-    /// What a quest about the whole day shows instead of a bar until it is decided.
-    private var status: (text: String, isGood: Bool)? {
-        guard !isDone, quest.needsTracking else { return nil }
-        if let untracked { return (text: untracked, isGood: false) }
-        guard quest.isEvening else { return nil }
-        if holds { return (text: L("Håller hittills · avgörs kl. \(Quest.eveningHour)"), isGood: true) }
-        return (text: L("Inte i dag"), isGood: false)
-    }
-
-    private var accessibilityValue: String {
-        if isDone { return L("Klart") }
-        if let status { return status.text }
-        return L("\(min(progress, quest.target)) av \(quest.target)")
-    }
-
-    var body: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle().fill(isDone ? AnyShapeStyle(Theme.glow) : AnyShapeStyle(Theme.cardRaised))
-                Image(systemName: isDone ? "checkmark" : quest.symbol)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-            }
-            .frame(width: 42, height: 42)
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    if let label {
-                        Text(label.uppercased())
-                            .font(.caption2.weight(.heavy))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Theme.brand, in: Capsule())
-                    }
-                    Text(quest.title)
-                        .font(.subheadline.weight(.semibold))
-                        .strikethrough(isDone, color: .secondary)
-                }
-                if let status {
-                    Text(status.text)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(status.isGood ? Theme.mint : .secondary)
-                } else {
-                    GradientBar(fraction: Double(min(progress, quest.target)) / Double(quest.target), height: 6)
-                }
-            }
-            Text("+\(quest.xp)")
-                .font(.caption.weight(.bold).monospacedDigit())
-                .foregroundStyle(isDone ? Theme.mint : .secondary)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(accessibilityValue)
     }
 }
 

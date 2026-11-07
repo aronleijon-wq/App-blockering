@@ -13,15 +13,15 @@ struct RootView: View {
                     HomeView()
                         .tabItem { Label(L("Hem"), systemImage: "house.fill") }
                         .tag(AppModel.Tab.home)
+                    QuestsView()
+                        .tabItem { Label(L("Uppdrag"), systemImage: "scroll.fill") }
+                        .tag(AppModel.Tab.quests)
                     LeagueView()
                         .tabItem { Label(L("Liga"), systemImage: "flag.checkered") }
                         .tag(AppModel.Tab.league)
-                    TrophiesView()
-                        .tabItem { Label(L("Troféer"), systemImage: "trophy.fill") }
-                        .tag(AppModel.Tab.trophies)
-                    SelectionView()
-                        .tabItem { Label(L("Appar"), systemImage: "square.grid.2x2.fill") }
-                        .tag(AppModel.Tab.apps)
+                    ProfileView()
+                        .tabItem { Label(L("Profil"), systemImage: "person.crop.circle.fill") }
+                        .tag(AppModel.Tab.profile)
                     RulesView()
                         .tabItem { Label(L("Regler"), systemImage: "slider.horizontal.3") }
                         .tag(AppModel.Tab.rules)

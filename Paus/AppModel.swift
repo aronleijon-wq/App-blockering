@@ -13,7 +13,7 @@ import UserNotifications
 @Observable
 final class AppModel {
     enum Tab: Hashable {
-        case home, league, trophies, apps, rules
+        case home, quests, league, profile, rules
     }
 
     var selectedTab: Tab = .home

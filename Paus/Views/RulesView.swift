@@ -4,12 +4,23 @@ struct RulesView: View {
     @Environment(AppModel.self) private var model
     @State private var editing: BlockSchedule?
     @State private var isSettingsPresented = false
+    @State private var isSelectionPresented = false
 
     private let limitOptions = [15, 30, 45, 60, 90, 120, 150, 180, 240]
 
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Button {
+                        isSelectionPresented = true
+                    } label: {
+                        Label(model.hasSelection ? L("Skyddade appar") : L("Välj appar att skydda"), systemImage: "square.grid.2x2.fill")
+                    }
+                } footer: {
+                    Text(L("Apparna och webbplatserna som Pip vaktar."))
+                }
+
                 proSection
 
                 Section {
@@ -141,6 +152,9 @@ struct RulesView: View {
             .navigationTitle(L("Regler"))
             .sheet(isPresented: $isSettingsPresented) {
                 SettingsView()
+            }
+            .sheet(isPresented: $isSelectionPresented) {
+                SelectionView()
             }
             .sheet(item: $editing) { schedule in
                 ScheduleEditorView(

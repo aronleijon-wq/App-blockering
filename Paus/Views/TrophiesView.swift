@@ -1,54 +1,5 @@
 import SwiftUI
 
-struct TrophiesView: View {
-    @Environment(AppModel.self) private var model
-
-    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
-
-    var body: some View {
-        let progress = model.progress
-        NavigationStack {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(spacing: 16) {
-                        statsCard(progress)
-                        levelsCard(progress)
-                        achievementsCard(progress)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
-                }
-                .task {
-                    // Start at the player's place on the journey, like opening a board game where you left off.
-                    try? await Task.sleep(for: .seconds(0.3))
-                    withAnimation(.easeInOut(duration: 0.6)) { proxy.scrollTo("journey-current", anchor: .center) }
-                }
-            }
-            .screenBackground()
-            .navigationTitle(L("Troféer"))
-        }
-    }
-
-    private func statsCard(_ progress: PlayerProgress) -> some View {
-        HStack(spacing: 0) {
-            Stat(value: "\(progress.bestStreak)", label: L("Bästa streak"), symbol: "flame.fill", tint: Theme.flame)
-            Stat(value: Format.minutes(progress.focusMinutes), label: L("Fokus totalt"), symbol: "scope", tint: Theme.violet)
-            Stat(value: "\(progress.closes)", label: L("Stängda appar"), symbol: "hand.raised.fill", tint: Theme.pink)
-        }
-        .card()
-    }
-
-    private func levelsCard(_ progress: PlayerProgress) -> some View {
-        let friends = model.league.entries[LeagueService.Board(scope: .friends, period: .week)] ?? []
-        return LevelPath(progress: progress, friends: friends.filter { !$0.isMe })
-    }
-
-    private func achievementsCard(_ progress: PlayerProgress) -> some View {
-        TrophyShelf(unlocked: progress.unlocked, current: Season.at(.now, calendar: .current), progress: progress)
-            .card()
-    }
-}
-
 /// The trophies: one badge per family, showing its best medal and the next to reach, then the season trophies.
 struct TrophyShelf: View {
     let unlocked: Set<String>
@@ -209,7 +160,7 @@ private struct TrophyDetailSheet: View {
 /// friends standing at theirs, and "You are here" above the current level, ringed by the way to the next. The road
 /// goes on past Legend for ever, with the next land showing what's ahead. Tapping a level or a chest tells what it
 /// holds, and opening a chest is a little show.
-private struct LevelPath: View {
+struct LevelPath: View {
     @Environment(AppModel.self) private var model
     let progress: PlayerProgress
     /// League friends, shown at their levels.
