@@ -55,13 +55,17 @@ struct ProfileView: View {
         let colors = MascotView.bodyColors(level: progress.level, outfit: progress.outfit)
         return ZStack(alignment: .top) {
             LinearGradient(colors: colors.map { $0.opacity(0.55) } + [Theme.background], startPoint: .top, endPoint: .bottom)
-            // Soft rings behind Pip, like a spotlight.
-            ForEach(0..<3, id: \.self) { ring in
-                Circle()
-                    .stroke(Color.white.opacity(0.07), lineWidth: 18)
-                    .frame(width: CGFloat(180 + ring * 90))
-                    .offset(y: 150)
-            }
+                .overlay(alignment: .top) {
+                    // Soft rings behind Pip, like a spotlight. In an overlay, so they never widen the screen.
+                    ZStack {
+                        ForEach(0..<3, id: \.self) { ring in
+                            Circle()
+                                .stroke(Color.white.opacity(0.07), lineWidth: 18)
+                                .frame(width: CGFloat(180 + ring * 90), height: CGFloat(180 + ring * 90))
+                        }
+                    }
+                    .offset(y: 70)
+                }
             VStack(spacing: 6) {
                 HStack(spacing: 18) {
                     Spacer()
@@ -88,6 +92,7 @@ struct ProfileView: View {
             }
             .padding(.top, 62)
         }
+        .frame(maxWidth: .infinity)
         .frame(height: 340)
         .clipped()
     }

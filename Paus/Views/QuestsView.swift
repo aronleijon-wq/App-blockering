@@ -79,7 +79,7 @@ struct QuestsView: View {
             }
             .foregroundStyle(.white)
             .padding(.horizontal, 22)
-            .padding(.top, 70)
+            .padding(.top, 80)
 
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
@@ -322,15 +322,21 @@ private struct WeekScene: View {
         let land = Journey.land(for: level)
         let colors = LevelPath.colors(for: land)
         ZStack(alignment: .bottom) {
+            // The decorations sit in overlays, so they never make the scene wider than the screen.
             LinearGradient(colors: [colors[0].opacity(0.85), colors[1]], startPoint: .top, endPoint: .bottom)
-            Image(systemName: land.symbol)
-                .font(.system(size: 90, weight: .bold))
-                .foregroundStyle(.white.opacity(0.1))
-                .offset(x: -110, y: -40)
-            Ellipse()
-                .fill(Color.black.opacity(0.18))
-                .frame(width: 420, height: 120)
-                .offset(y: 70)
+                .overlay(alignment: .topLeading) {
+                    Image(systemName: land.symbol)
+                        .font(.system(size: 90, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.1))
+                        .offset(x: 14, y: 6)
+                }
+                .overlay(alignment: .bottom) {
+                    Ellipse()
+                        .fill(Color.black.opacity(0.18))
+                        .frame(height: 120)
+                        .scaleEffect(x: 1.3)
+                        .offset(y: 70)
+                }
             HStack(alignment: .bottom, spacing: 26) {
                 MascotView(mood: done == total ? .proud : .happy, level: level, size: 92, outfit: outfit)
                     .frame(width: 110, height: 110)
@@ -344,6 +350,7 @@ private struct WeekScene: View {
             }
             .padding(.bottom, 4)
         }
+        .frame(maxWidth: .infinity)
         .frame(height: 170)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay {
