@@ -17,9 +17,10 @@ final class SeasonTests: XCTestCase {
 
     func testLegendGoesOnInRounds() {
         XCTAssertEqual(Level.title(for: 10), "Legend")
-        XCTAssertEqual(Level.title(for: 11), "Legend II")
-        XCTAssertEqual(Level.title(for: 14), "Legend V")
-        XCTAssertEqual(Level.title(for: 19), "Legend X")
+        XCTAssertEqual(Level.title(for: 11), "Molnlegend")
+        XCTAssertEqual(Level.title(for: 14), "Månlegend")
+        XCTAssertEqual(Level.title(for: 25), "Mytisk")
+        XCTAssertEqual(Level.title(for: 26), "Mytisk II")
         XCTAssertEqual(Level.prestige(for: 10), 0)
         XCTAssertEqual(Level.prestige(for: 12), 2)
         XCTAssertEqual(Level.roman(2024), "MMXXIV")

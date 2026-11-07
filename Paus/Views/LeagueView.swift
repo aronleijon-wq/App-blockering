@@ -406,7 +406,7 @@ private struct LeaderboardRow: View {
                         .lineLimit(1)
                     PrestigeStars(level: entry.level, size: 10)
                 }
-                Text(entry.level >= Level.titles.count ? Level.title(for: entry.level) : L("Nivå \(entry.level)"))
+                Text(entry.level >= Level.legendLevel ? Level.title(for: entry.level) : L("Nivå \(entry.level)"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }

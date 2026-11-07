@@ -718,7 +718,13 @@ enum Level {
     static var titles: [String] { [
         L("Scrollzombie"), L("Uppvaknad"), L("Nyfiken"), L("Fokusfrö"), L("Skärmtämjare"),
         L("Flowjägare"), L("Zen-ninja"), L("Dopamindetektiv"), L("Tidsmästare"), "Legend",
+        L("Molnlegend"), L("Stormlegend"), L("Stjärnlegend"), L("Månlegend"), L("Kometlegend"),
+        L("Eldlegend"), L("Vulkanlegend"), L("Lavalegend"), L("Kristallegend"), L("Diamantlegend"),
+        L("Tidlös"), L("Orakel"), L("Ljusbärare"), L("Galaxväktare"), L("Mytisk"),
     ] }
+
+    /// The level that makes a player a Legend. Every level after it gives another star in the league.
+    static let legendLevel = 10
 
     /// Total XP needed to reach `level`: 0, 100, 300, 600, 1000, …
     static func xpRequired(for level: Int) -> Int {
@@ -731,15 +737,16 @@ enum Level {
         return level
     }
 
-    /// The title for `level`. Past Legend, every level is another round of it: Legend II, Legend III and so on.
+    /// The title for `level`. Past the last title, every level is another round of it: Mytisk II, Mytisk III and so on.
     static func title(for level: Int) -> String {
-        guard level > titles.count else { return titles[max(level, 1) - 1] }
-        return "Legend \(roman(level - titles.count + 1))"
+        let all = titles
+        guard level > all.count else { return all[max(level, 1) - 1] }
+        return "\(all[all.count - 1]) \(roman(level - all.count + 1))"
     }
 
-    /// Rounds past Legend: 0 below level 11, 1 for Legend II, 2 for Legend III, …
+    /// Levels past Legend, one star each in the league: 0 up to level 10, 1 at level 11, 2 at level 12, …
     static func prestige(for level: Int) -> Int {
-        max(0, level - titles.count)
+        max(0, level - legendLevel)
     }
 
     static func roman(_ number: Int) -> String {
@@ -1056,8 +1063,8 @@ struct Achievement: Identifiable {
         Achievement(id: "streak-100", title: L("Hundra dagar"), detail: L("Håll igång en streak i 100 dagar"), symbol: "flame.circle.fill", family: "streak", tier: .diamond) { $0.bestStreak >= 100 },
         Achievement(id: "level-5", title: L("Skärmtämjare"), detail: L("Nå nivå 5"), symbol: "star.fill", family: "level", tier: .bronze) { $0.level >= 5 },
         Achievement(id: "level-10", title: "Legend", detail: L("Nå nivå 10"), symbol: "crown.fill", family: "level", tier: .silver) { $0.level >= 10 },
-        Achievement(id: "level-15", title: "Legend VI", detail: L("Nå nivå 15"), symbol: "crown.fill", family: "level", tier: .gold) { $0.level >= 15 },
-        Achievement(id: "level-20", title: "Legend XI", detail: L("Nå nivå 20"), symbol: "crown.fill", family: "level", tier: .diamond) { $0.level >= 20 },
+        Achievement(id: "level-15", title: L("Kometlegend"), detail: L("Nå nivå 15"), symbol: "crown.fill", family: "level", tier: .gold) { $0.level >= 15 },
+        Achievement(id: "level-20", title: L("Diamantlegend"), detail: L("Nå nivå 20"), symbol: "crown.fill", family: "level", tier: .diamond) { $0.level >= 20 },
         Achievement(id: "close-10", title: L("Nej tack!"), detail: L("Stäng en blockerad app 10 gånger"), symbol: "hand.raised.fill", family: "close", tier: .bronze) { $0.closes >= 10 },
         Achievement(id: "close-100", title: L("Järnvilja"), detail: L("Stäng en blockerad app 100 gånger"), symbol: "shield.fill", family: "close", tier: .silver) { $0.closes >= 100 },
         Achievement(id: "decline-5", title: L("Andades och avstod"), detail: L("Tacka nej till en paus 5 gånger"), symbol: "wind") { $0.declines >= 5 },

@@ -15,7 +15,7 @@ struct PlayerProfileSheet: View {
                     .lineLimit(1)
                 PrestigeStars(level: entry.level, size: 16)
                 HStack(spacing: 10) {
-                    stat(L("Nivå"), entry.level >= Level.titles.count ? Level.title(for: entry.level) : "\(entry.level)")
+                    stat(L("Nivå"), entry.level >= Level.legendLevel ? Level.title(for: entry.level) : "\(entry.level)")
                     stat(L("Division"), entry.division.title)
                     stat(L("Poäng i veckan"), "\(entry.points)")
                 }

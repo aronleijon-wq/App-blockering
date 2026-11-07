@@ -39,7 +39,7 @@ final class PlayerProgressTests: XCTestCase {
         XCTAssertEqual(Level.fraction(forXP: 200), 0.5, accuracy: 0.0001)
         XCTAssertEqual(Level.title(for: 1), "Scrollzombie")
         XCTAssertEqual(Level.title(for: 10), "Legend")
-        XCTAssertEqual(Level.title(for: 42), "Legend XXXIII", "past Legend, the rounds count on")
+        XCTAssertEqual(Level.title(for: 42), "Mytisk XVIII", "past the last title, the rounds count on")
     }
 
     func testFocusSessionEarnsMinutesPlusBonus() {

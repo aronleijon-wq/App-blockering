@@ -37,7 +37,7 @@ struct WardrobeView: View {
                         }
                     }
 
-                    Text(L("Tjäna frön med uppdrag, fokuspass och dagens belöning. Säsongssakerna får du bara med månadens säsongsuppdrag."))
+                    Text(L("Tjäna frön med uppdrag, fokuspass och dagens belöning. Säsongssakerna får du bara med månadens säsongsuppdrag, och kistsakerna bara i storkistorna på din resa."))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -144,6 +144,9 @@ struct WardrobeView: View {
                     Text(L("På")).foregroundStyle(Theme.mint)
                 } else if owned {
                     Text(L("Ägd")).foregroundStyle(.secondary)
+                } else if let chest = Journey.chestLevel(giving: item.id) {
+                    Label(L("Kista \(chest)"), systemImage: "gift.fill")
+                        .foregroundStyle(Theme.orange)
                 } else if item.isSeasonal {
                     Label(item.id == AdultLock.challengeItem ? L("NNN-utmaningen") : Season.giving(item: item.id)?.name ?? L("Säsong"),
                           systemImage: "sparkles")

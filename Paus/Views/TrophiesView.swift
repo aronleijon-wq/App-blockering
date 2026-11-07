@@ -204,31 +204,34 @@ private struct TrophyDetailSheet: View {
     }
 }
 
-/// Paus's levels as a journey, like a board game: four lands with a banner each, the levels as round buttons along a
+/// Paus's levels as a journey, like a board game: lands with a banner each, the levels as round buttons along a
 /// winding path, a chest after every level, Pip standing at the player's level (and walking there after a level-up),
-/// friends standing at theirs, and "You are here" above the current level. Tapping a level tells what it takes.
+/// friends standing at theirs, and "You are here" above the current level, ringed by the way to the next. The road
+/// goes on past Legend for ever, with the next land showing what's ahead. Tapping a level or a chest tells what it
+/// holds, and opening a chest is a little show.
 private struct LevelPath: View {
     @Environment(AppModel.self) private var model
     let progress: PlayerProgress
     /// League friends, shown at their levels.
     var friends: [LeaderboardEntry] = []
     @State private var picked: LevelPick?
+    @State private var chest: ChestPick?
     @State private var bounce = false
     /// Where Pip stands. Starts at the level last seen, then walks to the current one.
     @State private var pipLevel: Int?
-    @State private var opened: (level: Int, seeds: Int)?
     @AppStorage("journey.seenLevel") private var seenLevel = 0
     @Namespace private var path
 
+    /// The last level drawn: a few ahead of the player, and at least Legend.
     private var lastLevel: Int {
-        max(Level.titles.count, progress.level + 2, friends.map(\.level).max() ?? 0)
+        max(Level.legendLevel, progress.level + 3, friends.map(\.level).max() ?? 0)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(L("Din resa"))
                 .font(.title3.bold())
-            Text(L("Tryck på en nivå för att se vad som väntar. Öppna kistorna på vägen."))
+            Text(L("Tryck på en nivå eller kista för att se vad som väntar. Öppna kistorna på vägen."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             ForEach(Journey.lands, id: \.index) { land in
@@ -236,11 +239,17 @@ private struct LevelPath: View {
                     landSection(land)
                 }
             }
+            if let next = Journey.lands.first(where: { $0.firstLevel > lastLevel }) {
+                lockedLand(next)
+            }
         }
         .card()
         .onAppear(perform: walk)
         .sheet(item: $picked) { pick in
             LevelDetailSheet(level: pick.level, progress: progress)
+        }
+        .sheet(item: $chest) { pick in
+            ChestSheet(level: pick.level, found: pick.found)
         }
         .sensoryFeedback(.success, trigger: pipLevel)
     }
@@ -267,8 +276,37 @@ private struct LevelPath: View {
         case 1: return [Color(red: 0.2, green: 0.7, blue: 0.4), Color(red: 0.08, green: 0.45, blue: 0.3)]
         case 2: return [Color(red: 0.2, green: 0.55, blue: 1), Color(red: 0.1, green: 0.3, blue: 0.75)]
         case 3: return [Color(red: 0.55, green: 0.45, blue: 0.85), Color(red: 0.3, green: 0.22, blue: 0.55)]
-        default: return [Color(red: 1, green: 0.75, blue: 0.3), Theme.pink]
+        case 4: return [Color(red: 0.45, green: 0.68, blue: 1), Color(red: 0.7, green: 0.5, blue: 0.95)]
+        case 5: return [Color(red: 0.36, green: 0.28, blue: 0.85), Color(red: 0.08, green: 0.06, blue: 0.3)]
+        case 6: return [Color(red: 1, green: 0.42, blue: 0.15), Color(red: 0.62, green: 0.08, blue: 0.12)]
+        case 7: return [Color(red: 0.2, green: 0.78, blue: 0.85), Color(red: 0.25, green: 0.32, blue: 0.85)]
+        case 8: return [Theme.violet, Theme.pink]
+        default: return [Color(red: 1, green: 0.72, blue: 0.2), Theme.orange]
         }
+    }
+
+    private func banner(_ land: Journey.Land, colors: [Color], note: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: land.symbol)
+                .font(.title2)
+                .frame(width: 44, height: 44)
+                .background(.white.opacity(0.2), in: Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(note)
+                    .font(.caption.weight(.heavy))
+                    .opacity(0.8)
+                Text(land.name)
+                    .font(.title3.bold())
+                Text(land.tagline)
+                    .font(.subheadline)
+                    .opacity(0.9)
+            }
+            Spacer()
+        }
+        .foregroundStyle(.white)
+        .padding(14)
+        .background(LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing),
+                    in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     private func landSection(_ land: Journey.Land) -> some View {
@@ -276,33 +314,13 @@ private struct LevelPath: View {
         let levels = Array(land.firstLevel...max(land.firstLevel, last))
         let colors = Self.colors(for: land)
         return VStack(spacing: 14) {
-            HStack(spacing: 12) {
-                Image(systemName: land.symbol)
-                    .font(.title2)
-                    .frame(width: 44, height: 44)
-                    .background(.white.opacity(0.2), in: Circle())
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(L("DEL \(land.index)"))
-                        .font(.caption.weight(.heavy))
-                        .opacity(0.8)
-                    Text(land.name)
-                        .font(.title3.bold())
-                    Text(land.tagline)
-                        .font(.subheadline)
-                        .opacity(0.9)
-                }
-                Spacer()
-            }
-            .foregroundStyle(.white)
-            .padding(14)
-            .background(LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing),
-                        in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            banner(land, colors: colors, note: L("DEL \(land.index)"))
             ForEach(levels, id: \.self) { level in
                 node(level, tint: colors[0])
                     .offset(x: Self.offset(level))
                     .id(level == progress.level ? "journey-current" : "journey-\(level)")
                 dots(from: level)
-                chest(after: level)
+                chestButton(after: level)
                     .offset(x: (Self.offset(level) + Self.offset(level + 1)) / 2)
                 dots(from: level)
             }
@@ -310,11 +328,25 @@ private struct LevelPath: View {
         .padding(.top, 6)
     }
 
+    /// The next land, still locked: a glimpse of what's ahead.
+    private func lockedLand(_ land: Journey.Land) -> some View {
+        banner(land, colors: Self.colors(for: land), note: L("LÅSES UPP PÅ NIVÅ \(land.firstLevel)"))
+            .overlay(alignment: .trailing) {
+                Image(systemName: "lock.fill")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .padding(.trailing, 18)
+            }
+            .saturation(0.35)
+            .opacity(0.75)
+            .padding(.top, 6)
+    }
+
     static func offset(_ level: Int) -> CGFloat {
         CGFloat(sin(Double(level) * 0.95)) * 72
     }
 
-    /// Three dots leading on along the path.
+    /// Dots leading on along the path.
     private func dots(from level: Int) -> some View {
         let reached = progress.level > level
         return VStack(spacing: 5) {
@@ -327,11 +359,16 @@ private struct LevelPath: View {
         .offset(x: (Self.offset(level) * 3 + Self.offset(level + 1)) / 4)
     }
 
+    private func symbol(for level: Int) -> String {
+        if progress.level == level { return "star.fill" }
+        if progress.level > level { return "checkmark" }
+        return level >= Level.legendLevel ? "crown.fill" : "lock.fill"
+    }
+
     private func node(_ level: Int, tint: Color) -> some View {
         let reached = progress.level >= level
         let current = progress.level == level
         let size: CGFloat = current ? 82 : 66
-        let symbol = current ? "star.fill" : reached ? "checkmark" : level > Level.titles.count ? "crown.fill" : "lock.fill"
         let here = friends.filter { $0.level == level }
         return Button {
             picked = LevelPick(level: level)
@@ -355,11 +392,17 @@ private struct LevelPath: View {
                         .fill(reached ? AnyShapeStyle(LinearGradient(colors: [tint, tint.opacity(0.7)], startPoint: .top, endPoint: .bottom))
                                       : AnyShapeStyle(Theme.cardRaised))
                     if current {
+                        // The way to the next level, around the current one.
                         Circle()
-                            .stroke(.white.opacity(0.8), lineWidth: 4)
-                            .padding(-6)
+                            .stroke(.white.opacity(0.25), lineWidth: 5)
+                            .padding(-7)
+                        Circle()
+                            .trim(from: 0, to: Level.fraction(forXP: progress.xp))
+                            .stroke(.white, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .padding(-7)
                     }
-                    Image(systemName: symbol)
+                    Image(systemName: symbol(for: level))
                         .font(.system(size: current ? 30 : 22, weight: .heavy))
                         .foregroundStyle(reached ? Color.white : Color.secondary)
                 }
@@ -394,45 +437,205 @@ private struct LevelPath: View {
         }
     }
 
-    /// A chest after `level`: locked until the next level, then shaking to be opened, then open.
-    private func chest(after level: Int) -> some View {
+    /// A chest after `level`: locked until the next level, then shaking to be opened, then open. Its look tells
+    /// what kind it is. Opening one, or tapping one still locked, shows what's inside.
+    private func chestButton(after level: Int) -> some View {
         let canOpen = progress.canOpenChest(after: level)
         let isOpen = progress.openedChests.contains(level)
-        let justOpened = opened?.level == level
+        let kind = Journey.chestKind(after: level)
+        let big = kind == .big
         return Button {
-            guard canOpen, let found = model.openChest(after: level) else { return }
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) { opened = (level, found) }
-        } label: {
-            ZStack {
-                Image(systemName: isOpen ? "gift" : "gift.fill")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(canOpen ? AnyShapeStyle(LinearGradient(colors: [Color(red: 1, green: 0.88, blue: 0.35), Theme.orange],
-                                                                            startPoint: .top, endPoint: .bottom))
-                                     : AnyShapeStyle(isOpen ? Color.secondary.opacity(0.6) : Color.secondary.opacity(0.35)))
-                    .frame(width: 54, height: 54)
-                    .background(canOpen ? Theme.orange.opacity(0.18) : Color.clear, in: Circle())
-                    .rotationEffect(.degrees(canOpen && bounce ? 8 : 0))
-                    .animation(canOpen ? .easeInOut(duration: 0.18).repeatForever(autoreverses: true) : nil, value: bounce)
-                    .scaleEffect(justOpened ? 1.25 : 1)
-                if justOpened, let seeds = opened?.seeds {
-                    Label("+\(seeds)", systemImage: "leaf.fill")
-                        .font(.headline.weight(.heavy))
-                        .foregroundStyle(Theme.mint)
-                        .offset(y: -44)
-                        .transition(.scale.combined(with: .opacity))
-                }
+            if canOpen, let found = model.openChest(after: level) {
+                chest = ChestPick(level: level, found: found)
+            } else {
+                chest = ChestPick(level: level, found: nil)
             }
+        } label: {
+            Image(systemName: isOpen ? "gift" : "gift.fill")
+                .font(.system(size: big ? 36 : 28, weight: .bold))
+                .foregroundStyle(isOpen ? AnyShapeStyle(Color.secondary.opacity(0.6)) : AnyShapeStyle(ChestStyle.gradient(kind)))
+                .opacity(canOpen || isOpen ? 1 : 0.45)
+                .frame(width: big ? 66 : 54, height: big ? 66 : 54)
+                .background(canOpen ? ChestStyle.glow(kind).opacity(0.22) : Color.clear, in: Circle())
+                .overlay(alignment: .topTrailing) {
+                    if big && !isOpen {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Color(red: 1, green: 0.9, blue: 0.4))
+                    }
+                }
+                .rotationEffect(.degrees(canOpen && bounce ? 8 : 0))
+                .animation(canOpen ? .easeInOut(duration: 0.18).repeatForever(autoreverses: true) : nil, value: bounce)
         }
         .buttonStyle(PressScaleStyle())
-        .disabled(!canOpen)
-        .sensoryFeedback(.success, trigger: justOpened)
-        .accessibilityLabel(canOpen ? L("Öppna kistan") : isOpen ? L("Öppnad kista") : L("Låst kista"))
+        .accessibilityLabel(canOpen ? L("Öppna \(ChestStyle.name(kind).lowercased())") : isOpen ? L("Öppnad kista") : ChestStyle.name(kind))
     }
 }
 
 private struct LevelPick: Identifiable {
     let level: Int
     var id: Int { level }
+}
+
+private struct ChestPick: Identifiable {
+    let level: Int
+    /// What the chest held, when it was just opened. Nil for a look at a chest.
+    let found: Journey.Chest?
+    var id: Int { level }
+}
+
+/// How the three kinds of chests look.
+private enum ChestStyle {
+    static func name(_ kind: Journey.Chest.Kind) -> String {
+        switch kind {
+        case .small: return L("Kista")
+        case .item: return L("Plaggkista")
+        case .big: return L("Storkista")
+        }
+    }
+
+    static func glow(_ kind: Journey.Chest.Kind) -> Color {
+        switch kind {
+        case .small: return Theme.orange
+        case .item: return Theme.pink
+        case .big: return Color(red: 1, green: 0.85, blue: 0.3)
+        }
+    }
+
+    static func gradient(_ kind: Journey.Chest.Kind) -> LinearGradient {
+        let colors: [Color]
+        switch kind {
+        case .small: colors = [Color(red: 1, green: 0.88, blue: 0.35), Theme.orange]
+        case .item: colors = [Theme.pink, Theme.violet]
+        case .big: colors = [Color(red: 1, green: 0.95, blue: 0.55), Color(red: 1, green: 0.7, blue: 0.1), Theme.orange]
+        }
+        return LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
+    }
+}
+
+/// A chest up close. Just opened, it shakes, bursts open and shows what it held, with confetti. Otherwise it tells
+/// what's inside and when it opens.
+private struct ChestSheet: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let level: Int
+    let found: Journey.Chest?
+    @State private var isOpen = false
+
+    private var kind: Journey.Chest.Kind { Journey.chestKind(after: level) }
+
+    var body: some View {
+        ZStack {
+            if isOpen {
+                ConfettiView().ignoresSafeArea()
+            }
+            VStack(spacing: 16) {
+                chestIcon
+                    .padding(.top, 34)
+                Text(ChestStyle.name(kind))
+                    .font(.title2.bold())
+                if let found {
+                    if isOpen {
+                        contents(found)
+                            .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    } else {
+                        Text(L("Öppnar…"))
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    peek
+                }
+                Spacer(minLength: 0)
+                if found == nil || isOpen {
+                    Button(L("Fortsätt")) { dismiss() }
+                        .buttonStyle(GlowButtonStyle())
+                        .padding(.horizontal, 24)
+                }
+            }
+            .padding(.bottom, 20)
+        }
+        .frame(maxWidth: .infinity)
+        .screenBackground()
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .sensoryFeedback(.success, trigger: isOpen)
+        .task {
+            guard found != nil else { return }
+            try? await Task.sleep(for: .seconds(reduceMotion ? 0.2 : 1.1))
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.55)) { isOpen = true }
+        }
+    }
+
+    private var isShaking: Bool { found != nil && !isOpen && !reduceMotion }
+
+    private var chestIcon: some View {
+        TimelineView(.animation(minimumInterval: nil, paused: !isShaking)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            let wobble: Double = isShaking ? sin(time * 38) * 9 : 0
+            Image(systemName: isOpen ? "gift" : "gift.fill")
+                .font(.system(size: 76, weight: .bold))
+                .foregroundStyle(ChestStyle.gradient(kind))
+                .rotationEffect(.degrees(wobble))
+                .scaleEffect(isOpen ? 1.15 : 1)
+                .shadow(color: ChestStyle.glow(kind).opacity(isOpen ? 0.8 : 0.3), radius: isOpen ? 24 : 10)
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func contents(_ found: Journey.Chest) -> some View {
+        VStack(spacing: 12) {
+            Label(L("+\(found.seeds) frön"), systemImage: "leaf.fill")
+                .font(.title3.weight(.heavy))
+                .foregroundStyle(Theme.mint)
+            if let id = found.item, let item = WardrobeItem.with(id: id) {
+                PipAvatar(outfit: Outfit(wearing: item, country: model.flagCountry), level: 1, size: 64)
+                    .frame(width: 96, height: 96)
+                Text(L("Ny sak till Pip: \(item.name)"))
+                    .font(.headline)
+                if model.progress.outfit.wears(item) {
+                    Label(L("På"), systemImage: "checkmark")
+                        .foregroundStyle(Theme.mint)
+                } else {
+                    Button(L("Ta på Pip")) { model.toggle(item) }
+                        .buttonStyle(.bordered)
+                        .tint(Theme.mint)
+                }
+            }
+        }
+    }
+
+    private var peek: some View {
+        let isOpened = model.progress.openedChests.contains(level)
+        return VStack(spacing: 10) {
+            Text(isOpened ? L("Redan öppnad") : L("Öppnas när du når nivå \(level + 1)."))
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            Label(L("\(Journey.chestSeeds(after: level)) frön"), systemImage: "leaf.fill")
+                .foregroundStyle(Theme.mint)
+            switch kind {
+            case .small:
+                EmptyView()
+            case .item:
+                Label(L("Ett överraskningsplagg till Pip"), systemImage: "tshirt.fill")
+                    .foregroundStyle(Theme.pink)
+            case .big:
+                if let id = Journey.chestItem(after: level), let item = WardrobeItem.with(id: id) {
+                    PipAvatar(outfit: Outfit(wearing: item), level: 1, size: 56)
+                        .frame(width: 84, height: 84)
+                    Label(L("\(item.name): finns bara i den här kistan"), systemImage: "sparkles")
+                        .foregroundStyle(Theme.orange)
+                } else {
+                    Label(L("Tre gånger så många frön"), systemImage: "sparkles")
+                        .foregroundStyle(Theme.orange)
+                }
+            }
+        }
+        .font(.subheadline.weight(.semibold))
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 24)
+    }
 }
 
 /// One level: its title, the XP it takes, how far away it is and what it gives.
@@ -443,6 +646,7 @@ private struct LevelDetailSheet: View {
     var body: some View {
         let start = Level.xpRequired(for: level)
         let left = max(0, start - progress.xp)
+        let land = Journey.land(for: level)
         VStack(spacing: 14) {
             Text("\(level)")
                 .font(.system(size: 44, weight: .heavy, design: .rounded))
@@ -451,6 +655,9 @@ private struct LevelDetailSheet: View {
                 .padding(.top, 28)
             Text(Level.title(for: level))
                 .font(.title2.bold())
+            Label(land.name, systemImage: land.symbol)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
             Text("\(Format.number(start)) XP")
                 .font(.headline.monospacedDigit())
                 .foregroundStyle(.secondary)
@@ -470,13 +677,15 @@ private struct LevelDetailSheet: View {
                 Text(L("\(Format.number(left)) XP kvar dit"))
                     .font(.headline)
             }
-            if level > Level.titles.count {
+            if level > Level.legendLevel {
                 Label(L("Ger Pip en stjärna i ligan"), systemImage: "star.fill")
                     .foregroundStyle(Theme.orange)
             } else if [3, 5, 8].contains(level) {
                 Label(L("Pip får nya färger på den här nivån"), systemImage: "sparkles")
                     .foregroundStyle(Theme.orange)
             }
+            Label(L("\(ChestStyle.name(Journey.chestKind(after: level))) väntar efter nivån"), systemImage: "gift.fill")
+                .foregroundStyle(Theme.pink)
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity)
