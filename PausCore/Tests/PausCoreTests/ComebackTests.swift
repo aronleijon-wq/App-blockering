@@ -70,7 +70,8 @@ final class ComebackTests: XCTestCase {
         XCTAssertTrue(rewards.contains(.comeback(seeds: Comeback.seeds)))
         XCTAssertEqual(progress.seeds, seeds + Comeback.seeds)
         XCTAssertFalse(progress.record(.checkIn, at: day(3), calendar: calendar).contains(.comeback(seeds: Comeback.seeds)), "once")
-        XCTAssertFalse(PlayerProgress().record(.checkIn, at: day(0), calendar: calendar).contains(.comeback(seeds: Comeback.seeds)),
+        var newcomer = PlayerProgress()
+        XCTAssertFalse(newcomer.record(.checkIn, at: day(0), calendar: calendar).contains(.comeback(seeds: Comeback.seeds)),
                        "not for someone new")
     }
 
