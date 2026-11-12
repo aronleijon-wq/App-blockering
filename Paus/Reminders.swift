@@ -30,6 +30,26 @@ enum Reminders {
         center.add(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
     }
 
+    static let streakRiskIdentifier = "paus.streak-risk"
+
+    /// Late in the evening, a last call for a streak of two days or more that nothing has kept alive today.
+    static func scheduleStreakRisk(activeToday: Bool, streak: Int, freezes: Int, now: Date = .now) {
+        let calendar = Calendar.current
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [streakRiskIdentifier])
+        guard !activeToday, streak >= 2,
+              let fireDate = calendar.date(bySettingHour: 21, minute: 30, second: 0, of: now), fireDate > now else { return }
+        let content = UNMutableNotificationContent()
+        content.title = L("Din streak dör vid midnatt 🔥")
+        content.body = freezes > 0
+            ? L("\(streak) dagar i rad. En streakfrys räddar den, men den räcker inte för alltid. Öppna Paus nu.")
+            : L("\(streak) dagar i rad står på spel. Hämta dagens belöning, det tar fem sekunder.")
+        content.sound = .default
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        center.add(UNNotificationRequest(identifier: streakRiskIdentifier, content: content, trigger: trigger))
+    }
+
     /// Days after the last visit that Pip writes again. The daily reminder covers the first day,
     /// and the series ends after a month so it never turns into spam.
     static let winBackDays = [2, 3, 7, 14, 30]
@@ -65,11 +85,11 @@ enum Reminders {
                 ? (L("Din streak hänger på en tråd 🔥"), L("\(streak) dagar i rad står på spel. Öppna Paus i dag, så håller Pip den vid liv."))
                 : (L("Pip undrar var du är 👀"), L("Ett kort fokuspass, så blir Pip glad igen."))
         case 3:
-            return (L("Pip saknar dig 🥺"), L("Det har gått tre dagar. Kom tillbaka och visa Pip att du fortfarande kämpar."))
+            return (L("Pip saknar dig 🥺"), L("Det har gått tre dagar. Kom tillbaka, det väntar en välkomstpresent på dig."))
         case 7:
-            return (L("Det har gått en vecka…"), L("Pip har börjat prata med väggarna. Ett fokuspass räcker för att muntra upp Pip."))
+            return (L("Det har gått en vecka…"), L("Pip har börjat prata med väggarna. Öppna Paus för din välkomstpresent."))
         case 14:
-            return (L("Pip har inte gett upp på dig 💜"), L("Två veckor utan dig. Din tid är fortfarande värd att ta tillbaka."))
+            return (L("Pip har inte gett upp på dig 💜"), L("Två veckor utan dig. En välkomstpresent väntar när du kommer tillbaka."))
         default:
             return (L("Sista gången Pip hör av sig"), L("Pip väntar här om du vill ta tillbaka din tid. Annars lämnar Pip dig i fred."))
         }

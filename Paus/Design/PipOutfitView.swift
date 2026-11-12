@@ -928,6 +928,7 @@ enum PipColors {
         case "color-treasure": return [Color(red: 1, green: 0.85, blue: 0.3), Color(red: 0.1, green: 0.65, blue: 0.45)]
         case "color-cosmos": return [Color(red: 0.95, green: 0.4, blue: 1), Color(red: 0.12, green: 0.08, blue: 0.4), Color(red: 0.2, green: 0.75, blue: 1)]
         case "color-phoenix": return [Color(red: 1, green: 0.95, blue: 0.45), Color(red: 1, green: 0.4, blue: 0.15), Color(red: 0.75, green: 0.05, blue: 0.3)]
+        case "color-starter": return [Color(red: 0.45, green: 1, blue: 0.75), Color(red: 1, green: 0.85, blue: 0.35)]
         case "color-myth": return [Color.white, Color(red: 1, green: 0.85, blue: 0.4), Color(red: 0.6, green: 0.85, blue: 1)]
         default: return nil
         }

@@ -474,6 +474,16 @@ final class AppModel {
         Task { await refreshCoach() }
     }
 
+    /// Buys a streak freeze with seeds.
+    func buyStreakFreeze() {
+        _ = SharedStore.updateProgress { progress in
+            progress.buyStreakFreeze()
+            return []
+        }
+        progress = SharedStore.progress
+        scheduleReminder()
+    }
+
     func dismissCelebration() {
         celebration = []
         SharedStore.updateProgress { progress in
@@ -539,7 +549,7 @@ final class AppModel {
 
     private func scheduleReminder() {
         guard notificationSettings.dailyReminder else {
-            Notifier.cancel([Reminders.identifier] + Reminders.winBackIdentifiers)
+            Notifier.cancel([Reminders.identifier, Reminders.streakRiskIdentifier] + Reminders.winBackIdentifiers)
             return
         }
         let now = Date.now
@@ -549,6 +559,8 @@ final class AppModel {
             streak: streak,
             now: now
         )
+        Reminders.scheduleStreakRisk(activeToday: progress.lastActiveDay == DayKey.string(for: now, calendar: .current),
+                                     streak: streak, freezes: progress.streakFreezes, now: now)
         Reminders.scheduleWinBack(streak: streak, now: now)
     }
 

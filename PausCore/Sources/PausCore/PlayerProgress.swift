@@ -45,6 +45,12 @@ enum Reward: Codable, Equatable, Hashable {
     case lockCompleted(days: Int)
     /// A season item for Pip, earned with a season quest.
     case item(String)
+    /// Streak freezes used up to keep the streak through this many missed days.
+    case streakSaved(Int)
+    /// Back after a few days away: these seeds and a streak freeze.
+    case comeback(seeds: Int)
+    /// The first week's daily reward on this day, with these extra seeds.
+    case firstWeekDay(Int, seeds: Int)
 
     /// Rewards worth a celebration screen; plain XP and losses only move the progress bar.
     var isCelebration: Bool {
@@ -189,6 +195,12 @@ struct PlayerProgress: Codable, Equatable {
     var unlocked: Set<String>
     /// The chests on the journey that have been opened, by the level they come after. See `Journey`.
     var openedChests: Set<Int> = []
+    /// Streak freezes owned. Each keeps the streak through one missed day. See `StreakFreeze`.
+    var streakFreezes = 0
+    /// Daily rewards claimed in all, for the first week's calendar. See `FirstWeek`.
+    var rewardDays = 0
+    /// The last day a comeback gift was given, so it's given once.
+    var comebackDay: String?
     var today: DailyCounts
     /// Celebrations earned while the app wasn't showing, oldest first.
     var pendingRewards: [Reward]
@@ -288,6 +300,9 @@ struct PlayerProgress: Codable, Equatable {
         declines = try container.decodeIfPresent(Int.self, forKey: .declines) ?? 0
         unlocked = try container.decodeIfPresent(Set<String>.self, forKey: .unlocked) ?? []
         openedChests = try container.decodeIfPresent(Set<Int>.self, forKey: .openedChests) ?? []
+        streakFreezes = try container.decodeIfPresent(Int.self, forKey: .streakFreezes) ?? 0
+        rewardDays = try container.decodeIfPresent(Int.self, forKey: .rewardDays) ?? 0
+        comebackDay = try container.decodeIfPresent(String.self, forKey: .comebackDay)
         today = try container.decodeIfPresent(DailyCounts.self, forKey: .today) ?? DailyCounts()
         pendingRewards = try container.decodeIfPresent([Reward].self, forKey: .pendingRewards) ?? []
         weekKey = try container.decodeIfPresent(String.self, forKey: .weekKey)
@@ -314,10 +329,10 @@ struct PlayerProgress: Codable, Equatable {
 
     var healthStage: PipHealth.Stage { PipHealth.Stage(health: health) }
 
-    /// The streak as of `date`; it lapses after a whole day without activity.
+    /// The streak as of `date`; it lapses after a whole day without activity, unless streak freezes cover the
+    /// days missed.
     func currentStreak(at date: Date, calendar: Calendar) -> Int {
-        let today = DayKey.string(for: date, calendar: calendar)
-        guard let lastActiveDay, lastActiveDay == today || lastActiveDay == DayKey.dayBefore(date, calendar: calendar) else { return 0 }
+        guard lastActiveDay != nil, missedDays(at: date, calendar: calendar) <= streakFreezes else { return 0 }
         return streak
     }
 
@@ -362,6 +377,13 @@ struct PlayerProgress: Codable, Equatable {
         var healthChange = 0
         var celebrated: [Reward] = []
 
+        // Back after a few days away: a gift of seeds, enough for a streak freeze.
+        if lastActiveDay != nil, comebackDay != day, missedDays(at: date, calendar: calendar) >= Comeback.awayDays - 1 {
+            comebackDay = day
+            seeds += Comeback.seeds
+            celebrated.append(.comeback(seeds: Comeback.seeds))
+        }
+
         switch event {
         case .focusCompleted(let minutes), .stepFocusCompleted(let minutes):
             guard minutes > 0 else { return [] }
@@ -387,7 +409,7 @@ struct PlayerProgress: Codable, Equatable {
             points = min(minutes, max(0, League.Points.focusDailyCap - today.focusPoints))
             today.focusPoints += points
             healthChange = points / PipHealth.focusMinutesPerPoint
-            markActive(at: date, calendar: calendar)
+            markActive(at: date, calendar: calendar, celebrated: &celebrated)
         case .closedBlockedApp:
             closes += 1
             today.closes += 1
@@ -395,7 +417,7 @@ struct PlayerProgress: Codable, Equatable {
             gained = today.closes <= XP.closeDailyCap ? XP.close : 0
             points = gained > 0 ? League.Points.close : 0
             healthChange = gained > 0 ? PipHealth.closedBlockedApp : 0
-            markActive(at: date, calendar: calendar)
+            markActive(at: date, calendar: calendar, celebrated: &celebrated)
         case .declinedPause:
             declines += 1
             today.declines += 1
@@ -403,14 +425,24 @@ struct PlayerProgress: Codable, Equatable {
             gained = today.declines <= XP.declineDailyCap ? XP.decline : 0
             points = gained > 0 ? League.Points.decline : 0
             healthChange = gained > 0 ? PipHealth.declinedPause : 0
-            markActive(at: date, calendar: calendar)
+            markActive(at: date, calendar: calendar, celebrated: &celebrated)
         case .claimedDailyReward:
             guard lastRewardDay != day else { return [] }
             lastRewardDay = day
             today.rewardClaimed = 1
             seeds += Seeds.dailyReward
+            rewardDays += 1
+            if rewardDays <= FirstWeek.days {
+                let bonus = FirstWeek.bonusSeeds(day: rewardDays)
+                seeds += bonus
+                celebrated.append(.firstWeekDay(rewardDays, seeds: bonus))
+                if rewardDays == FirstWeek.days, !ownedItems.contains(FirstWeek.item) {
+                    ownedItems.insert(FirstWeek.item)
+                    celebrated.append(.item(FirstWeek.item))
+                }
+            }
             // Extend the streak first so the reward reflects it.
-            markActive(at: date, calendar: calendar)
+            markActive(at: date, calendar: calendar, celebrated: &celebrated)
             gained = XP.dailyRewardBase + XP.dailyRewardPerStreakDay * min(streak, XP.dailyRewardMaxStreakBonus)
             points = League.Points.dailyReward
             healthChange = PipHealth.dailyReward
@@ -706,9 +738,27 @@ struct PlayerProgress: Codable, Equatable {
     }
 
     private mutating func markActive(at date: Date, calendar: Calendar) {
+        var ignored: [Reward] = []
+        markActive(at: date, calendar: calendar, celebrated: &ignored)
+    }
+
+    /// Extends the streak to `date`'s day. Days missed since the last active day are covered by streak freezes when
+    /// there are enough of them, which is celebrated; otherwise the streak starts over.
+    private mutating func markActive(at date: Date, calendar: Calendar, celebrated: inout [Reward]) {
         let day = DayKey.string(for: date, calendar: calendar)
         guard lastActiveDay != day else { return }
-        streak = lastActiveDay == DayKey.dayBefore(date, calendar: calendar) ? streak + 1 : 1
+        let missed = missedDays(at: date, calendar: calendar)
+        if lastActiveDay == nil {
+            streak = 1
+        } else if missed == 0 {
+            streak += 1
+        } else if missed <= streakFreezes {
+            streakFreezes -= missed
+            streak += 1
+            celebrated.append(.streakSaved(missed))
+        } else {
+            streak = 1
+        }
         lastActiveDay = day
         bestStreak = max(bestStreak, streak)
     }

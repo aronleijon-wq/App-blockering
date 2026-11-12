@@ -144,6 +144,9 @@ struct WardrobeView: View {
                     Text(L("På")).foregroundStyle(Theme.mint)
                 } else if owned {
                     Text(L("Ägd")).foregroundStyle(.secondary)
+                } else if item.id == FirstWeek.item {
+                    Label(L("Första veckan"), systemImage: "calendar")
+                        .foregroundStyle(Theme.orange)
                 } else if let chest = Journey.chestLevel(giving: item.id) {
                     Label(L("Kista \(chest)"), systemImage: "gift.fill")
                         .foregroundStyle(Theme.orange)

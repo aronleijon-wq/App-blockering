@@ -113,6 +113,12 @@ struct CelebrationView: View {
             return ("tshirt.fill", L("Ny sak till Pip: \(item.name)"))
         case .lockCompleted(let days):
             return ("lock.open.fill", L("Låset klart: \(days) dagar utan vuxensajter (+\(AdultLock.rewardXP(days: days)) XP, \(AdultLock.rewardSeeds(days: days)) frön)"))
+        case .streakSaved(let days):
+            return ("snowflake", days == 1 ? L("En streakfrys räddade din streak") : L("\(days) streakfrysar räddade din streak"))
+        case .comeback(let seeds):
+            return ("gift.fill", L("Välkommen tillbaka! +\(seeds) frön, nog för en streakfrys"))
+        case .firstWeekDay(let day, let seeds):
+            return ("calendar", L("Första veckan, dag \(day): +\(seeds) frön extra"))
         case .division(let raw, let promoted):
             guard let division = Division(rawValue: raw) else { return nil }
             return (promoted ? "arrow.up.right" : "arrow.down.right", promoted ? L("Du gick upp till \(division.title)-ligan") : L("Du åkte ner till \(division.title)-ligan"))

@@ -8,6 +8,7 @@ struct HomeView: View {
     @State private var isWardrobePresented = false
     @State private var isStatsPresented = false
     @State private var isSelectionPresented = false
+    @State private var isStreakPresented = false
     /// The step goal waiting for the user to confirm, since a step session can't be undone.
     @State private var confirmingStepGoal: Int?
 
@@ -24,6 +25,7 @@ struct HomeView: View {
                             setupCard
                         }
                         dailyRewardCard(at: context.date)
+                        FirstWeekCard(date: context.date)
                         AdultLockCard(date: context.date)
                         if model.hasSelection {
                             statusCard(at: context.date)
@@ -58,7 +60,12 @@ struct HomeView: View {
                     .accessibilityLabel(L("Konto och inställningar"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    StreakPill(streak: model.progress.currentStreak(at: .now, calendar: .current))
+                    Button {
+                        isStreakPresented = true
+                    } label: {
+                        StreakPill(streak: model.progress.currentStreak(at: .now, calendar: .current), freezes: model.progress.streakFreezes)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .sheet(isPresented: $isSettingsPresented) {
@@ -66,6 +73,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $isSelectionPresented) {
                 SelectionView()
+            }
+            .sheet(isPresented: $isStreakPresented) {
+                StreakSheet()
             }
         }
     }
@@ -532,6 +542,8 @@ struct StatusRow: View {
 
 struct StreakPill: View {
     let streak: Int
+    /// Streak freezes owned, shown as snowflakes.
+    var freezes = 0
 
     var body: some View {
         HStack(spacing: 4) {
@@ -540,6 +552,11 @@ struct StreakPill: View {
                 .symbolEffect(.pulse, isActive: streak > 0)
             Text("\(streak)")
                 .font(.headline.monospacedDigit())
+            if freezes > 0 {
+                Image(systemName: "snowflake")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color(red: 0.5, green: 0.85, blue: 1))
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)

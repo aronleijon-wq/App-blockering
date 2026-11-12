@@ -14,7 +14,9 @@ struct WardrobeItem: Identifiable, Equatable {
 
     /// Only earned, never bought: with a season's quests (see `Season`), the NNN challenge's medal, or from the big
     /// chests on the journey (see `Journey.chestItems`).
-    var isSeasonal: Bool { Season.isSeasonItem(id) || id == AdultLock.challengeItem || Journey.chestLevel(giving: id) != nil }
+    var isSeasonal: Bool {
+        Season.isSeasonItem(id) || id == AdultLock.challengeItem || Journey.chestLevel(giving: id) != nil || id == FirstWeek.item
+    }
     var isFree: Bool { price == 0 && !isSeasonal }
 
     static var all: [WardrobeItem] { [
@@ -100,6 +102,7 @@ struct WardrobeItem: Identifiable, Equatable {
         WardrobeItem(id: "color-cosmos", name: L("Kosmos"), kind: .color, price: 0),
         WardrobeItem(id: "color-phoenix", name: L("Fenix"), kind: .color, price: 0),
         WardrobeItem(id: "color-myth", name: L("Myt"), kind: .color, price: 0),
+        WardrobeItem(id: "color-starter", name: L("Första veckan"), kind: .color, price: 0),
         WardrobeItem(id: "shape-round", name: L("Rund"), kind: .shape, price: 0),
         WardrobeItem(id: "shape-tall", name: L("Lång"), kind: .shape, price: 120),
         WardrobeItem(id: "shape-wide", name: L("Bred"), kind: .shape, price: 120),
