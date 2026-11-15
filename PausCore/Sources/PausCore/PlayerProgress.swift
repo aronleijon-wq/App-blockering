@@ -51,6 +51,8 @@ enum Reward: Codable, Equatable, Hashable {
     case comeback(seeds: Int)
     /// The first week's daily reward on this day, with these extra seeds.
     case firstWeekDay(Int, seeds: Int)
+    /// A focus egg hatched: its `FocusEgg.Rarity` raw value, the seeds in it and what it gave Pip.
+    case egg(String, seeds: Int, item: String?)
 
     /// Rewards worth a celebration screen; plain XP and losses only move the progress bar.
     var isCelebration: Bool {
@@ -201,6 +203,10 @@ struct PlayerProgress: Codable, Equatable {
     var rewardDays = 0
     /// The last day a comeback gift was given, so it's given once.
     var comebackDay: String?
+    /// Focus eggs hatched, by `FocusEgg.Rarity` raw value.
+    var eggsHatched: [String: Int] = [:]
+    /// Eggs in a row below epic, for the guaranteed epic one.
+    var eggsSinceEpic = 0
     var today: DailyCounts
     /// Celebrations earned while the app wasn't showing, oldest first.
     var pendingRewards: [Reward]
@@ -303,6 +309,8 @@ struct PlayerProgress: Codable, Equatable {
         streakFreezes = try container.decodeIfPresent(Int.self, forKey: .streakFreezes) ?? 0
         rewardDays = try container.decodeIfPresent(Int.self, forKey: .rewardDays) ?? 0
         comebackDay = try container.decodeIfPresent(String.self, forKey: .comebackDay)
+        eggsHatched = try container.decodeIfPresent([String: Int].self, forKey: .eggsHatched) ?? [:]
+        eggsSinceEpic = try container.decodeIfPresent(Int.self, forKey: .eggsSinceEpic) ?? 0
         today = try container.decodeIfPresent(DailyCounts.self, forKey: .today) ?? DailyCounts()
         pendingRewards = try container.decodeIfPresent([Reward].self, forKey: .pendingRewards) ?? []
         weekKey = try container.decodeIfPresent(String.self, forKey: .weekKey)
@@ -405,6 +413,9 @@ struct PlayerProgress: Codable, Equatable {
                 if firstToday { counts.focusDays += 1 }
             }
             seeds += Seeds.forFocus(minutes: minutes)
+            if let egg = hatchEgg(minutes: minutes, day: day) {
+                celebrated.append(egg)
+            }
             gained = minutes + XP.focusBonus
             points = min(minutes, max(0, League.Points.focusDailyCap - today.focusPoints))
             today.focusPoints += points

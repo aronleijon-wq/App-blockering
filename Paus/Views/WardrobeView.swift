@@ -144,6 +144,9 @@ struct WardrobeView: View {
                     Text(L("På")).foregroundStyle(Theme.mint)
                 } else if owned {
                     Text(L("Ägd")).foregroundStyle(.secondary)
+                } else if FocusEgg.isEggItem(item.id) {
+                    Label(L("Legendariskt ägg"), systemImage: "sparkles")
+                        .foregroundStyle(Theme.orange)
                 } else if item.id == FirstWeek.item {
                     Label(L("Första veckan"), systemImage: "calendar")
                         .foregroundStyle(Theme.orange)

@@ -16,6 +16,7 @@ struct WardrobeItem: Identifiable, Equatable {
     /// chests on the journey (see `Journey.chestItems`).
     var isSeasonal: Bool {
         Season.isSeasonItem(id) || id == AdultLock.challengeItem || Journey.chestLevel(giving: id) != nil || id == FirstWeek.item
+            || FocusEgg.isEggItem(id)
     }
     var isFree: Bool { price == 0 && !isSeasonal }
 
@@ -103,6 +104,9 @@ struct WardrobeItem: Identifiable, Equatable {
         WardrobeItem(id: "color-phoenix", name: L("Fenix"), kind: .color, price: 0),
         WardrobeItem(id: "color-myth", name: L("Myt"), kind: .color, price: 0),
         WardrobeItem(id: "color-starter", name: L("Första veckan"), kind: .color, price: 0),
+        WardrobeItem(id: "color-opal", name: L("Opal"), kind: .color, price: 0),
+        WardrobeItem(id: "color-prism", name: L("Prisma"), kind: .color, price: 0),
+        WardrobeItem(id: "color-eclipse", name: L("Förmörkelse"), kind: .color, price: 0),
         WardrobeItem(id: "shape-round", name: L("Rund"), kind: .shape, price: 0),
         WardrobeItem(id: "shape-tall", name: L("Lång"), kind: .shape, price: 120),
         WardrobeItem(id: "shape-wide", name: L("Bred"), kind: .shape, price: 120),

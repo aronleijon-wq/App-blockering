@@ -8,6 +8,7 @@ struct ProfileView: View {
     @State private var isSettingsPresented = false
     @State private var isAddFriendPresented = false
     @State private var isNicknamePresented = false
+    @State private var wrappedYear: WrappedYear?
 
     private let tiles = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -19,6 +20,7 @@ struct ProfileView: View {
                     header(progress)
                     Group {
                         identity(progress)
+                        wrappedButton
                         eventBanner
                         overview(progress)
                         monthBadges(progress)
@@ -36,6 +38,7 @@ struct ProfileView: View {
             .sheet(isPresented: $isWardrobePresented) { WardrobeView() }
             .sheet(isPresented: $isSettingsPresented) { SettingsView() }
             .sheet(isPresented: $isNicknamePresented) { NicknameSheet() }
+            .fullScreenCover(item: $wrappedYear) { pick in WrappedView(year: pick.year) }
             .sheet(isPresented: $isAddFriendPresented) {
                 AddFriendSheet {
                     await model.syncLeague(force: true)
@@ -145,6 +148,35 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    // MARK: Wrapped
+
+    /// The year so far, or the one just ended, as a story to share.
+    private var wrappedButton: some View {
+        let year = YearInReview.season(at: .now, calendar: .current) ?? Calendar.current.component(.year, from: .now)
+        return Button {
+            wrappedYear = WrappedYear(year: year)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "play.rectangle.fill")
+                    .font(.title2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L("Paus Wrapped \(String(year))"))
+                        .font(.headline.weight(.heavy))
+                    Text(L("Ditt år i siffror, redo att dela"))
+                        .font(.subheadline)
+                        .opacity(0.85)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.headline)
+            }
+            .foregroundStyle(.white)
+            .padding(16)
+            .background(Theme.brand, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+        .buttonStyle(PressScaleStyle())
+    }
+
     // MARK: Event
 
     /// The month's season as an event: what it gives and how long is left, opening the quests.
@@ -197,6 +229,9 @@ struct ProfileView: View {
                 tile(symbol: "scope", tint: Theme.violet, value: Format.minutes(progress.focusMinutes), label: L("Fokus totalt"))
                 tile(symbol: "trophy.fill", tint: Theme.pink, value: "\(progress.bestStreak)", label: L("Bästa streak"))
                 tile(symbol: "hand.raised.fill", tint: Theme.mint, value: "\(progress.closes)", label: L("Stängda appar"))
+                tile(symbol: "oval.portrait.fill", tint: Color(red: 1, green: 0.8, blue: 0.3), value: "\(progress.eggsHatchedCount)", label: L("Fokusägg"))
+                tile(symbol: "sparkles", tint: Theme.orange, value: "\(progress.eggsHatched[FocusEgg.Rarity.legendary.rawValue] ?? 0)",
+                     label: L("Legendariska ägg"))
             }
         }
     }
@@ -313,4 +348,9 @@ private struct MonthBadge: View {
         .accessibilityElement(children: .combine)
         .accessibilityValue(isWon ? L("Upplåst") : L("Låst"))
     }
+}
+
+struct WrappedYear: Identifiable {
+    let year: Int
+    var id: Int { year }
 }

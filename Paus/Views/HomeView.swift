@@ -9,6 +9,7 @@ struct HomeView: View {
     @State private var isStatsPresented = false
     @State private var isSelectionPresented = false
     @State private var isStreakPresented = false
+    @State private var wrappedYear: WrappedYear?
     /// The step goal waiting for the user to confirm, since a step session can't be undone.
     @State private var confirmingStepGoal: Int?
 
@@ -20,6 +21,19 @@ struct HomeView: View {
                 ScrollView {
                     VStack(spacing: 16) {
                         UpdateCard()
+                        if let year = YearInReview.season(at: context.date, calendar: .current) {
+                            Button {
+                                wrappedYear = WrappedYear(year: year)
+                            } label: {
+                                Label(L("Ditt Paus Wrapped \(String(year)) är här!"), systemImage: "play.rectangle.fill")
+                                    .font(.headline.weight(.heavy))
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(16)
+                                    .background(Theme.brand, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            }
+                            .buttonStyle(PressScaleStyle())
+                        }
                         hero(at: context.date)
                         if !model.hasSelection {
                             setupCard
@@ -76,6 +90,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $isStreakPresented) {
                 StreakSheet()
+            }
+            .fullScreenCover(item: $wrappedYear) { pick in
+                WrappedView(year: pick.year)
             }
         }
     }
@@ -322,11 +339,15 @@ struct HomeView: View {
                         }
                     }
                 }
+                IncubatingEgg(fraction: done, minutes: Int((total / 60).rounded()))
             } else {
                 Text(L("Fokuspass"))
                     .font(.title3.bold())
                 Text(L("Blockera apparna direkt. 1 XP per minut + \(PlayerProgress.XP.focusBonus) i bonus."))
                     .foregroundStyle(.secondary)
+                Label(L("Varje pass kläcker ett fokusägg. Ju längre pass, desto bättre ägg."), systemImage: "oval.portrait.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.orange)
                 HStack(spacing: 10) {
                     ForEach(focusLengths, id: \.self) { minutes in
                         Button {

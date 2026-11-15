@@ -31,6 +31,16 @@ struct CelebrationView: View {
         }.max()
     }
 
+    /// The focus egg among the rewards, hatched at the top instead of Pip.
+    private var hatchedEgg: (rarity: FocusEgg.Rarity, seeds: Int, item: String?)? {
+        for reward in rewards {
+            if case .egg(let raw, let seeds, let item) = reward, let rarity = FocusEgg.Rarity(rawValue: raw) {
+                return (rarity, seeds, item)
+            }
+        }
+        return nil
+    }
+
     var body: some View {
         ZStack {
             Theme.backdrop.ignoresSafeArea()
@@ -38,7 +48,11 @@ struct CelebrationView: View {
 
             VStack(spacing: 20) {
                 Spacer()
-                MascotView(mood: .proud, level: newLevel ?? model.progress.level, size: 180, outfit: model.progress.outfit)
+                if let egg = hatchedEgg {
+                    EggHatchView(rarity: egg.rarity, seeds: egg.seeds, item: egg.item)
+                } else {
+                    MascotView(mood: .proud, level: newLevel ?? model.progress.level, size: 180, outfit: model.progress.outfit)
+                }
 
                 if let change = divisionChange {
                     DivisionBadge(division: change.division, size: 72)
@@ -113,6 +127,8 @@ struct CelebrationView: View {
             return ("tshirt.fill", L("Ny sak till Pip: \(item.name)"))
         case .lockCompleted(let days):
             return ("lock.open.fill", L("Låset klart: \(days) dagar utan vuxensajter (+\(AdultLock.rewardXP(days: days)) XP, \(AdultLock.rewardSeeds(days: days)) frön)"))
+        case .egg:
+            return nil
         case .streakSaved(let days):
             return ("snowflake", days == 1 ? L("En streakfrys räddade din streak") : L("\(days) streakfrysar räddade din streak"))
         case .comeback(let seeds):
