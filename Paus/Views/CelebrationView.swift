@@ -51,7 +51,7 @@ struct CelebrationView: View {
                 if let egg = hatchedEgg {
                     EggHatchView(rarity: egg.rarity, seeds: egg.seeds, item: egg.item)
                 } else {
-                    MascotView(mood: .proud, level: newLevel ?? model.progress.level, size: 180, outfit: model.progress.outfit)
+                    MascotView(mood: .proud, level: newLevel ?? model.progress.level, size: 180, outfit: model.progress.outfit, growth: model.progress.growthStage)
                 }
 
                 if let change = divisionChange {
@@ -129,6 +129,9 @@ struct CelebrationView: View {
             return ("lock.open.fill", L("Låset klart: \(days) dagar utan vuxensajter (+\(AdultLock.rewardXP(days: days)) XP, \(AdultLock.rewardSeeds(days: days)) frön)"))
         case .egg:
             return nil
+        case .grewUp(let raw):
+            guard let stage = PipGrowth.Stage(rawValue: raw) else { return nil }
+            return ("arrow.up.heart.fill", L("Pip växte upp! Nu: \(stage.name)"))
         case .streakSaved(let days):
             return ("snowflake", days == 1 ? L("En streakfrys räddade din streak") : L("\(days) streakfrysar räddade din streak"))
         case .comeback(let seeds):

@@ -7,6 +7,8 @@ struct MascotView: View {
     var size: CGFloat = 170
     /// What Pip wears from the wardrobe.
     var outfit: Outfit = .none
+    /// How grown up Pip is: smaller with bigger eyes while young, with a glow as a master.
+    var growth: PipGrowth.Stage = .adult
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -58,6 +60,16 @@ struct MascotView: View {
                 }
             }
             .frame(width: size, height: size)
+            .background {
+                if growth == .master {
+                    // A master's soft golden glow.
+                    Circle()
+                        .fill(RadialGradient(colors: [Color(red: 1, green: 0.85, blue: 0.35).opacity(0.55), .clear],
+                                             center: .center, startRadius: size * 0.2, endRadius: size * 0.75))
+                        .scaleEffect(1 + 0.05 * sin(time * 2))
+                }
+            }
+            .scaleEffect(CGFloat(growth.scale), anchor: .bottom)
             .scaleEffect(x: mood == .wrecked ? 1.04 : 1, y: mood == .wrecked ? 0.92 : 1, anchor: .bottom)
             .offset(y: CGFloat(sin(time * bobSpeed)) * size * 0.025)
         }
@@ -133,7 +145,7 @@ struct MascotView: View {
 
     @ViewBuilder
     private func eye(isBlinking: Bool) -> some View {
-        let eyeSize = size * 0.17
+        let eyeSize = size * 0.17 * CGFloat(growth.eyeScale)
         switch mood {
         case .zen, .sleepy:
             // Closed, content eyes.

@@ -31,6 +31,26 @@ enum Reminders {
     }
 
     static let streakRiskIdentifier = "paus.streak-risk"
+    static let weeklyLetterIdentifier = "paus.weekly-letter"
+
+    /// Pip's letter about the week, on Sunday evening, with the week so far. Rescheduled every time Paus opens, so
+    /// it's as fresh as the last visit.
+    static func scheduleWeeklyLetter(_ letter: WeeklyLetter, now: Date = .now) {
+        let calendar = Calendar.current
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [weeklyLetterIdentifier])
+        var sunday = DateComponents()
+        sunday.weekday = 1
+        sunday.hour = 19
+        guard let fireDate = calendar.nextDate(after: now, matching: sunday, matchingPolicy: .nextTime) else { return }
+        let content = UNMutableNotificationContent()
+        content.title = letter.title
+        content.body = letter.body
+        content.sound = .default
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        center.add(UNNotificationRequest(identifier: weeklyLetterIdentifier, content: content, trigger: trigger))
+    }
 
     /// Late in the evening, a last call for a streak of two days or more that nothing has kept alive today.
     static func scheduleStreakRisk(activeToday: Bool, streak: Int, freezes: Int, now: Date = .now) {

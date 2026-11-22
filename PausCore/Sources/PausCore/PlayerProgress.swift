@@ -51,6 +51,8 @@ enum Reward: Codable, Equatable, Hashable {
     case comeback(seeds: Int)
     /// The first week's daily reward on this day, with these extra seeds.
     case firstWeekDay(Int, seeds: Int)
+    /// Pip grew up to this `PipGrowth.Stage`, by raw value.
+    case grewUp(Int)
     /// A focus egg hatched: its `FocusEgg.Rarity` raw value, the seeds in it and what it gave Pip.
     case egg(String, seeds: Int, item: String?)
 
@@ -395,8 +397,12 @@ struct PlayerProgress: Codable, Equatable {
         switch event {
         case .focusCompleted(let minutes), .stepFocusCompleted(let minutes):
             guard minutes > 0 else { return [] }
+            let stageBefore = growthStage
             focusSessions += 1
             focusMinutes += minutes
+            if growthStage > stageBefore {
+                celebrated.append(.grewUp(growthStage.rawValue))
+            }
             today.focusSessions += 1
             today.focusMinutes += minutes
             today.longestSession = max(today.longestSession, minutes)

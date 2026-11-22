@@ -549,7 +549,7 @@ final class AppModel {
 
     private func scheduleReminder() {
         guard notificationSettings.dailyReminder else {
-            Notifier.cancel([Reminders.identifier, Reminders.streakRiskIdentifier] + Reminders.winBackIdentifiers)
+            Notifier.cancel([Reminders.identifier, Reminders.streakRiskIdentifier, Reminders.weeklyLetterIdentifier] + Reminders.winBackIdentifiers)
             return
         }
         let now = Date.now
@@ -559,6 +559,7 @@ final class AppModel {
             streak: streak,
             now: now
         )
+        Reminders.scheduleWeeklyLetter(WeeklyLetter.make(from: progress, at: now, calendar: .current), now: now)
         Reminders.scheduleStreakRisk(activeToday: progress.lastActiveDay == DayKey.string(for: now, calendar: .current),
                                      streak: streak, freezes: progress.streakFreezes, now: now)
         Reminders.scheduleWinBack(streak: streak, now: now)

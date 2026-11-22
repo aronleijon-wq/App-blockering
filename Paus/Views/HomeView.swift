@@ -113,7 +113,7 @@ struct HomeView: View {
             Button {
                 isWardrobePresented = true
             } label: {
-                MascotView(mood: model.mood, level: level, size: 160, outfit: progress.outfit)
+                MascotView(mood: model.mood, level: level, size: 160, outfit: progress.outfit, growth: progress.growthStage)
             }
             .buttonStyle(.plain)
             .padding(.top, 8)

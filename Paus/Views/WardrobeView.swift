@@ -15,7 +15,7 @@ struct WardrobeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
-                    MascotView(mood: .happy, level: model.progress.level, size: 150, outfit: model.progress.outfit)
+                    MascotView(mood: .happy, level: model.progress.level, size: 150, outfit: model.progress.outfit, growth: model.progress.growthStage)
                         .padding(.top, 8)
                     SeedsChip(seeds: model.progress.seeds)
 

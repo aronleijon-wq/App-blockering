@@ -21,6 +21,7 @@ struct ProfileView: View {
                     header(progress)
                     Group {
                         identity(progress)
+                        growthCard(progress)
                         wrappedButton
                         eventBanner
                         overview(progress)
@@ -93,7 +94,7 @@ struct ProfileView: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 22)
                 Button { isWardrobePresented = true } label: {
-                    MascotView(mood: model.mood, level: progress.level, size: 170, outfit: progress.outfit)
+                    MascotView(mood: model.mood, level: progress.level, size: 170, outfit: progress.outfit, growth: progress.growthStage)
                         .frame(width: 220, height: 210)
                 }
                 .buttonStyle(.plain)
@@ -153,6 +154,40 @@ struct ProfileView: View {
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: Growing up
+
+    /// How grown up Pip is, and the hours of focus to the next stage.
+    private func growthCard(_ progress: PlayerProgress) -> some View {
+        let stage = progress.growthStage
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label(L("Pip: \(stage.name)"), systemImage: "arrow.up.heart.fill")
+                    .font(.headline.weight(.heavy))
+                Spacer()
+                HStack(spacing: 4) {
+                    ForEach(PipGrowth.Stage.allCases, id: \.self) { step in
+                        Circle()
+                            .fill(step <= stage ? Theme.pink : Color.white.opacity(0.15))
+                            .frame(width: 8, height: 8)
+                    }
+                }
+            }
+            if let next = stage.next, let minutes = progress.minutesToNextStage {
+                QuestBar(value: Int(progress.growthFraction * 100), target: 100,
+                         fill: LinearGradient(colors: [Theme.pink, Theme.violet], startPoint: .leading, endPoint: .trailing),
+                         label: L("\(Format.minutes(minutes)) fokus till \(next.name)"))
+                Text(L("Pip växer med varje fokusminut, och växer aldrig tillbaka."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text(L("Pip är fullvuxen. En sann mästare."))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .gameTile(rim: Theme.pink.opacity(0.35))
     }
 
     // MARK: Wrapped
