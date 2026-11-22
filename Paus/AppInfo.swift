@@ -4,7 +4,7 @@ import Foundation
 enum AppInfo {
     /// Who is responsible for the data (personuppgiftsansvarig) under GDPR.
     static let developerName = "Aron Leijon"
-    static let supportEmail = "aron@pausapp.net"
+    static let supportEmail = "aron@crimealert.se"
 
     /// Apple's standard license agreement, which App Store subscriptions may use as their terms of use.
     static let termsURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!

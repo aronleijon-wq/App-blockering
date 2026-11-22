@@ -8,7 +8,7 @@ Paus fungerar utan konto. Det mesta stannar på din telefon. Om du går med i li
 
 ## Personuppgiftsansvarig
 
-Aron Leijon. Kontakt: aron@pausapp.net.
+Aron Leijon. Kontakt: aron@crimealert.se.
 
 ## Det som bara finns på din telefon
 
@@ -40,7 +40,7 @@ Paus skickar påminnelser och pausnotiser lokalt från telefonen. Ingen notisdat
 
 ## Dina rättigheter
 
-Du kan när som helst lämna ligan och radera ditt smeknamn under Liga, eller radera all din data under Regler > Radera all min data. Du har rätt att få veta vilka uppgifter vi har om dig, få dem rättade eller raderade, och att klaga hos Integritetsskyddsmyndigheten (IMY). Kontakta aron@pausapp.net med frågor.
+Du kan när som helst lämna ligan och radera ditt smeknamn under Liga, eller radera all din data under Regler > Radera all min data. Du har rätt att få veta vilka uppgifter vi har om dig, få dem rättade eller raderade, och att klaga hos Integritetsskyddsmyndigheten (IMY). Kontakta aron@crimealert.se med frågor.
 
 ## Barn
 
