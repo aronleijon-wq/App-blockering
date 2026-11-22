@@ -9,6 +9,7 @@ struct ProfileView: View {
     @State private var isAddFriendPresented = false
     @State private var isNicknamePresented = false
     @State private var wrappedYear: WrappedYear?
+    @State private var isSharePresented = false
 
     private let tiles = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -39,6 +40,7 @@ struct ProfileView: View {
             .sheet(isPresented: $isSettingsPresented) { SettingsView() }
             .sheet(isPresented: $isNicknamePresented) { NicknameSheet() }
             .fullScreenCover(item: $wrappedYear) { pick in WrappedView(year: pick.year) }
+            .sheet(isPresented: $isSharePresented) { SharePipSheet() }
             .sheet(isPresented: $isAddFriendPresented) {
                 AddFriendSheet {
                     await model.syncLeague(force: true)
@@ -72,6 +74,11 @@ struct ProfileView: View {
             VStack(spacing: 6) {
                 HStack(spacing: 18) {
                     Spacer()
+                    Button { isSharePresented = true } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 22, weight: .semibold))
+                    }
+                    .accessibilityLabel(L("Dela din Pip"))
                     Button { isWardrobePresented = true } label: {
                         Image(systemName: "hanger")
                             .font(.system(size: 24, weight: .semibold))
