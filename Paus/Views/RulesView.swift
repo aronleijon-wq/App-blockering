@@ -202,10 +202,7 @@ struct RulesView: View {
         guard let monthly = store.monthlyPrice, let yearly = store.yearlyPrice else {
             return L("7 dagar gratis, sedan per månad eller år")
         }
-        if let perMonth = store.yearlyPerMonth {
-            return L("7 dagar gratis, sedan \(yearly)/år (bara \(perMonth)/mån) eller \(monthly)/mån")
-        }
-        return L("7 dagar gratis, sedan \(yearly)/år eller \(monthly)/mån")
+        return L("\(yearly) per år eller \(monthly) per månad, med 7 dagar gratis")
     }
 
     private func binding<Value>(_ keyPath: WritableKeyPath<PausRules, Value>) -> Binding<Value> {

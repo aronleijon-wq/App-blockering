@@ -75,6 +75,21 @@ struct PaywallView: View {
                     }
                 }
 
+                if let selected {
+                    // The billed amount is the biggest price on the screen; the trial and the monthly figure stay
+                    // smaller, as App Review asks.
+                    VStack(spacing: 4) {
+                        Text(billedText(for: selected))
+                            .font(.title2.weight(.heavy).monospacedDigit())
+                        if let trialDays {
+                            Text(L("De första \(trialDays) dagarna är gratis"))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+
                 Button {
                     Task { await buy() }
                 } label: {
@@ -164,8 +179,11 @@ struct PaywallView: View {
     }
 
     private var buttonTitle: String {
-        if let trialDays { return L("Starta \(trialDays) dagar gratis") }
-        return L("Fortsätt")
+        L("Fortsätt")
+    }
+
+    private func billedText(for product: Product) -> String {
+        product.id == Store.yearlyProductID ? L("\(product.displayPrice) per år") : L("\(product.displayPrice) per månad")
     }
 
     /// What the subscription costs and how it renews, which Apple requires next to the buy button.
@@ -211,14 +229,20 @@ private struct PlanRow: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(isYearly ? L("Årsvis") : L("Månadsvis"))
                         .font(.headline)
-                    Text(isYearly ? L("\(product.displayPrice) per år") : L("\(product.displayPrice) per månad"))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    if let perMonth {
+                        Text(L("Motsvarar \(perMonth)/mån"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
-                if let perMonth {
-                    Text(L("\(perMonth)/mån"))
-                        .font(.headline.monospacedDigit())
+                // The billed amount, the most prominent price in the row.
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text(product.displayPrice)
+                        .font(.title3.weight(.heavy).monospacedDigit())
+                    Text(isYearly ? L("per år") : L("per månad"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(16)
